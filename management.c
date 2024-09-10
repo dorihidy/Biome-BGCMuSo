@@ -23,13 +23,13 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 
 int management(control_struct* ctrl, fertilizing_struct* FRZ, grazing_struct* GRZ, harvesting_struct* HRV, mowing_struct* MOW, 
 			   planting_struct* PLT, ploughing_struct* PLG, thinning_struct* THN, irrigating_struct* IRG, 
-			   mulching_struct* MUL, CWDextract_struct* CWE, flooding_struct* FLD, groundwater_struct* GWS, int* mondays)
+			   mulching_struct* MUL, CWDextract_struct* CWE, flooding_struct* FLS, groundwaterINIT_struct* GWS, int* mondays)
 {
 
 	int errorCode=0;
 	int md = 0;
 	int year;
-	int GRZstart_yday, GRZend_yday, FLDstart_yday, FLDend_yday, yday_wyr;
+	int GRZstart_yday, GRZend_yday, FLstart_yday, FLend_yday, yday_wyr;
 
 	year = ctrl->simstartyear + ctrl->simyr;
 
@@ -159,37 +159,37 @@ int management(control_struct* ctrl, fertilizing_struct* FRZ, grazing_struct* GR
 		}
 	}
 
-	/* do flooding if FLD_num > 0 */
-	if (FLD->FLD_num)
+	/* do flooding if FLnum > 0 */
+	if (FLS->FLnum)
 	{
-		md = FLD->mgmdFLD;
-		FLDstart_yday = FLD->FLDstart_year_array[md] * nDAYS_OF_YEAR + date_to_doy(mondays, FLD->FLDstart_month_array[md], FLD->FLDstart_day_array[md]);
-		FLDend_yday   = FLD->FLDend_year_array[md] * nDAYS_OF_YEAR + date_to_doy(mondays, FLD->FLDend_month_array[md], FLD->FLDend_day_array[md]);
+		md = FLS->mgmdFL;
+		FLstart_yday = FLS->FLstart_year_array[md] * nDAYS_OF_YEAR + date_to_doy(mondays, FLS->FLstart_month_array[md], FLS->FLstart_day_array[md]);
+		FLend_yday   = FLS->FLend_year_array[md] * nDAYS_OF_YEAR + date_to_doy(mondays, FLS->FLend_month_array[md], FLS->FLend_day_array[md]);
 		yday_wyr = (ctrl->simstartyear + ctrl->simyr) * nDAYS_OF_YEAR + ctrl->yday;
 
 
-		if (yday_wyr >= FLDstart_yday && yday_wyr <= FLDend_yday) 
+		if (yday_wyr >= FLstart_yday && yday_wyr <= FLend_yday) 
 		{
-			if (yday_wyr == FLDend_yday) FLD->mgmdFLD += 1;
-			if (ctrl->onscreen && ctrl->spinup != 1 && yday_wyr == FLDstart_yday) 
+			if (yday_wyr == FLend_yday) FLS->mgmdFL += 1;
+			if (ctrl->onscreen && ctrl->spinup != 1 && yday_wyr == FLstart_yday) 
 			{
 				printf("flooding: FIRST DAY - %i%s%i\n", ctrl->month, "/", ctrl->day);
 				printf("flooding: LAST DAY - %i%s%i\n", ctrl->month, "/", ctrl->day);
 			}
 
-			FLD->mgmdFLD += 1;
+			FLS->mgmdFL += 1;
 		}
 	}
 
-	/* do groundwater if GWD_num > 0 */
-	if (GWS->GWD_num)
+	/* do groundwater if GWnum > 0 */
+	if (GWS->GWnum)
 	{
-		md = GWS->mgmdGWD;
+		md = GWS->mgmdGW;
 
 	
 		if (year == GWS->GWyear_array[md] && ctrl->month == GWS->GWmonth_array[md] && ctrl->day == GWS->GWday_array[md])
 		{
-			GWS->mgmdGWD += 1;
+			GWS->mgmdGW += 1;
 			if (ctrl->onscreen && ctrl->spinup != 1 && ctrl->simyr == 0) printf("groundwater on %i%s%i\n", ctrl->month, "/", ctrl->day);
 		}
 	}

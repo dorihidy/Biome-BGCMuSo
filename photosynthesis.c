@@ -30,8 +30,8 @@ Hidy: correction of c4 photosynthesis routine based on the work of Vittorio et a
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int photosynthesis(const epconst_struct* epc, const metvar_struct* metv, const cstate_struct* cs, const wstate_struct* ws, const phenology_struct* phen,
-	               epvar_struct* epv, psn_struct* psn_sun, psn_struct* psn_shade, cflux_struct *cf) 
+int photosynthesis(const control_struct* ctrl, const epconst_struct* epc, const metvar_struct* metv, const cstate_struct* cs, const wstate_struct* ws, const phenology_struct* phen,
+	               epvar_struct* epv, psn_struct* psn_sun, psn_struct* psn_shade, cflux_struct* cf) 
 {
 	int errorCode=0;
 	double W_to_MJperDAY, DDMP_sunlit, DDMP_shaded, RUE, assim_CO2coeff, co2_ref, b, g_to_kg;
@@ -43,13 +43,13 @@ int photosynthesis(const epconst_struct* epc, const metvar_struct* metv, const c
 	psn_sun->pa		= metv->pa;
 
 	/* photosynth. acclimation */
-	if (epc->phtsyn_acclim_flag == 1)
+	if (ctrl->phtsyn_acclim_flag == 1)
 		psn_sun->t      = metv->tACCLIM;
 	else
 		psn_sun->t		= metv->Tday;
 
-	if (epv->sun_proj_sla)
-		psn_sun->lnc	= 1.0 / (epv->sun_proj_sla * epc->leaf_cn);
+	if (epv->projSLA_sun)
+		psn_sun->lnc	= 1.0 / (epv->projSLA_sun * epc->leaf_cn);
 	else 
 		psn_sun->lnc	= 0;
 	psn_sun->flnr	= epc->flnr;
@@ -63,8 +63,8 @@ int photosynthesis(const epconst_struct* epc, const metvar_struct* metv, const c
 	psn_shade->co2	= metv->co2;
 	psn_shade->pa	= metv->pa;
 	psn_shade->t	= metv->Tday;
-	if (epv->shade_proj_sla)
-		psn_shade->lnc	= 1.0 / (epv->shade_proj_sla * epc->leaf_cn);
+	if (epv->projSLA_shade)
+		psn_shade->lnc	= 1.0 / (epv->projSLA_shade * epc->leaf_cn);
 	else 
 		psn_shade->lnc	= 0;
 	psn_shade->flnr	= epc->flnr;
@@ -80,10 +80,10 @@ int photosynthesis(const epconst_struct* epc, const metvar_struct* metv, const c
 	/* new stressfactor of photosynthesis */
 
 	
-	epv->assim_SScoeff = epv->m_SWCstress + (1-epv->m_SWCstress)*(1-epc->photoSTRESSeffect);
+	epv->assim_WScoeff = epv->m_WS + (1-epv->m_WS)*(1-epc->photoSTRESSeffect);
 
 
-	if (!errorCode && epv->n_actphen > epc->n_emerg_phenophase && cs->leafc && phen->remdays_curgrowth && metv->dayl && ws->snoww <= epc->snowcover_limit)
+	if (!errorCode && epv->n_actphen > 0 && epv->n_actphen >= epc->n_emerg_phenophase && cs->leafc && phen->remdays_curgrowth && metv->dayl && ws->snoww <= epc->snowcover_limit)
 	{	
 	
 		/* 1. Tmax limitation calculation of photosynthesis */
@@ -110,12 +110,12 @@ int photosynthesis(const epconst_struct* epc, const metvar_struct* metv, const c
 			if (epv->assim_Tcoeff < 0 || epv->assim_Tcoeff > 1)
 			{
 				printf("\n");
-				printf("FATAL ERROR in assim_Tcoeff calculation (photosynthesis.c)\n");
+				printf("ERROR in photosynthesis.c: in assim_Tcoeff calculation\n");
 				errorCode=1;
 			}
 		}
 		
-		if (epc->photosynt_flag)
+		if (ctrl->photosynt_flag)
 		{
 	
 			/* 2. DSSAT photosytnhesis rountine */
@@ -136,25 +136,25 @@ int photosynthesis(const epconst_struct* epc, const metvar_struct* metv, const c
 			DDMP_sunlit = (metv->parabs_plaisun   * W_to_MJperDAY) * RUE;   // [DDMP] = g m-2 d-1
 			DDMP_shaded = (metv->parabs_plaishade * W_to_MJperDAY) * RUE;
 
-			cf->psnsun_to_cpool   = DDMP_sunlit * g_to_kg * epv->assim_SScoeff;  
-			cf->psnshade_to_cpool = DDMP_shaded * g_to_kg * epv->assim_SScoeff;  
+			cf->psnsun_to_cpool   = DDMP_sunlit * g_to_kg * epv->assim_WScoeff;  
+			cf->psnshade_to_cpool = DDMP_shaded * g_to_kg * epv->assim_WScoeff;  
 
 		}
 		else
 		{
 	
 			/* 3.1 MuSo SUNLIT canopy fraction photosynthesis */
-			if (!errorCode && farquhar(epc, metv, psn_sun))
+			if (!errorCode && farquhar(ctrl, metv, psn_sun))
 			{
-				printf("ERROR in farquhar() in  photosynthesis()\n");
+				printf("ERROR in farquhar.c for photosynthesis.c\n");
 				errorCode=1;
 			}
 				
 						
 			/* 3.2. MuSo SHADED canopy fraction photosynthesis */
-			if (!errorCode && farquhar(epc, metv, psn_shade))
+			if (!errorCode && farquhar(ctrl, metv, psn_shade))
 			{
-				printf("ERROR in photosynthesis() from bgc()\n");
+				printf("ERROR in farquhar.c for photosynthesis.c\n");
 				errorCode=1;
 			}
 	
@@ -191,11 +191,11 @@ int photosynthesis(const epconst_struct* epc, const metvar_struct* metv, const c
 	}
 
 	/* stress effect to assimilation */
-	epv->assim_sun = psn_sun->A * epv->assim_Tcoeff * epv->assim_SScoeff;
-	epv->assim_shade = psn_shade->A * epv->assim_Tcoeff * epv->assim_SScoeff;
+	epv->assim_sun = psn_sun->A * epv->assim_Tcoeff * epv->assim_WScoeff;
+	epv->assim_shade = psn_shade->A * epv->assim_Tcoeff * epv->assim_WScoeff;
 
 		
-	if (!epc->photosynt_flag)
+	if (!ctrl->photosynt_flag)
 	{	
 		/* for the final flux assignment, the assimilation output needs to have the maintenance respiration rate added, this
 		sum multiplied by the projected leaf area in the relevant canopy fraction, and this total converted from umol/m2/s -> kgC/m2/d */
@@ -210,7 +210,7 @@ int photosynthesis(const epconst_struct* epc, const metvar_struct* metv, const c
 return (errorCode);
 }
 
-int farquhar(const epconst_struct* epc, const metvar_struct* metv, psn_struct* psn) 
+int farquhar(const control_struct* ctrl, const metvar_struct* metv, psn_struct* psn)
 {
 	/*
 	The following variables are assumed to be defined in the psn struct
@@ -358,7 +358,7 @@ int farquhar(const epconst_struct* epc, const metvar_struct* metv, psn_struct* p
 	*/
 
 	psn->Jmax = Jmax = 1.97*Vmax;
-	if (epc->phtsyn_acclim_flag == 2)
+	if (ctrl->phtsyn_acclim_flag == 2)
 	{
 		acclim_rVJ = acclim_a + acclim_b * metv->TavgRA30;
 		psn->Jmax  = acclim_rVJ * Vmax;
@@ -400,7 +400,7 @@ int farquhar(const epconst_struct* epc, const metvar_struct* metv, psn_struct* p
     
 		if ((det = b*b - 4.0*a*c) < 0.0)
 		{
-    		printf("ERROR: negative root error in psn routine\n");
+    		printf("ERROR in photosynthesis.c: negative root error\n");
     		errorCode=1;
 		}
     
@@ -413,7 +413,7 @@ int farquhar(const epconst_struct* epc, const metvar_struct* metv, psn_struct* p
 			
 		if ((det = b*b - 4.0*a*c) < 0.0)
 		{
-			printf("ERROR: negative root error in psn routine\n");
+			printf("ERROR in photosynthesis.c: negative root error\n");
 			errorCode=1;
 		}
 		
@@ -469,7 +469,7 @@ int farquhar(const epconst_struct* epc, const metvar_struct* metv, psn_struct* p
 		
 		if ((det = b*b - 4.0*a*c) < 0.0)
 		{
-			printf("ERROR: negative root error in psn routine\n");
+			printf("ERROR in photosynthesis.c: negative root error\n");
 			errorCode=1;
 		}
 		psn->Av = Av = (-b + sqrt(det)) / (2.0*a);
@@ -479,7 +479,7 @@ int farquhar(const epconst_struct* epc, const metvar_struct* metv, psn_struct* p
 		c = Rd * (4.5 * Cm + 4.5 * rbs * V4 + 10.5 * gamma) + J * (gamma - Cm - rbs * V4);
 		if ((det = b*b - 4.0*a*c) < 0.0)
 		{
-			printf("ERROR: negative root error in psn routine\n");
+			printf("ERROR in photosynthesis.c: negative root error\n");
 			errorCode=1;
 		}
 		

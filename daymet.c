@@ -69,7 +69,7 @@ int daymet(const control_struct* ctrl,const metarr_struct* metarr, const epconst
 
 	
 	/* **********************************************************************************/
-	/* new estimation of tsoil () - on the first day original method is used */
+	/* new estimation of tsoil - on the first day original method is used */
 	
 	/* ORIGINAL: for this version, an 11-day running weighted average of daily average temperature is used as the soil temperature at 10 cm.
 	For days 1-10, a 1-10 day running weighted average is used instead.The tail of the running average is weighted linearly from 1 to 11.

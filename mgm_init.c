@@ -28,7 +28,7 @@ which gave an error.
 
 
 
-int mgm_init(file init, control_struct *ctrl,  epconst_struct* epc, 
+int mgm_init(file init, control_struct* ctrl,  
 	         fertilizing_struct* FRZ, grazing_struct* GRZ, harvesting_struct* HRV, mowing_struct* MOW, planting_struct* PLT, ploughing_struct* PLG, 
 			 thinning_struct* THN, irrigating_struct* IRG, mulching_struct* MUL, CWDextract_struct* CWE)
 {
@@ -87,7 +87,7 @@ int mgm_init(file init, control_struct *ctrl,  epconst_struct* epc,
 		
 			if (!errorCode && strcmp(mgm_file.name, key2))
 			{
-				printf("ERROR opening mgm_file file from INI file, mgm_init()\n");
+				printf("ERROR opening mgm_file file from INI file, mgm_init.c\n");
 				errorCode=210;
 			}
 			dofilecloseMANAGEMENT = 0;
@@ -100,7 +100,7 @@ int mgm_init(file init, control_struct *ctrl,  epconst_struct* epc,
 		/* first scan sprop header to ensure proper *.sprop format */
 		if (!errorCode && scan_value(mgm_file, header, 's'))
 		{
-			printf("ERROR reading header, mgm_init()\n");
+			printf("ERROR reading header, mgm_init.c\n");
 			errorCode=210;
 		}
 		
@@ -110,7 +110,7 @@ int mgm_init(file init, control_struct *ctrl,  epconst_struct* epc,
 			enddays = (int*) malloc(nMONTHS_OF_YEAR * sizeof(int));
 			if (!enddays)
 			{
-				printf("ERROR allocating for enddays in bgc.c()\n");
+				printf("ERROR allocating for enddays in bgc.c\n");
 				errorCode=2100;
 			}
 		}
@@ -120,7 +120,7 @@ int mgm_init(file init, control_struct *ctrl,  epconst_struct* epc,
 			mondays = (int*) malloc(nMONTHS_OF_YEAR * sizeof(int));
 			if (!mondays)
 			{
-				printf("ERROR allocating for enddays in bgc.c()\n");
+				printf("ERROR allocating for enddays in bgc.c\n");
 				errorCode=2100;
 			}
 		}
@@ -129,72 +129,72 @@ int mgm_init(file init, control_struct *ctrl,  epconst_struct* epc,
 		/* MANAGEMENT SECTION  */
 	
 		/* read the planting information */
-		if (!errorCode && planting_init(mgm_file, ctrl, PLT, epc))
+		if (!errorCode && planting_init(mgm_file, ctrl, PLT))
 		{
-			printf("ERROR in call to planting_init() from mgm_init.c... Exiting\n");
+			printf("ERROR in call to planting_init.c from mgm_init.c... Exiting\n");
 			errorCode=2101;
 		}
 
 		/* read the thinning information */
 		if (!errorCode && thinning_init(mgm_file, ctrl, THN))
 		{
-			printf("ERROR in call to thinning_init() from mgm_init.c... Exiting\n");
+			printf("ERROR in call to thinning_init.c from mgm_init.c... Exiting\n");
 			errorCode=2102;
 		}
 
 		/* read the mowing  information */
 		if (!errorCode && mowing_init(mgm_file, ctrl, MOW))
 		{
-			printf("ERROR in call to mowing_init() from mgm_init.c... Exiting\n");
+			printf("ERROR in call to mowing_init.c from mgm_init.c... Exiting\n");
 			errorCode=2103;
 		}
 
 		/* read the grazing information */
 		if (!errorCode && grazing_init(mgm_file, ctrl, GRZ))
 		{
-			printf("ERROR in call to grazing_init() from mgm_init.c... Exiting\n");
+			printf("ERROR in call to grazing_init.c from mgm_init.c... Exiting\n");
 			errorCode=2104;
 		}
 
 		/* read the harvesting information */
 		if (!errorCode && harvesting_init(mgm_file, ctrl, HRV))
 		{
-			printf("ERROR in call to harvesting_init() from mgm_init.c... Exiting\n");
+			printf("ERROR in call to harvesting_init.c from mgm_init.c... Exiting\n");
 			errorCode=2105;
 		}
 
 		/* read the harvesting information */
 		if (!errorCode && ploughing_init(mgm_file, ctrl, PLG))
 		{
-			printf("ERROR in call to ploughing_init() from mgm_init.c... Exiting\n");
+			printf("ERROR in call to ploughing_init.c from mgm_init.c... Exiting\n");
 			errorCode=2106;
 		}
 
 		/* read the fertilizing  information */
 		if (!errorCode && fertilizing_init(mgm_file, ctrl, FRZ))
 		{
-			printf("ERROR in call to fertilizing_init() from mgm_init.c... Exiting\n");
+			printf("ERROR in call to fertilizing_init.c from mgm_init.c... Exiting\n");
 			errorCode=2107;
 		}
 
 		/* read the irrigating information */
 		if (!errorCode && irrigating_init(mgm_file, ctrl, IRG))
 		{
-			printf("ERROR in call to irrigating_init() from mgm_init.c... Exiting\n");
+			printf("ERROR in call to irrigating_init.c from mgm_init.c... Exiting\n");
 			errorCode=2108;
 		}
 
 		/* read the mulching information */
 		if (!errorCode && mulching_init(mgm_file, ctrl, MUL))
 		{
-			printf("ERROR in call to mulching_init() from mgm_init.c... Exiting\n");
+			printf("ERROR in call to mulching_init.c from mgm_init.c... Exiting\n");
 			errorCode=2109;
 		}
 
 		/* read the CWDextract information */
 		if (!errorCode && CWDextract_init(mgm_file, ctrl, CWE))
 		{
-			printf("ERROR in call to CWDextract_init() from mgm_init.c... Exiting\n");
+			printf("ERROR in call to CWDextract_init.c from mgm_init.c... Exiting\n");
 			errorCode=2110;
 		}
 
@@ -229,7 +229,7 @@ int mgm_init(file init, control_struct *ctrl,  epconst_struct* epc,
 			{
 				if (!errorCode && leapControl(PLT->PLTyear_array[mgm], enddays, mondays, &leap))
 				{
-					printf("ERROR in call to leapControl() from mgm_init.c\n");
+					printf("ERROR in call to leapControl.c from mgm_init.c\n");
 					errorCode=2100002;
 				}
 				doy = date_to_doy(mondays, PLT->PLTmonth_array[mgm], PLT->PLTday_array[mgm]);
@@ -244,7 +244,7 @@ int mgm_init(file init, control_struct *ctrl,  epconst_struct* epc,
 
 				if (!errorCode && leapControl(HRV->HRVyear_array[mgm], enddays, mondays, &leap))
 				{
-					printf("ERROR in call to leapControl() from mgm_init.c\n");
+					printf("ERROR in call to leapControl.c from mgm_init.c\n");
 					errorCode=2100004;
 				}
 				doy = date_to_doy(mondays, HRV->HRVmonth_array[mgm], HRV->HRVday_array[mgm]);
@@ -275,7 +275,7 @@ int mgm_init(file init, control_struct *ctrl,  epconst_struct* epc,
 			{
 				if (!errorCode && leapControl(GRZ->GRZstart_year_array[mgm], enddays, mondays, &leap))
 				{
-					printf("ERROR in call to leapControl() from mgm_init.c\n");
+					printf("ERROR in call to leapControl.c from mgm_init.c\n");
 					errorCode=2100007;
 				}
 				GRZstart_yday = GRZ->GRZstart_year_array[mgm] * nDAYS_OF_YEAR + date_to_doy(mondays, GRZ->GRZstart_month_array[mgm], GRZ->GRZstart_day_array[mgm]);
@@ -289,7 +289,7 @@ int mgm_init(file init, control_struct *ctrl,  epconst_struct* epc,
 
 				if (!errorCode && leapControl(GRZ->GRZend_year_array[mgm], enddays, mondays, &leap))
 				{
-					printf("ERROR in call to leapControl() from mgm_init.c\n");
+					printf("ERROR in call to leapControl.c from mgm_init.c\n");
 					errorCode=2100009;
 				}
 				GRZend_yday   = GRZ->GRZend_year_array[mgm] * nDAYS_OF_YEAR + date_to_doy(mondays, GRZ->GRZend_month_array[mgm], GRZ->GRZend_day_array[mgm]);
@@ -316,7 +316,7 @@ int mgm_init(file init, control_struct *ctrl,  epconst_struct* epc,
 			{
 				if (!errorCode && leapControl(THN->THNyear_array[mgm], enddays, mondays, &leap))
 				{
-					printf("ERROR in call to leapControl() from mgm_init.c\n");
+					printf("ERROR in call to leapControl.c from mgm_init.c\n");
 					errorCode=2100012;
 				}
 				if (leap == 1 && THN->THNmonth_array[mgm] == 12 && THN->THNday_array[mgm] == 31)
@@ -334,7 +334,7 @@ int mgm_init(file init, control_struct *ctrl,  epconst_struct* epc,
 			{
 				if (!errorCode && leapControl(MOW->MOWyear_array[mgm], enddays, mondays, &leap))
 				{
-					printf("ERROR in call to leapControl() from mgm_init.c\n");
+					printf("ERROR in call to leapControl.c from mgm_init.c\n");
 					errorCode=2100013;
 				}
 				if (leap == 1 && MOW->MOWmonth_array[mgm] == 12 && MOW->MOWday_array[mgm] == 31)
@@ -352,7 +352,7 @@ int mgm_init(file init, control_struct *ctrl,  epconst_struct* epc,
 			{
 				if (!errorCode && leapControl(PLG->PLGyear_array[mgm], enddays, mondays, &leap))
 				{
-					printf("ERROR in call to leapControl() from mgm_init.c\n");
+					printf("ERROR in call to leapControl.c from mgm_init.c\n");
 					errorCode=2100013;
 				}
 				if (leap == 1 && PLG->PLGmonth_array[mgm] == 12 && PLG->PLGday_array[mgm] == 31)
@@ -370,7 +370,7 @@ int mgm_init(file init, control_struct *ctrl,  epconst_struct* epc,
 			{
 				if (!errorCode && leapControl(FRZ->FRZyear_array[mgm], enddays, mondays, &leap))
 				{
-					printf("ERROR in call to leapControl() from mgm_init.c\n");
+					printf("ERROR in call to leapControl.c from mgm_init.c\n");
 					errorCode=2100014;
 				}
 				if (leap == 1 && FRZ->FRZmonth_array[mgm] == 12 && FRZ->FRZday_array[mgm] == 31)
@@ -388,7 +388,7 @@ int mgm_init(file init, control_struct *ctrl,  epconst_struct* epc,
 			{
 				if (!errorCode && leapControl(IRG->IRGyear_array[mgm], enddays, mondays, &leap))
 				{
-					printf("ERROR in call to leapControl() from mgm_init.c\n");
+					printf("ERROR in call to leapControl.c from mgm_init.c\n");
 					errorCode=2100015;
 				}
 				if (leap == 1 && IRG->IRGmonth_array[mgm] == 12 && IRG->IRGday_array[mgm] == 31)
@@ -417,8 +417,8 @@ int mgm_init(file init, control_struct *ctrl,  epconst_struct* epc,
 
 	}
 	
-	if (errorCode == 0 || errorCode > 2100) free(enddays);
-	if (errorCode == 0 || errorCode > 2100) free(mondays);
+	if (!errorCode || errorCode > 2100) free(enddays);
+	if (!errorCode || errorCode > 2100) free(mondays);
 
 	return (errorCode);
 

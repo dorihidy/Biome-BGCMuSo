@@ -63,14 +63,14 @@ int irrigating_init(file init, const control_struct* ctrl, irrigating_struct* IR
 	/* header reading */
 	if (!errorCode && scan_value(init, header, 's'))
 	{
-		printf("ERROR reading keyword, irrigating_init()\n");
+		printf("ERROR reading keyword, irrigating_init.c\n");
 		errorCode=1;
 	}
 
 	/* keyword control */
 	if (!errorCode && scan_value(init, header, 's'))
 	{
-		printf("ERROR reading keyword, irrigating_init()\n");
+		printf("ERROR reading keyword, irrigating_init.c\n");
 		errorCode=1;
 	}
 	

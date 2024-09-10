@@ -62,14 +62,14 @@ int thinning_init(file init, const control_struct* ctrl, thinning_struct* THN)
 	/* header reading */
 	if (!errorCode && scan_value(init, header, 's'))
 	{
-		printf("ERROR reading keyword, thinning_init()\n");
+		printf("ERROR reading keyword, thinning_init.c\n");
 		errorCode=1;
 	}
 
 	/* keyword control */
 	if (!errorCode && scan_value(init, header, 's'))
 	{
-		printf("ERROR reading keyword, thinning_init()\n");
+		printf("ERROR reading keyword, thinning_init.c\n");
 		errorCode=1;
 	}
 

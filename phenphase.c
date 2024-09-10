@@ -24,13 +24,12 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
 int phenphase(file logfile, const control_struct* ctrl, const epconst_struct* epc, const soilprop_struct* sprop, const planting_struct* PLT, 
-	          phenology_struct *phen, metvar_struct *metv, epvar_struct* epv, cstate_struct* cs)
+	          phenology_struct* phen, metvar_struct* metv, epvar_struct* epv, cstate_struct* cs)
 {
 
 	int pp,	counter, layer;
 	double  dev_rate;
 	int errorCode=0;
-	int lasTday = 0;
 	double critVWC = 0;
 
 	
@@ -49,8 +48,7 @@ int phenphase(file logfile, const control_struct* ctrl, const epconst_struct* ep
 		phen->GDD_emergSTART = 0;
 		phen->GDD_emergEND   = 0;
 		phen->GDD_limit = 0;
-		phen->remdays_litfall =-1;
-		epv->sla_avg = 0;
+		epv->SLA_avg = 0;
 		cs->calc_flowHS = 0;
 
 		for (pp = 0; pp < N_PHENPHASES; pp++) 
@@ -62,10 +60,11 @@ int phenphase(file logfile, const control_struct* ctrl, const epconst_struct* ep
 
 		for (layer = 0; layer < N_SOILLAYERS; layer++) 
 		{
-			epv->m_SWCstress_layer[layer] = 1;
+			epv->m_WS_layer[layer] = 1;
 		}
-		epv->m_SWCstress = 1;
-		epv->m_SWCstressLENGTH = 1;
+		epv->m_WS = 1;
+		epv->m_NS = 1;
+		epv->m_WSlenght = 1;
 		epv->m_extremT = 1;
 		
 		for (pp=0; pp<N_PHENPHASES; pp++) epv->phenphase_date[pp] = -1;
@@ -73,13 +72,7 @@ int phenphase(file logfile, const control_struct* ctrl, const epconst_struct* ep
 
 	if (ctrl->yday == 0)
 	{
-		cs->yieldC_HRV        = 0;
-		cs->vegC_HRV          = 0;
-		cs->frootC_HRV        = 0;
-	    epv->cumSWCstress     = 0;
-		epv->cumNstress       = 0;
-		epv->plantCalloc_CUM  = 0;
-		epv->plantNalloc_CUM  = 0;  
+
 		epv->flower_date      = 0;
 		epv->winterEnd_date   = 0;
 	}
@@ -134,7 +127,7 @@ int phenphase(file logfile, const control_struct* ctrl, const epconst_struct* ep
 	{
 		if (vernalization(epc, metv, phen))
 		{
-			printf("ERROR: vernalization() in phenphase.c... \n");
+			printf("ERROR in vernalization.c for phenphase.c\n");
 			errorCode=1;
 		}
 	}
@@ -146,7 +139,7 @@ int phenphase(file logfile, const control_struct* ctrl, const epconst_struct* ep
 	{
 		if (photoslow(epc, metv, phen))
 		{
-			printf("ERROR: photoslow() in phenphase.c... \n");
+			printf("ERROR in photoslow.c for phenphase.c\n");
 			errorCode=1;
 		}
 	}
@@ -161,12 +154,12 @@ int phenphase(file logfile, const control_struct* ctrl, const epconst_struct* ep
 		(PLT->PLT_num > 0 && epv->n_actphen > 0)) 
 	{
 		/* if aboveground biomass exists -> air temperature, if not (plant is below the ground): soil temperature */
-		if (epv->n_actphen >= epc->n_emerg_phenophase)
+		if (epv->n_actphen > 0 && epv->n_actphen >= epc->n_emerg_phenophase)
 		{
 			if (metv->Tavg > epc->base_temp) 
 			{
 				metv->GDD       += (metv->Tavg - epc->base_temp);
-				metv-> GDD_wMOD  += (metv->Tavg - epc->base_temp) * dev_rate;
+				metv->GDD_wMOD  += (metv->Tavg - epc->base_temp) * dev_rate;
 			}
 		}
 		else
@@ -310,29 +303,39 @@ int phenphase(file logfile, const control_struct* ctrl, const epconst_struct* ep
 	}
 	else
 	{
-		phen->remdays_transfer = 0;
-		phen->predays_transfer = 0;
-		if (!lasTday) phen->remdays_litfall = 0;
-		phen->predays_litfall = 0;
-		phen->remdays_curgrowth = 0;
+		phen->remdays_transfer = -1;
+		phen->remdays_litfall = -1;
+		phen->remdays_curgrowth = -1;
+		phen->predays_transfer = -1;
+		phen->predays_litfall = -1;
+
+
 		for (pp=0; pp<N_PHENPHASES; pp++) epv->rootDepth_phen[pp] = -1;
 
 	}
 
 	/* fixing of onday/offday values for output (+1: output variables counts from 1, internal variables count from 0) */
-	phen->ondayANN = phen->onday + 1;
-	phen->offdayANN = phen->offday + 1;
+	if (phen->onday != -1)
+	{ 
+		phen->ondayANN  = phen->onday + 1;
+		phen->offdayANN = phen->offday + 1;
+	}
+	else
+	{
+		phen->ondayANN  = -1;
+		phen->offdayANN = -1;
+	}
+
 
 	/* 2.2 last day of vegetation period */ 
 	if ((phen->yday_total == phen->offday) || (phen->onday == DATA_GAP && phen->offday == DATA_GAP) ||(phen->offday-ctrl->simyr*365 == 364 && phen->yday_total == phen->offday))
 	{
-		epv->n_actphen = 0;
-
-		lasTday = 1;
-
+		if (epc->evergreen)
+			epv->n_actphen = 1;
+		else
+			epv->n_actphen = 0;
 		phen->onday = -1;
 		phen->offday = -1;
-
 	}
 
 	
@@ -342,7 +345,7 @@ int phenphase(file logfile, const control_struct* ctrl, const epconst_struct* ep
 
 }
 
-int vernalization(const epconst_struct* epc, const metvar_struct* metv, phenology_struct *phen)
+int vernalization(const epconst_struct* epc, const metvar_struct* metv, phenology_struct* phen)
 {
 	int errorCode=0;
 	double RVE; /* relative vernalization effectiveness */
@@ -387,7 +390,7 @@ int vernalization(const epconst_struct* epc, const metvar_struct* metv, phenolog
 	return (errorCode);
 }
 
-int photoslow(const epconst_struct* epc, const metvar_struct* metv, phenology_struct *phen)
+int photoslow(const epconst_struct* epc, const metvar_struct* metv, phenology_struct* phen)
 {
 	int errorCode=0;
 	double dayl_hour;

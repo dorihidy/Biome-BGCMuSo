@@ -40,7 +40,7 @@ int met_init(file init, point_struct* point)
 	/* scan for the input metfile keyword, exit if not next */
 	if (!errorCode && scan_value(init, keyword, 's'))
 	{
-		printf("ERROR reading keyword for met file: met_init()\n");
+		printf("ERROR reading keyword for met file: met_init.c\n");
 		errorCode=202;
 	}
 	if (!errorCode && strcmp(keyword, key1))
@@ -52,15 +52,15 @@ int met_init(file init, point_struct* point)
 	/* get the met data filename and open file for ascii read */
     if (!errorCode && scan_open(init,&point->metf,'i',1)) 
 	{
-		printf("ERROR opening met data file: met_init()\n");
-		errorCode=20221;
+		printf("ERROR opening met data file: met_init.c\n");
+		errorCode=20201;
 	}
 	
 	/* get number of metfile header lines */
 	if (!errorCode && scan_value(init, &nhead, 'i'))
 	{
-		printf("ERROR reading number of met file header lines: met_init()\n");
-		errorCode=20222;
+		printf("ERROR reading number of met file header lines: met_init.c\n");
+		errorCode=20202;
 	}
 	
 	/* read header lines from input met data file and discard */
@@ -69,15 +69,15 @@ int met_init(file init, point_struct* point)
 		if (scan_value(point->metf, junk_head, 's'))
 		{
 			printf("ERROR reading met file header line #%d\n",i+1);
-			errorCode=20222;
+			errorCode=20202;
 		}
 	}
 
 	/* number of simdays in last simyear (truncated year: < 365) */
 	if (!errorCode && scan_value(init, &point->nday_lastsimyear, 'i'))
 	{
-		printf("ERROR reading number of simdays in last simyear: met_init()\n");
-		errorCode=20223;
+		printf("ERROR reading number of simdays in last simyear: met_init.c\n");
+		errorCode=20203;
 	}
 
 	return (errorCode);

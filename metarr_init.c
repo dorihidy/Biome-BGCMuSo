@@ -313,7 +313,7 @@ int metarr_init(point_struct* point, metarr_struct* metarr, const climchange_str
 			/* control to avoid negative meteorological data */
  			if (prcp < 0 || vpd < 0 || swavgfd <= 0 || dayl <= 0)
 			{
-				printf("ERROR in met file: negative prcp/vpd/swavgfd/dayl or zero swavgfd/dayl data, metv_init()\n");
+				printf("ERROR in met file: negative prcp/vpd/swavgfd/dayl or zero swavgfd/dayl data, metv_init.c\n");
 				errorCode=218;
 			}
 		}
@@ -321,7 +321,7 @@ int metarr_init(point_struct* point, metarr_struct* metarr, const climchange_str
 		{
 			if (sd == 0 && year > ctrl->simstartyear)
 			{
-				printf("ERROR reading met array, metarr_init()\n");
+				printf("ERROR reading met array, metarr_init.c\n");
 				printf("Note: file must contain meteorological data for each simulation day\n");
 				errorCode=218;
 			}
@@ -408,26 +408,26 @@ int metarr_init(point_struct* point, metarr_struct* metarr, const climchange_str
 	
 	if (!errorCode && run_avg(metarr->Tavg_array, metarr->TavgRA11_array, ndays, 11, 1))
 	{
-		printf("ERROR: run_avg() in metv_init.c \n");
+		printf("ERROR in run_avg.c for metv_init.c \n");
 		errorCode=218;
 	}
 	
 	/*  new averages */
 	if (!errorCode && run_avg(metarr->Tavg_array, metarr->TavgRA30_array, ndays, 30, 0))
 	{
-		printf("ERROR: run_avg() in metv_init.c \n");
+		printf("ERROR in run_avg.c for metv_init.c \n");
 		errorCode=218;
 	}
 
 	if (!errorCode && run_avg(metarr->Tavg_array, metarr->TavgRA10_array, ndays, 10, 0))
 	{
-		printf("ERROR: run_avg() in metv_init.c \n");
+		printf("ERROR in run_avg.c for metv_init.c \n");
 		errorCode=218;
 	}
 
 	if (!errorCode && run_avg(metarr->tempradF_array, metarr->tempradFra_array, ndays, 5, 0))
 	{
-		printf("ERROR: run_avg() in metv_init.c \n");
+		printf("ERROR in run_avg.c for metv_init.c \n");
 		errorCode=218;
 	}
 
@@ -437,12 +437,12 @@ int metarr_init(point_struct* point, metarr_struct* metarr, const climchange_str
 	{
 		if (!errorCode && run_avg(metarr->annTavg_array, metarr->annTavgRA_array, nyears, 10, 0))
 		{
-			printf("ERROR: run_avg() in metv_init.c \n");
+			printf("ERROR in run_avg.c for metv_init.c \n");
 			errorCode=218;
 		}
 		if (!errorCode && run_avg(metarr->annTrange_array, metarr->annTrangeRA_array, nyears, 10, 0))
 		{
-			printf("ERROR: run_avg() in metv_init.c \n");
+			printf("ERROR in run_avg.c for metv_init.c \n");
 			errorCode=218;
 		}
 	}

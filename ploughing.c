@@ -28,7 +28,7 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 
 	/* ploughing parameters */
 	int PLGlayer, layer;
-	double PLGdepth, PLGcoeff, sminNH4_SUM, sminNO3_SUM, soilw_SUM, tsoil_SUM, sand_SUM, silt_SUM;	 
+	double PLGdepth, PLGcoeff, NH4_SUM, NO3_SUM, soilw_SUM, tsoilSUM, sand_SUM, silt_SUM;	 
 	double litr1c_SUM, litr2c_SUM, litr3c_SUM, litr4c_SUM, litr1n_SUM, litr2n_SUM, litr3n_SUM, litr4n_SUM;
 	double soil1c_SUM, soil2c_SUM, soil3c_SUM, soil4c_SUM, soil1n_SUM, soil2n_SUM, soil3n_SUM, soil4n_SUM;
 	int md, year;
@@ -40,7 +40,7 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 
 	errorCode=0;
 	PLGdepth=0;
-	PLGcoeff=sminNH4_SUM=sminNO3_SUM=soilw_SUM=tsoil_SUM=sand_SUM=silt_SUM=0;	 
+	PLGcoeff=NH4_SUM=NO3_SUM=soilw_SUM=tsoilSUM=sand_SUM=silt_SUM=0;	 
 	litr1c_SUM=litr2c_SUM=litr3c_SUM=litr4c_SUM=litr1n_SUM=litr2n_SUM=litr3n_SUM=litr4n_SUM=0;
 	soil1c_SUM=soil2c_SUM=soil3c_SUM=soil4c_SUM=soil1n_SUM=soil2n_SUM=soil3n_SUM=soil4n_SUM=0;
 
@@ -84,11 +84,11 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 	{
 		for (layer = 0; layer<PLGlayer; layer++)
 		{
-			tsoil_SUM += metv->tsoil[layer] * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
+			tsoilSUM += metv->tsoil[layer] * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
 
 			soilw_SUM     += ws->soilw[layer];
-			sminNH4_SUM   += ns->sminNH4[layer];
-			sminNO3_SUM   += ns->sminNO3[layer];
+			NH4_SUM   += ns->NH4[layer];
+			NO3_SUM   += ns->NO3[layer];
 			sand_SUM      += sprop->sand[layer];
 			silt_SUM      += sprop->silt[layer];
 			litr1c_SUM += cs->litr1c[layer];
@@ -113,7 +113,7 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 
 		for (layer = 0; layer<PLGlayer; layer++)
 		{
-			metv->tsoil[layer] = tsoil_SUM;
+			metv->tsoil[layer] = tsoilSUM;
 
 			ws->soilw[layer]   = soilw_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
 			epv->VWC[layer]    = ws->soilw[layer] / (water_density * sitec->soillayer_thickness[layer]);
@@ -122,8 +122,8 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 			sprop->silt[layer] = silt_SUM/PLGdepth;
 			sprop->clay[layer] = 100-sprop->sand[layer]-sprop->silt[layer];
 
-			ns->sminNH4[layer]   = sminNH4_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
-			ns->sminNO3[layer]   = sminNO3_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
+			ns->NH4[layer]   = NH4_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
+			ns->NO3[layer]   = NO3_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
 			cs->litr1c[layer]  = litr1c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
 			cs->litr2c[layer]  = litr2c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
 			cs->litr3c[layer]  = litr3c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];

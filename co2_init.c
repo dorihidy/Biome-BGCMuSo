@@ -22,7 +22,7 @@ Missoula, MT 59812
 #include "pointbgc_struct.h"
 #include "pointbgc_func.h"
 
-int co2_init(file init, co2control_struct* co2, control_struct *ctrl)
+int co2_init(file init, co2control_struct* co2, control_struct* ctrl)
 {
 	int errorCode, ny;
 	char key1[] = "CO2_CONTROL";
@@ -45,7 +45,7 @@ int co2_init(file init, co2control_struct* co2, control_struct *ctrl)
 	/* scan for the climate change block keyword, exit if not next */
 	if (!errorCode && scan_value(init, keyword, 's'))
 	{
-		printf("ERROR reading keyword, co2_init()\n");
+		printf("ERROR reading keyword, co2_init.c\n");
 		errorCode=205;
 	}
 	if (!errorCode && strcmp(keyword,key1))
@@ -57,12 +57,12 @@ int co2_init(file init, co2control_struct* co2, control_struct *ctrl)
 	/* begin reading co2 control information */
 	if (!errorCode && scan_value(init, &co2->varco2, 'i'))
 	{
-		printf("ERROR reading variable CO2 flag: co2_init()\n");
+		printf("ERROR reading variable CO2 flag: co2_init.c\n");
 		errorCode=20501;
 	}
 	if (!errorCode && scan_value(init, &co2->co2ppm, 'd'))
 	{
-		printf("ERROR reading constant CO2 value: co2_init()\n");
+		printf("ERROR reading constant CO2 value: co2_init.c\n");
 		errorCode=20502;
 	}
 	/* if using variable CO2 file, open it, otherwise
@@ -82,7 +82,7 @@ int co2_init(file init, co2control_struct* co2, control_struct *ctrl)
 			co2->co2yrs_array = (int*) malloc(ctrl->simyears * sizeof(int));
 			if (!co2->co2ppm_array)
 			{
-				printf("ERROR allocating for annual CO2 array, co2_init()\n");
+				printf("ERROR allocating for annual CO2 array, co2_init.c\n");
 				errorCode=20504;
 			}
 		}
@@ -91,7 +91,7 @@ int co2_init(file init, co2control_struct* co2, control_struct *ctrl)
 		{
 			if (!ny && yr > ctrl->simstartyear)
 			{
-				printf("ERROR reading annual CO2 array, co2_init()\n");
+				printf("ERROR reading annual CO2 array, co2_init.c\n");
 				printf("Note: file must contain a pair of values for each simulation years\n");
 				printf("simyear: year and CO2.\n");
 				errorCode=20505;
@@ -124,7 +124,7 @@ int co2_init(file init, co2control_struct* co2, control_struct *ctrl)
 	/* control */
 	if (!errorCode && co2->varco2 && ny != ctrl->simyears)
 	{
-		printf("ERROR reading annual CO2 array, co2_init()\n");
+		printf("ERROR reading annual CO2 array, co2_init.c\n");
 		printf("Note: file must contain a pair of values for each simulation years\n");
 		printf("simyear: year and CO2.\n");
 		errorCode=20508;

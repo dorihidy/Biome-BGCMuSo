@@ -120,14 +120,14 @@ int GSI_calculation(const metarr_struct* metarr, const siteconst_struct* sitec, 
 		if (!phenarr->onday_arr)
 		{
 			printf("\n");
-			printf("ERROR allocating for onday_arr, GSI_calculation()\n");
+			printf("ERROR allocating for onday_arr, GSI_calculation.c\n");
 			errorCode=1;
 		}
 
 		if (!phenarr->offday_arr)
 		{
 			printf("\n");
-			printf("ERROR allocating for offday_arr, GSI_calculation()\n");
+			printf("ERROR allocating for offday_arr, GSI_calculation.c\n");
 			errorCode=1;
 		}
 	}

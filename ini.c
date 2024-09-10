@@ -18,7 +18,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "ini.h"
 #include "bgc_constants.h"
 
-/* file_open() is the generic file opening routine using the file structure
+/* file_open.c is the generic file opening routine using the file structure
 defined above */
 int file_open (file *target, char mode, int errormessage)
 /*	Possible values for mode

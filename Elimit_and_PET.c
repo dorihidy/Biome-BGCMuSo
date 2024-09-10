@@ -20,7 +20,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int Elimit_and_PET(const epconst_struct* epc, const soilprop_struct* sprop, const metvar_struct* metv, epvar_struct *epv, wflux_struct* wf)
+int Elimit_and_PET(const control_struct* ctrl, const epconst_struct* epc, const soilprop_struct* sprop, const metvar_struct* metv, epvar_struct* epv, wflux_struct* wf)
 {
 	int errorCode=0;
 	double rbl;					                /* (m/s) boundary layer resistance */
@@ -32,7 +32,6 @@ int Elimit_and_PET(const epconst_struct* epc, const soilprop_struct* sprop, cons
 	double EEQ;			        /* internal variable of DSSAT model */
 	double wisp = 3;			/* wind speed (no input data - constans value = 3m/s) */
 	double potETS = 0; 
-	double aerodyn_resist_default = 107;
 
 	/*---------------------------------------------------------------*/
 	/* 0. ENERGETIC CONTROL - maximum energy */
@@ -45,7 +44,7 @@ int Elimit_and_PET(const epconst_struct* epc, const soilprop_struct* sprop, cons
 	/*---------------------------------------------------------------*/
 	/* I. Penman-Montieth */
 	/*---------------------------------------------------------------*/
-	if (epc->ET_flag == 0)
+	if (ctrl->ET_flag == 0)
 	{
 		/* correct conductances for temperature and pressure based on Jones (1992)
 		with standard conditions assumed to be 20 deg C, 101300 Pa */
@@ -91,26 +90,17 @@ int Elimit_and_PET(const epconst_struct* epc, const soilprop_struct* sprop, cons
 
 			/* calculate potEVP in kg/m2/s */
 			penmon(&pmet_in, 0, &potETcanopy);
+
+			if (epv->projLAI < LAIlimit_potET)
+			{	
+				potETcanopy *= epv->projLAI / LAIlimit_potET;
+			}
 		}
 		else
 		{
 			potEVPandSUBLsurface = 0;
-			rbl = rcorr * aerodyn_resist_default; 
-				
-			/*---------------------------------------------------------------*/
-			/* 2. Limit of canopy evaporation with absorbed radiation */
-			/*---------------------------------------------------------------*/
-
-			/* fill the pmet_in structure */
-			pmet_in.ta = metv->Tday;
-			pmet_in.pa = metv->pa;
-			pmet_in.vpd = metv->vpd;
-			pmet_in.irad = metv->swabs;
-			pmet_in.rv = rbl;
-			pmet_in.rh = rbl;
-
-			/* calculate potEVP in kg/m2/s */
-			penmon(&pmet_in, 0, &potETcanopy);
+			potETcanopy          = 0;
+		
 		}
 
 	
@@ -181,19 +171,20 @@ int Elimit_and_PET(const epconst_struct* epc, const soilprop_struct* sprop, cons
 		
 	if (metv->Tday > 0)
 	{
-		if (wf->snowwSUBL - wf->potEVPandSUBLsurface > CRIT_PRECwater)
+		if (wf->SUBLsnoww - wf->potEVPandSUBLsurface > CRIT_PRECwater)
 		{
-			wf->snowwSUBL     = wf->potEVPandSUBLsurface;
+			wf->SUBLsnoww     = wf->potEVPandSUBLsurface;
 			wf->potEVPsurface = 0;
 		}
 		else
-			wf->potEVPsurface = wf->potEVPandSUBLsurface - wf->snowwSUBL;
+			wf->potEVPsurface = wf->potEVPandSUBLsurface - wf->SUBLsnoww;
 	}
 	else
 	{
-		if (wf->snowwSUBL - wf->potEVPandSUBLsurface > CRIT_PRECwater) wf->snowwSUBL = wf->potEVPandSUBLsurface;
+		if (wf->SUBLsnoww - wf->potEVPandSUBLsurface > CRIT_PRECwater) wf->SUBLsnoww = wf->potEVPandSUBLsurface;
 		wf->potEVPsurface = 0;
 		wf->potETcanopy   = 0;
+		wf->PET           = wf->potEVPandSUBLsurface + wf->potETcanopy;
 	}
 
 	

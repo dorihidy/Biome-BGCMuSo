@@ -94,7 +94,7 @@ int fertilizing(const control_struct* ctrl, const siteconst_struct* sitec, const
 			}
 		
 	
-			EFf_N2O	    = FRZ->EFfert_N2O[md] /nDAYS_OF_YEAR;
+			EFf_N2O = FRZ->EFfert_N2O[md];
 
 			if ((flab + fucel + fscel + flig) > 0 && fabs(flab + fucel + fscel + flig - 1) > CRIT_PREC)
 			{
@@ -102,14 +102,27 @@ int fertilizing(const control_struct* ctrl, const siteconst_struct* sitec, const
 				errorCode=1;
 			}
 
+			
+
 			/* DM and WC content of fertilizer: kg/m2 = kg fertilizer/ha * ha/m2 * (% to prop.) */
 			fertilizer_DM = FRZ->fertilizer_array[md]  * ha_to_m2 * (FRZ->DM_array[md] / 100.);
 			fertilizer_WC = FRZ->fertilizer_array[md]  * ha_to_m2 * (1 - FRZ->DM_array[md] / 100.);
 
 			/* kgN/m2 = kg fertilizerDM/m2 * kgN/kg fertilizerDM */
-			nf->FRZ_to_sminNH4 = fertilizer_DM * (FRZ->NH4content_array[md] / 100.);
-			nf->FRZ_to_sminNO3 = fertilizer_DM * (FRZ->NO3content_array[md] / 100.);
-		
+			nf->FRZ_to_NH4 = fertilizer_DM * (FRZ->NH4content_array[md] / 100.);
+			nf->FRZ_to_NO3 = fertilizer_DM * (FRZ->NO3content_array[md] / 100.);
+
+			/* N2O emissions (kgN2O-N:kgN) */
+			nf->N2OfluxFRZ_NH4 = nf->FRZ_to_NH4  * EFf_N2O;
+			nf->N2OfluxFRZ_NO3 = nf->FRZ_to_NO3 * EFf_N2O;
+			nf->N2OfluxFRZ = nf->N2OfluxFRZ_NH4 + nf->N2OfluxFRZ_NO3;
+
+
+
+			/* due to N2O emission, FRZ_to_NH4 and FRZ_to_NO3 are decreasing */
+			nf->FRZ_to_NH4 -= nf->FRZ_to_NH4 * EFf_N2O;
+			nf->FRZ_to_NO3 -= nf->FRZ_to_NO3 * EFf_N2O;
+
 			/* on fertilizing day a fixed amount of ammonium/nitrate/organic nitrogen/organic carbon/water enters into the soil */
 			FRZ_to_litrn = fertilizer_DM * (FRZ->orgNcontent_array[md] / 100.);
 			nf->FRZ_to_litr1n  = FRZ_to_litrn * flab;
@@ -124,8 +137,8 @@ int fertilizing(const control_struct* ctrl, const siteconst_struct* sitec, const
 			cf->FRZ_to_litr4c  = FRZ_to_litrc * flig;	
 
 			wf->FRZ_to_soilw   = fertilizer_WC;
+
 		
-	
 			/* 4. fertilizing layer from depth */
 			layer = 1;
 			FRZlayer = 0;
@@ -143,13 +156,6 @@ int fertilizing(const control_struct* ctrl, const siteconst_struct* sitec, const
 				}
 			}
 
-
-	
-
-			/* 5. N2O emissions (kgN2O-N:kgN) */ 
-			nf->N2O_flux_FRZ   = (nf->FRZ_to_sminNH4 + nf->FRZ_to_sminNO3 + FRZ_to_litrn) * EFf_N2O;
-
-	
 
 			/* 6. STATE UPDATE */
 			ratio=0;
@@ -177,8 +183,8 @@ int fertilizing(const control_struct* ctrl, const siteconst_struct* sitec, const
 				ns->litr3n[layer] += nf->FRZ_to_litr3n * ratio;
 				ns->litr4n[layer] += nf->FRZ_to_litr4n * ratio;
 
-				ns->sminNH4[layer]  += nf->FRZ_to_sminNH4 * ratio;
-				ns->sminNO3[layer]  += nf->FRZ_to_sminNO3 * ratio;
+				ns->NH4[layer]  += nf->FRZ_to_NH4 * ratio;
+				ns->NO3[layer]  += nf->FRZ_to_NO3 * ratio;
 
 				/* water from fertilization -> soil layers, in case of oversaturation: pondw */	
 				ws->soilw[layer] += wf->FRZ_to_soilw * ratio;
@@ -198,9 +204,11 @@ int fertilizing(const control_struct* ctrl, const siteconst_struct* sitec, const
 				printf("ERROR in fertilizing ratio calculation (fertilizing.c)\n");
 				errorCode=1;
 			}
+
 			cs->FRZsrc_C += FRZ_to_litrc;
-			ns->FRZsrc_N += nf->FRZ_to_sminNH4 + nf->FRZ_to_sminNO3 + FRZ_to_litrn;
+			ns->FRZsrc_N += nf->FRZ_to_NH4 + nf->FRZ_to_NO3 + FRZ_to_litrn + nf->N2OfluxFRZ;
 			ws->FRZsrc_W += wf->FRZ_to_soilw;
+			ns->Nvol_snk += nf->N2OfluxFRZ;
 		
 
 		} /* endif  */

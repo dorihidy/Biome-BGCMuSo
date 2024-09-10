@@ -22,8 +22,8 @@ Missoula, MT 59812
 #include "bgc_func.h"       /* function prototypes */
 #include "bgc_constants.h"
 
-int restart_input(const control_struct* ctrl, const epconst_struct* epc, const soilprop_struct* sprop, const siteconst_struct* sitec, 
-	             wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, epvar_struct* epv, restart_data_struct* restart)
+int restart_input(const control_struct* ctrl, const epconst_struct* epc, const siteconst_struct* sitec,
+	wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, epvar_struct* epv, soilprop_struct* sprop, soilInfo_struct* soilInfo, restart_data_struct* restart)
 {
 	int errorCode=0;
 	int layer;
@@ -225,8 +225,8 @@ int restart_input(const control_struct* ctrl, const epconst_struct* epc, const s
 		ns->soil4n[layer]                 = restart->soil4n[layer];
 		ns->cwdn[layer]                   = restart->cwdn[layer];
 		
-		ns->sminNH4[layer]      = restart->sminNH4[layer];
-		ns->sminNO3[layer]      = restart->sminNO3[layer];
+		ns->NH4[layer]      = restart->NH4[layer];
+		ns->NO3[layer]      = restart->NO3[layer];
 	}
 
 	/* 4. ecophysiological variables */
@@ -236,14 +236,12 @@ int restart_input(const control_struct* ctrl, const epconst_struct* epc, const s
 	epv->annmax_softstemc                 = restart->annmax_softstemc;
 	epv->annmax_livestemc                 = restart->annmax_livestemc;
 	epv->annmax_livecrootc                = restart->annmax_livecrootc;
- 
-	
 
 	
 	return(errorCode);
 }
 
-int restart_output(const wstate_struct* ws, const cstate_struct* cs, const nstate_struct* ns, const epvar_struct* epv, restart_data_struct* restart)
+int restart_output(const wstate_struct* ws, const cstate_struct* cs, const nstate_struct* ns, const epvar_struct* epv, const soilprop_struct* sprop, const soilInfo_struct* soilInfo, restart_data_struct* restart)
 {
 	int errorCode=0;
 	int layer;
@@ -365,8 +363,8 @@ int restart_output(const wstate_struct* ws, const cstate_struct* cs, const nstat
 		restart->litr4n[layer]  = ns->litr4n[layer];
 		restart->cwdn[layer]	= ns->cwdn[layer];
 
-		restart->sminNH4[layer]  = ns->sminNH4[layer];
-		restart->sminNO3[layer]  = ns->sminNO3[layer];
+		restart->NH4[layer]  = ns->NH4[layer];
+		restart->NO3[layer]  = ns->NO3[layer];
 	}
 	
 	/* 4. ecophysiological variables */

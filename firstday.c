@@ -24,9 +24,9 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_constants.h"
 
 
-int firstday(const control_struct* ctrl, const soilprop_struct* sprop, const epconst_struct* epc, const planting_struct *PLT, 
-	         siteconst_struct* sitec, cinit_struct* cinit, phenology_struct* phen, epvar_struct* epv, 
-			 cstate_struct* cs, nstate_struct* ns, psn_struct* psn_sun, psn_struct* psn_shade)
+int firstday(const control_struct* ctrl, const epconst_struct* epc, const planting_struct* PLT, 
+	         soilprop_struct* sprop, siteconst_struct* sitec, cinit_struct* cinit, phenology_struct* phen, epvar_struct* epv, soilInfo_struct* soilInfo,
+	         wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, summary_struct* summary, psn_struct* psn_sun, psn_struct* psn_shade)
 {
 	int errorCode=0;
 	int layer, day, pp;
@@ -37,23 +37,26 @@ int firstday(const control_struct* ctrl, const soilprop_struct* sprop, const epc
 	/* 1. Initialize ecophysiological variables */
 
 	epv->DSR = 0.0;
-	epv->cumSWCstress = 0.0;
-	epv->cumNstress = 0.0;
-	epv->SWCstressLENGTH = 0.0;
+	epv->cumWS_anoxic = 0;
+	epv->cumWS_drought = 0;
+	epv->cumWS = 0.0;
+	epv->cumNS = 0.0;
+	epv->WSlenght = 0.0;
 	epv->transfer_ratio = 0.0;
 	epv->leafday = -1;
 	epv->leafday_lastmort = -1;
 
 	epv->n_rootlayers = 0;
 	epv->germ_layer = 1;
+
 	epv->germDepth = 0.05;
-    epv->proj_lai = 0;
-    epv->all_lai = 0;
-	epv->sla_avg = 0;
+    epv->projLAI = 0;
+    epv->allLAI = 0;
+	epv->SLA_avg = 0;
     epv->plaisun = 0;
     epv->plaishade = 0;
-    epv->sun_proj_sla = 0;
-    epv->shade_proj_sla = 0;
+    epv->projSLA_sun = 0;
+    epv->projSLA_shade = 0;
 	epv->plantHeight = 0;
 	epv->n_actphen = 0;
 	epv->flowHS_mort = 0;
@@ -64,12 +67,10 @@ int firstday(const control_struct* ctrl, const soilprop_struct* sprop, const epc
 
 	epv->plantCalloc = 0; 
 	epv->plantNalloc = 0;
-        epv->plantCalloc_CUM = 0; 
-	epv->plantNalloc_CUM = 0;
+    epv->cumCalloc_plant = 0; 
+	epv->cumNalloc_plant = 0;
 	epv->excess_c = 0;
 	epv->pnow = 0;
-	epv->MRdeficit_nw = 0;
-	epv->MRdeficit_w = 0;
 	epv->NDVI = 0;
 
 	epv->rootlength = 0;
@@ -79,7 +80,7 @@ int firstday(const control_struct* ctrl, const soilprop_struct* sprop, const epc
 	epv->stomaCONDUCT_max = 0;
 	epv->albedo_LAI = 0;
 	epv->assim_Tcoeff = 1;
-	epv->assim_SScoeff = 1;
+	epv->assim_WScoeff = 1;
 	epv->SCpercent = 0;
 	epv->SC_EVPred = 1;
 	epv->litr1_CNratio = 0;
@@ -113,7 +114,117 @@ int firstday(const control_struct* ctrl, const soilprop_struct* sprop, const epc
 	psn_shade->Av	    = 0;
 	psn_shade->Aj	    = 0;
 
+	
+	summary->leafDM = 0;
+	summary->leaflitrDM = 0;
+	summary->frootDM = 0;
+	summary->yieldDM = 0;
+	summary->softstemDM = 0;
+	summary->livewoodDM = 0;
+	summary->deadwoodDM = 0;
+	summary->yieldDM_HRV = 0;
+	summary->vegC = 0;
+	summary->vegN = 0;
+	summary->orgN = 0;
+	summary->LDaboveC_nw = 0;
+	summary->LDaboveC_w = 0;
+	summary->LDaboveCwithNSC_nw = 0;
+	summary->LDaboveCwithNSC_w = 0;
+	summary->LaboveC_nw = 0;
+	summary->LaboveC_w = 0;
+	summary->LaboveCwithNSC_nw = 0;
+	summary->LaboveCwithNSC_w = 0;
+	summary->DaboveC_nw = 0;
+	summary->DaboveC_w = 0;
+	summary->DaboveCwithNSC_nw = 0;
+	summary->DaboveCwithNSC_w = 0;
+	summary->LDbelowC_nw = 0;
+	summary->LDbelowC_w = 0;
+	summary->LDbelowCwithNSC_nw = 0;
+	summary->LDbelowCwithNSC_w = 0;
+	summary->LbelowC_nw = 0;
+	summary->LbelowC_w = 0;
+	summary->LbelowCwithNSC_nw = 0;
+	summary->LbelowCwithNSC_w = 0;
+	summary->DbelowC_nw = 0;
+	summary->DbelowC_w = 0;
+	summary->DbelowCwithNSC_nw = 0;
+	summary->DbelowCwithNSC_w = 0;
+	summary->livingSC = 0;
+	summary->livingNSC = 0;
+	summary->livingBIOMabove = 0;
+	summary->livingBIOMbelow = 0;
+	summary->BIOMaboveSUM = 0;
+	summary->BIOMbelowSUM = 0;
+	
+	summary->litrCwdC_total = 0;
+	summary->litrCwdN_total = 0;
+	summary->litrN_total = 0;
+	summary->litrC_total = 0;
+	summary->soilC_total = 0;
+	summary->soilN_total = 0;
+	summary->sminN_total = 0;
+	summary->sminNdissolv_total = 0;
+	summary->sminNdissolv_RZmax = 0;
+	summary->sminN_RZmax = 0;
+	summary->NO3_RZmax = 0;
+	summary->NH4_RZmax = 0;
+	summary->Wleach_RZmax = 0;
+	summary->DOCleach_RZmax = 0;
+	summary->DONleach_RZmax = 0;
+	summary->sminNleach_RZmax = 0;
+	summary->soilC_RZmax = 0;
+	summary->soilN_RZmax = 0;
+	summary->litrC_RZmax = 0;
+	summary->litrN_RZmax = 0;
+	summary->SOCpercent_top30 = 0;
+	summary->SOC_top30 = 0;
+	summary->SON_top30 = 0;
+	summary->totalC = 0;
+	summary->totalN = 0;
+	summary->SOCpercent_top30 = 0;
+	summary->SONpercent_top30 = 0;
+	summary->NH4dissolv_top30ppm = 0;
+	summary->NO3dissolv_top30ppm = 0;
+	summary->sminN_top30avail = 0;
+	
+	summary->leafc_LandD = 0;
+	summary->frootc_LandD = 0;
+	summary->yield_LandD = 0;
+	summary->softstemc_LandD = 0;
+	summary->CNlitr_total = 0;
+	summary->soilC_unsat = 0;
+	summary->soilN_unsat = 0;
+	summary->NH4_unsat = 0;
+	summary->NO3_unsat = 0;
+	summary->orgN_unsat = 0;
 
+	
+
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
+	{
+		/* possibility to calculate dynamic changing Ksat 		*/
+		if (sprop->hydrCONTUCTsatMES_cmPERday[layer] == (double)DATA_GAP)
+		{
+			if (ctrl->Ksat_flag == 1)
+				sprop->hydrCONDUCTsat[layer] = 7.05556 * 1e-6 * pow(10, (-0.6 + 0.0126 * sprop->sand[layer] - 0.0064 * sprop->clay[layer]));
+			else
+				sprop->hydrCONDUCTsat[layer] = (50 * exp(-0.075 * sprop->clay[layer]) + 200 * exp(-0.075 * (100 - sprop->sand[layer]))) / 100 / nSEC_IN_DAY;
+		}
+
+		sprop->hydrDIFFUSsat[layer] = (sprop->soilB[layer] * sprop->hydrCONDUCTsat[layer] * (-100 * sprop->PSIsat[layer])) / sprop->VWCsat[layer];
+		sprop->hydrCONDUCTfc[layer] = sprop->hydrCONDUCTsat[layer] * pow(sprop->VWCfc[layer] / sprop->VWCsat[layer], 2 * sprop->soilB[layer] + 3);
+		sprop->hydrDIFFUSfc[layer] = (((sprop->soilB[layer] * sprop->hydrCONDUCTsat[layer] * (-100 * sprop->PSIsat[layer]))) / sprop->VWCsat[layer])
+			* pow(sprop->VWCfc[layer] / sprop->VWCsat[layer], sprop->soilB[layer] + 2);
+
+
+		summary->NH4_ppm[layer] = 0;
+		summary->NO3_ppm[layer] = 0;
+		summary->sminNdissolv[layer] = 0;
+		summary->SOCpercent[layer] = 0;
+
+	}
+	sprop->infiltDepth_max =  (sprop->hydrCONDUCTsat[0] * 0.6 + sprop->hydrCONDUCTsat[1] * 0.3 + sprop->hydrCONDUCTsat[2] * 0.1) * nSEC_IN_DAY;
 
 	/* initalize the number of the soil layers in which root can be found. It determines the rootzone depth (only on first day) */
 	
@@ -122,7 +233,7 @@ int firstday(const control_struct* ctrl, const soilprop_struct* sprop, const epc
 		if (!errorCode) 
 		{
 			printf("\n");
-			printf("ERROR: calc_nrootlayers() for multilayer_rootDepth.c\n");
+			printf("ERROR in calc_nrootlayers.c for multilayer_rootDepth.c\n");
 		}
 		errorCode=1;
 	}
@@ -130,20 +241,17 @@ int firstday(const control_struct* ctrl, const soilprop_struct* sprop, const epc
 	/* initialize multilayer variables (first approximation: field cap.) and multipliers for stomatal limitation calculation */
 	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
-		epv->VWC[layer]				    = sprop->VWCfc[layer];
-		epv->relVWCsat_fc[layer]	    = 0;
-		epv->relVWCfc_wp[layer]         = 1;
-		epv->WFPS[layer]	            = epv->VWC[layer] / sprop->VWCsat[layer];	
-		epv->PSI[layer]				    = sprop->PSIfc[layer];
-		epv->hydrCONDUCTact[layer]	    = sprop->hydrCONDUCTfc[layer];
-		epv->hydrDIFFUSact[layer]	    = sprop->hydrDIFFUSfc[layer];
-		epv->pF[layer]				    = log10(fabs(10000*sprop->PSIfc[layer]));	// dimension of PSI: MPa to cm (10000 MPa = 1 cm)
-		epv->m_SWCstress_layer[layer]  = 1;
+		epv->m_WS_layer[layer]  = 1;
 	    epv->rootlengthProp[layer]     = 0;
 		epv->rootlengthLandD_prop[layer]= 0;
-		ns->sminNH4avail[layer]         = ns->sminNH4[layer] * sprop->NH4_mobilen_prop;
-		ns->sminNO3avail[layer]         = ns->sminNH4[layer] * NO3_mobilen_prop;
+		ns->sminN[layer]              = ns->NH4[layer] + ns->NO3[layer];
+		cs->soil1c_total += cs->soil1c[layer];
+		cs->soil2c_total += cs->soil2c[layer];
+		cs->soil3c_total += cs->soil3c[layer];
+		cs->soil4c_total += cs->soil4c[layer];
 	}
+
+
 
     /* evergreen biome: root available also in the first day */
 	epv->rootDepth = 0;
@@ -165,7 +273,7 @@ int firstday(const control_struct* ctrl, const soilprop_struct* sprop, const epc
 	epv->m_vpd = 1;
 	epv->m_final_sun = 1;
 	epv->m_final_shade = 1;
-	epv->m_SWCstressLENGTH = 1;
+	epv->m_WSlenght = 1;
 	epv->m_extremT = 1;
 	epv->gcorr = 0;
 	epv->gl_bl = 0;
@@ -189,22 +297,13 @@ int firstday(const control_struct* ctrl, const soilprop_struct* sprop, const epc
 		epv->npool_to_leafnARRAY[day] = 0;
 		epv->gpSNSC_phenARRAY[day] = 0;
 	}
-	epv->VWC_avg		    = sprop->VWCfc[0];
-	epv->VWC_RZ 		    = sprop->VWCfc[0];  
-	epv->VWC_maxRZ          = sprop->VWCfc[0]; 
-	epv->relVWCfc_wp_maxRZ  = 1;
-	epv->relVWCsat_fc_maxRZ = 0;
-	epv->hydrCONDUCTsat_avg = sprop->hydrCONDUCTsat[0];
-	epv->VWCsat_RZ 		    = sprop->VWCsat[0];  
-	epv->VWCfc_RZ 		    = sprop->VWCfc[0];  
-	epv->VWCwp_RZ 		    = sprop->VWCwp[0];  
-	epv->VWChw_RZ 		    = sprop->VWChw[0];  
-	epv->PSI_RZ		        = sprop->PSIfc[0];
-	epv->m_SWCstress	    = 1;
+
+	epv->m_WS	            = 1;
+	epv->m_WSanoxic         = 1;
+	epv->m_WSdrought        = 1;
 	epv->SMSI               = 0;
 	epv->flower_date        = 0;
 	epv->winterEnd_date     = 0;
-
 
 	phen->GDD_emergSTART = 0;
 	phen->GDD_emergEND   = 0;
@@ -423,15 +522,15 @@ int firstday(const control_struct* ctrl, const soilprop_struct* sprop, const epc
 	/*  if planting: transfer pools are deplenished (set to zero) on the first simulation day */ 
 	if (PLT->PLT_num > 0)
 	{
-		cs->HRV_transportC += cs->leafc + cs->leafc_transfer;
-		cs->HRV_transportC += cs->frootc + cs->frootc_transfer;
-		cs->HRV_transportC += cs->yieldc + cs->yieldc_transfer;
-		cs->HRV_transportC += cs->softstemc + cs->softstemc_transfer;
-		cs->HRV_transportC += cs->gresp_transfer;
-		cs->HRV_transportC += cs->STDBc_leaf;
-		cs->HRV_transportC += cs->STDBc_froot;
-		cs->HRV_transportC += cs->STDBc_yield;
-		cs->HRV_transportC += cs->STDBc_softstem;
+		cs->HRV_snkC += cs->leafc + cs->leafc_transfer;
+		cs->HRV_snkC += cs->frootc + cs->frootc_transfer;
+		cs->HRV_snkC += cs->yieldc + cs->yieldc_transfer;
+		cs->HRV_snkC += cs->softstemc + cs->softstemc_transfer;
+		cs->HRV_snkC += cs->gresp_transfer;
+		cs->HRV_snkC += cs->STDBc_leaf;
+		cs->HRV_snkC += cs->STDBc_froot;
+		cs->HRV_snkC += cs->STDBc_yield;
+		cs->HRV_snkC += cs->STDBc_softstem;
 
 		cs->leafc = 0;
 		cs->frootc = 0;
@@ -447,15 +546,15 @@ int firstday(const control_struct* ctrl, const soilprop_struct* sprop, const epc
 		cs->STDBc_yield = 0;
 		cs->STDBc_softstem = 0;
 
-		ns->HRV_transportN += ns->leafn + ns->leafn_transfer;
-		ns->HRV_transportN += ns->frootn + ns->frootn_transfer;
-		ns->HRV_transportN += ns->yieldn + ns->yieldn_transfer;
-		ns->HRV_transportN += ns->softstemn + ns->softstemn_transfer;
-		ns->HRV_transportN += ns->retransn;
-		ns->HRV_transportN += ns->STDBn_leaf;
-		ns->HRV_transportN += ns->STDBn_froot;
-		ns->HRV_transportN += ns->STDBn_yield;
-		ns->HRV_transportN += ns->STDBn_softstem;
+		ns->HRVsnk_N += ns->leafn + ns->leafn_transfer;
+		ns->HRVsnk_N += ns->frootn + ns->frootn_transfer;
+		ns->HRVsnk_N += ns->yieldn + ns->yieldn_transfer;
+		ns->HRVsnk_N += ns->softstemn + ns->softstemn_transfer;
+		ns->HRVsnk_N += ns->retransn;
+		ns->HRVsnk_N += ns->STDBn_leaf;
+		ns->HRVsnk_N += ns->STDBn_froot;
+		ns->HRVsnk_N += ns->STDBn_yield;
+		ns->HRVsnk_N += ns->STDBn_softstem;
 
 		ns->leafn = 0;
 		ns->frootn = 0;
@@ -530,11 +629,11 @@ int firstday(const control_struct* ctrl, const soilprop_struct* sprop, const epc
 			cs->softstemc = 0;
 			cs->softstemc_storage = 0;
 			cs->softstemc_transfer = 0;
-			cs->HRV_transportC += cs->softstemc + cs->softstemc_storage + cs->softstemc_transfer;
+			cs->HRV_snkC += cs->softstemc + cs->softstemc_storage + cs->softstemc_transfer;
 			ns->softstemn = 0;
 			ns->softstemn_storage = 0;
 			ns->softstemn_transfer = 0;
-			ns->HRV_transportN += ns->softstemn + ns->softstemn_storage + ns->softstemn_transfer;
+			ns->HRVsnk_N += ns->softstemn + ns->softstemn_storage + ns->softstemn_transfer;
 		}
 		else
 		{
@@ -550,7 +649,7 @@ int firstday(const control_struct* ctrl, const soilprop_struct* sprop, const epc
 			cs->deadcrootc = 0;
 			cs->deadcrootc_storage = 0;
 			cs->deadcrootc_transfer = 0;
-			cs->HRV_transportC += cs->livestemc + cs->livestemc_storage + cs->livestemc_transfer +
+			cs->HRV_snkC += cs->livestemc + cs->livestemc_storage + cs->livestemc_transfer +
 				                  cs->livecrootc + cs->livecrootc_storage + cs->livecrootc_transfer +
 								  cs->deadstemc + cs->deadstemc_storage + cs->deadstemc_transfer +
 				                  cs->deadcrootc + cs->deadcrootc_storage + cs->deadcrootc_transfer;
@@ -566,12 +665,47 @@ int firstday(const control_struct* ctrl, const soilprop_struct* sprop, const epc
 			ns->deadcrootn = 0;
 			ns->deadcrootn_storage = 0;
 			ns->deadcrootn_transfer = 0;
-			ns->HRV_transportN += ns->livestemn + ns->livestemn_storage + ns->livestemn_transfer +
+			ns->HRVsnk_N += ns->livestemn + ns->livestemn_storage + ns->livestemn_transfer +
 				                  ns->livecrootn + ns->livecrootn_storage + ns->livecrootn_transfer +
 								  ns->deadstemn + ns->deadstemn_storage + ns->deadstemn_transfer +
 				                  ns->deadcrootn + ns->deadcrootn_storage + ns->deadcrootn_transfer;
 		}
 
 	}
+
+	/* initialization of dissolving coefficent array */
+	soilInfo->dissolv_prop[0] = sprop->NH4_mobilen_prop;
+	soilInfo->dissolv_prop[1] = NO3_mobilen_prop;
+	soilInfo->dissolv_prop[2] = sprop->SOIL1_dissolv_prop;
+	soilInfo->dissolv_prop[3] = sprop->SOIL2_dissolv_prop;
+	soilInfo->dissolv_prop[4] = sprop->SOIL3_dissolv_prop;
+	soilInfo->dissolv_prop[5] = sprop->SOIL4_dissolv_prop;
+	soilInfo->dissolv_prop[6] = sprop->SOIL1_dissolv_prop;
+	soilInfo->dissolv_prop[7] = sprop->SOIL2_dissolv_prop;
+	soilInfo->dissolv_prop[8] = sprop->SOIL3_dissolv_prop;
+	soilInfo->dissolv_prop[9] = sprop->SOIL4_dissolv_prop;
+
+	/* call soil concentration calculation routine to calculate the concetration of soil (-1: all layers, NH4 -> content_soil*/
+	if (!errorCode && calc_soilconc(-1, 0, sprop, ws, cs, ns, soilInfo))
+	{
+		printf("ERROR in calc_soilconc.c for flooding.c\n");
+		errorCode = 1;
+	}
+
+	/* hydroparams */
+	if (!errorCode && multilayer_hydrolparams(sitec, sprop, ws, epv))
+	{
+		printf("\n");
+		printf("ERROR in multilayer_hydrolparams.c from firstday.c\n");
+		errorCode = 40701;
+	}
+
+	if (!errorCode && multilayer_rootDepth(epc, sprop, cs, sitec, epv))
+	{
+		printf("\n");
+		printf("ERROR in multilayer_rootDepth.c from firstday.c\n");
+		errorCode = 40702;
+	}
+
 	return (errorCode);
 }

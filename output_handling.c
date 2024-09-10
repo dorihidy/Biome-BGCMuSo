@@ -61,7 +61,7 @@ int output_handling(int* mondays, int* enddays, control_struct* ctrl, double** o
 		if (!errorCode && doy_to_date(enddays, ydayOUT, &monthOUT, &dayOUT, 1))
 		{
 			printf("\n");
-			printf("ERROR in call to doy_to_date() from output_handling()\n");
+			printf("ERROR in call to doy_to_date.c from output_handling.c\n");
 			errorCode=1;
 		}
 		
@@ -156,7 +156,7 @@ int output_handling(int* mondays, int* enddays, control_struct* ctrl, double** o
 			fprintf(monavgout.ptr, "%10s", " year month");
 			for (i=0; i< ctrl->ndayout; i++)
 			{
-				fprintf(monavgout.ptr, "%30s", ctrl->daynames[i]);
+				fprintf(monavgout.ptr, "%50s", ctrl->daynames[i]);
 			}
 			fprintf(monavgout.ptr, "\n");
 		}
@@ -226,7 +226,7 @@ int output_handling(int* mondays, int* enddays, control_struct* ctrl, double** o
 			fprintf(annavgout.ptr, "%5s", " year");
 			for (i=0; i< ctrl->ndayout; i++)
 			{
-				fprintf(annavgout.ptr, "%30s", ctrl->daynames[i]);
+				fprintf(annavgout.ptr, "%50s", ctrl->daynames[i]);
 			}
 			fprintf(annavgout.ptr, "\n");
 
@@ -301,7 +301,7 @@ int output_handling(int* mondays, int* enddays, control_struct* ctrl, double** o
 			fprintf(annout.ptr, "%5s", " year");
 			for (i=0; i< ctrl->nannout; i++)
 			{
-				fprintf(annout.ptr, "%30s", ctrl->annnames[i]);
+				fprintf(annout.ptr, "%50s", ctrl->annnames[i]);
 			}
 			fprintf(annout.ptr, "\n");
 		}
@@ -310,8 +310,7 @@ int output_handling(int* mondays, int* enddays, control_struct* ctrl, double** o
 		{
 			/* fill the annual output array */
 			for (outv=0 ; outv<ctrl->nannout ; outv++)
-			{
-					
+			{				
 				annarr[outv] = (double) *output_map[ctrl->anncodes[outv]];
 			}
 					
@@ -323,7 +322,7 @@ int output_handling(int* mondays, int* enddays, control_struct* ctrl, double** o
 				
 				for (i=0; i< ctrl->nannout; i++)
 				{
-					fprintf(annout.ptr, "%12.6f ", annarr[i]);
+					fprintf(annout.ptr, "%14.8f ", annarr[i]);
 				}
 				fprintf(annout.ptr, "\n");
 			}

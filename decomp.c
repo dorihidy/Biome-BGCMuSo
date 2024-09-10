@@ -26,7 +26,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_constants.h"
 
 
-int decomp(const metvar_struct* metv,const epconst_struct* epc, const soilprop_struct* sprop, const siteconst_struct* sitec, const cstate_struct* cs, const nstate_struct* ns, 
+int decomp(const metvar_struct* metv,const epconst_struct* epc, soilprop_struct* sprop, const siteconst_struct* sitec, const cstate_struct* cs, const nstate_struct* ns, 
 	       epvar_struct* epv, cflux_struct* cf, nflux_struct* nf, ntemp_struct* nt)
 
 {
@@ -111,8 +111,11 @@ int decomp(const metvar_struct* metv,const epconst_struct* epc, const soilprop_s
 			
 		}
 
+		/* to avoid rounding errors */
+		if (fabs(ts_decomp) < CRIT_PREC && ts_decomp != 0) ts_decomp = 0;
+
 		/* CONTROL - ts_decomp must be grater than 0 */
-		if (ts_decomp < 0)
+		if (ts_decomp < 0 && !errorCode)
 		{
 			printf("\n");
  			printf("ERROR in ts_decomp calculation in decomp.c\n");
@@ -133,6 +136,32 @@ int decomp(const metvar_struct* metv,const epconst_struct* epc, const soilprop_s
 
 		VWC    = epv->VWC[layer];
 	
+		/* control */
+		if (VWC > maxVWC)
+		{
+			if (VWC - maxVWC > CRIT_PREC && !errorCode)
+			{
+				printf("\n");
+				printf("ERROR in ws_decomp calculation in decomp: VWC must be less or equal than VWCmax.c\n");
+				errorCode = 1;
+			}
+			else
+				VWC = maxVWC;
+		}
+
+		if (opt1VWC > opt2VWC)
+		{
+			if (opt1VWC - opt2VWC > CRIT_PREC && !errorCode)
+			{
+				printf("\n");
+				printf("ERROR in ws_decomp calculation in decomp: opt1VWC must be less or equal than opt2VWC.c\n");
+				errorCode = 1;
+			}
+			else
+				opt1VWC = opt2VWC;
+		}
+
+		/* calculation of wscalar */
 		if (VWC < minVWC)
 		{
 			/* no decomp below  hygroscopic water */
@@ -152,18 +181,20 @@ int decomp(const metvar_struct* metv,const epconst_struct* epc, const soilprop_s
 			else
 			{
 				/* decreasing decomp near to total saturation*/
-				if (maxVWC > opt2VWC)
+				if (maxVWC  > opt2VWC)
 					ws_decomp = (maxVWC - VWC) / (maxVWC - opt2VWC);
 				else
 					ws_decomp = 1;
 
-				/* lower limit for saturation: m_fullstress2 */
-				if (ws_decomp < epc->m_fullstress2) ws_decomp = epc->m_fullstress2;}
+			}
 		}
 		
-	
+		/* to avoid rounding errors */
+		if (fabs(ws_decomp) < CRIT_PREC && ws_decomp != 0) ws_decomp = 0;
+
+
 		/* CONTROL - ws_decomp must be grater than 0 */
-		if (ws_decomp < 0 || ws_decomp > 1)
+		if ((ws_decomp < 0 || ws_decomp > 1) && !errorCode)
 		{
 			printf("\n");
  			printf("ERROR in ws_decomp calculation in decomp.c\n");
@@ -212,6 +243,12 @@ int decomp(const metvar_struct* metv,const epconst_struct* epc, const soilprop_s
 		cn_l1 = litr1c/litr1n;
 		cn_l2 = litr2c/litr2n;
 		cn_l4 = litr4c/litr4n;
+
+		if (soil1n) sprop->soil1_CN = soil1c / soil1n;
+		if (soil2n) sprop->soil2_CN = soil2c / soil2n;
+		if (soil3n) sprop->soil3_CN = soil3c / soil3n;
+		if (soil4n) sprop->soil4_CN = soil4c / soil4n;
+
 		cn_s1 = sprop->soil1_CN;
 		cn_s2 = sprop->soil2_CN;
 		cn_s3 = sprop->soil3_CN;
@@ -356,14 +393,16 @@ int decomp(const metvar_struct* metv,const epconst_struct* epc, const soilprop_s
 		mineralized += -pmnf_s4;
 
 		/* CH4 FLUX - only from the first layer */
-		if (!errorCode && CH4flux_estimation(sprop, layer, epv->VWC[layer], metv->tsoil[layer], &CH4flux))
-		{
-			printf("\n");
-			printf("ERROR: CH4flux_estimation() in decomp.c\n");
-			errorCode=1;
-		}	
-		cf->CH4flux_soil += CH4flux;
-			
+		if (layer == 0)
+		{ 
+			if (!errorCode && CH4flux_estimation(sprop, layer, epv->VWC[layer], metv->tsoil[layer], &CH4flux))
+			{
+				printf("\n");
+				printf("ERROR in CH4flux_estimation.c for decomp.c\n");
+				errorCode=1;
+			}	
+			cf->CH4flux_soil += CH4flux;
+		}
 
 		/* save the potential fluxes until plant demand has been assessed,
 		to allow competition between immobilization fluxes and plant growth

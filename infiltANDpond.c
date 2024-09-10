@@ -1,6 +1,6 @@
 /* 
 infiltANDpond.c
-calculation of pond water accumulation and potential infiltration
+calculation of waterFromAbove, pond water accumulation and potential infiltration
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
@@ -29,7 +29,7 @@ int infiltANDpond(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct*
 	/* internal variables */
 	int errorCode, layer, flagEXTRA;
 
-	double soilw_dist, soilwEXTRA;
+	double soilwEXTRA, ratio;
 
 	 errorCode=layer=flagEXTRA=0;
      
@@ -42,25 +42,36 @@ int infiltANDpond(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct*
 	 /*------------------------------------------*/
 	/* 2.calculation of the amount of water which can still fits into the soil */ 
 	
-	soilw_dist = (sprop->hydrCONDUCTsat[0]*sitec->soillayer_thickness[0]/sitec->soillayer_depth[0] + 
-		          sprop->hydrCONDUCTsat[1]*sitec->soillayer_thickness[1]/sitec->soillayer_depth[1]) * nSEC_IN_DAY;
+	
 
 	soilwEXTRA = (sprop->VWCsat[0] - epv->VWC[0]) * sitec->soillayer_thickness[0] * water_density;
-	if (soilwEXTRA < CRIT_PRECwater) soilwEXTRA = 0;
 
+
+	
+	layer = 1;
 	while (flagEXTRA == 0 && layer < N_SOILLAYERS-1)
 	{
-		if (soilw_dist > sitec->soillayer_depth[layer])
-			soilwEXTRA += (sprop->VWCsat[layer+1] - epv->VWC[layer+1]) * sitec->soillayer_thickness[layer+1] * water_density;
+		if (sprop->infiltDepth_max > sitec->soillayer_depth[layer - 1])
+		{
+			if (sprop->infiltDepth_max > sitec->soillayer_depth[layer])
+				soilwEXTRA += (sprop->VWCsat[layer] - epv->VWC[layer]) * sitec->soillayer_thickness[layer] * water_density;
+			else
+			{
+				ratio = ((sprop->infiltDepth_max - sitec->soillayer_depth[layer - 1]) / sitec->soillayer_thickness[layer]);
+				soilwEXTRA += ((sprop->VWCsat[layer] - epv->VWC[layer]) * sitec->soillayer_thickness[layer] * water_density) * ratio;
+			}
+		}
 		else
 			flagEXTRA = 1;
 
 		layer += 1;
 	}
-	
+	if (soilwEXTRA < CRIT_PRECwater) soilwEXTRA = 0;
 	
 	/* ---------------------------------------*/
 	/* 3. if there is pond water in the area: pondw_to_soilw, infiltPOT */ 
+
+	ws->pondw += wf->GW_to_pondw;
 
 	if (ws->pondw)
 	{
@@ -73,7 +84,6 @@ int infiltANDpond(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct*
 		else
 			wf->pondw_to_soilw = ws->pondw;
 
-		wf->pondw_to_soilw = ws->pondw;
 		ws->pondw         -= wf->pondw_to_soilw;
 		
 		wf->infiltPOT      = wf->pondw_to_soilw;
@@ -82,14 +92,14 @@ int infiltANDpond(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct*
 
 	/* ---------------------------------------*/
 	/* 4. if there is pond water in the area: soilw_to_pondw, infiltPOT */ 
-	}
+   	}
 	else
 	{
 		
 		/* if empty space in soil is greater than infiltration -> pond water formation (and runoff - if pond water is small)*/
 		if (wf->waterFromAbove > soilwEXTRA)
 		{
-			wf->infiltPOT       = soilwEXTRA;
+			wf->infiltPOT       = soilwEXTRA;				
 			wf->prcp_to_pondw = wf->waterFromAbove - soilwEXTRA;
 
 		}
@@ -98,8 +108,7 @@ int infiltANDpond(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct*
 
 
 	} 
-	
-	
+
 
 	return (errorCode);
 }

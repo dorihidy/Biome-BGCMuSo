@@ -63,7 +63,7 @@ int CWDextract_init(file init, control_struct* ctrl, CWDextract_struct* CWE)
 	/* header reading */
 	if (!errorCode && scan_value(init, header, 's'))
 	{
-		printf("ERROR reading header, CWDextract_init()\n");
+		printf("ERROR reading header, CWDextract_init.c\n");
 		errorCode=1;
 	}
 	
@@ -71,7 +71,7 @@ int CWDextract_init(file init, control_struct* ctrl, CWDextract_struct* CWE)
 	/* keyword control */
 	if (!errorCode && scan_value(init, header, 's'))
 	{
-		printf("ERROR reading header, CWDextract_init()\n");
+		printf("ERROR reading header, CWDextract_init.c\n");
 		errorCode=1;
 	}
 	

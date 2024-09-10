@@ -72,14 +72,14 @@ int fertilizing_init(file init, const control_struct* ctrl, fertilizing_struct* 
 	/* header reading */
 	if (!errorCode && scan_value(init, header, 's'))
 	{
-		printf("ERROR reading header, fertilizing_init()\n");
+		printf("ERROR reading header, fertilizing_init.c\n");
 		errorCode=1;
 	}
 
 	/* header control */
 	if (!errorCode && scan_value(init, header, 's'))
 	{
-		printf("ERROR reading header, fertilizing_init()\n");
+		printf("ERROR reading header, fertilizing_init.c\n");
 		errorCode=1;
 	}
 	

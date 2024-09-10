@@ -57,38 +57,38 @@ int output_init(file init, int transient, harvesting_struct* HRV, output_struct*
 	/* get the output filename prefix */
 	if (!errorCode && scan_value(init,output->outprefix,'s'))
 	{
-		printf("ERROR reading outfile prefix: output_init(), output_init.c\n");
+		printf("ERROR reading outfile prefix: output_init.c, output_init.c\n");
 		errorCode=21601;
 	}
 	
 	/* scan flags for daily output */
 	if (!errorCode && scan_value(init, &output->dodaily, 'i'))
 	{
-		printf("ERROR reading daily output flag: output_init()\n");
+		printf("ERROR reading daily output flag: output_init.c\n");
 		errorCode=21602;
 	}
 	/* scan flag for monthly average output (operates on daily variables) */
 	if (!errorCode && scan_value(init, &output->domonavg, 'i'))
 	{
-		printf("ERROR reading monthly average output flag: output_init()\n");
+		printf("ERROR reading monthly average output flag: output_init.c\n");
 		errorCode=21603;
 	}
 	/* scan flag for annual average output (operates on daily variables) */
 	if (!errorCode && scan_value(init, &output->doannavg, 'i'))
 	{
-		printf("ERROR reading annual average output flag: output_init()\n");
+		printf("ERROR reading annual average output flag: output_init.c\n");
 		errorCode=21604;
 	}
 	/* scan flag for annual output */
 	if (!errorCode && scan_value(init, &output->doannual, 'i'))
 	{
-		printf("ERROR reading annual output flag: output_init()\n");
+		printf("ERROR reading annual output flag: output_init.c\n");
 		errorCode=21605;
 	}
 	/* scan flag for on-screen progress indicator */
 	if (!errorCode && scan_value(init, &output->onscreen, 'i'))
 	{
-		printf("ERROR reading on-screen indicator flag: output_init()\n");
+		printf("ERROR reading on-screen indicator flag: output_init.c\n");
 		errorCode=21611;
 	}
 	
@@ -98,21 +98,23 @@ int output_init(file init, int transient, harvesting_struct* HRV, output_struct*
 	strcat(output->log_file.name,".log");
 	if (file_open(&(output->log_file),'o',1))
 	{
-		printf("ERROR opening log_file (%s) in output_init()\n",output->log_file.name);
+		printf("ERROR opening log_file (%s) in output_init.c\n",output->log_file.name);
 		errorCode=216008;
 	}
 
 	/* open outfiles if specified */
 	strcpy(output->econout_file.name,output->outprefix);
+	if (transient) strcat(output->econout_file.name, "_T");
 	strcat(output->econout_file.name,".econout");
 
 	if (HRV->HRV_num)
 	{
 		if (file_open(&(output->econout_file),'o',1))
 		{
-			printf("ERROR opening econout_file (%s) in output_init()\n",output->log_file.name);
+			printf("ERROR opening econout_file (%s) in output_init.c\n",output->log_file.name);
 			errorCode=216008;
 		}
+		fprintf(output->econout_file.ptr, "year planttype primaryProd[tC/ha] secondaryProd[tC/ha] condIRGamunt condIRGtype\n");
 	}
 
 
@@ -131,14 +133,14 @@ int output_init(file init, int transient, harvesting_struct* HRV, output_struct*
 		{
 			if (file_open(&(output->dayout),'w',1))
 			{
-				printf("ERROR opening daily outfile (%s) in output_init()\n",output->dayout.name);
+				printf("ERROR opening daily outfile (%s) in output_init.c\n",output->dayout.name);
 				errorCode=216008;
 			}
 			if (transient)
 			{
 				if (file_open(&(output->dayoutT),'w',1))
 				{
-					printf("ERROR opening transient daily outfile (%s) in output_init()\n",output->dayout.name);
+					printf("ERROR opening transient daily outfile (%s) in output_init.c\n",output->dayout.name);
 					errorCode=21600104;
 				}
 			}
@@ -148,14 +150,14 @@ int output_init(file init, int transient, harvesting_struct* HRV, output_struct*
 		{
 			if (file_open(&(output->dayout),'o',1))
 			{
-				printf("ERROR opening daily outfile (%s) in output_init()\n",output->dayout.name);
+				printf("ERROR opening daily outfile (%s) in output_init.c\n",output->dayout.name);
 				errorCode=21608;
 			}
 			if (transient)
 			{
 				if (file_open(&(output->dayoutT),'o',1))
 				{
-					printf("ERROR opening transient daily outfile (%s) in output_init()\n",output->dayout.name);
+					printf("ERROR opening transient daily outfile (%s) in output_init.c\n",output->dayout.name);
 					errorCode=216008;
 				}
 			}
@@ -175,14 +177,14 @@ int output_init(file init, int transient, harvesting_struct* HRV, output_struct*
 		{
 			if (file_open(&(output->monavgout),'w',1))
 			{
-				printf("ERROR opening monthly average outfile (%s) in output_init()\n",output->monavgout.name);
+				printf("ERROR opening monthly average outfile (%s) in output_init.c\n",output->monavgout.name);
 				errorCode=216008;
 			}
 			if (transient)
 			{
 				if (file_open(&(output->monavgoutT),'w',1))
 				{
-					printf("ERROR opening transient monthly average outfile (%s) in output_init()\n",output->dayout.name);
+					printf("ERROR opening transient monthly average outfile (%s) in output_init.c\n",output->dayout.name);
 					errorCode=21608;
 				}
 			}
@@ -191,14 +193,14 @@ int output_init(file init, int transient, harvesting_struct* HRV, output_struct*
 		{
 			if (file_open(&(output->monavgout),'o',1))
 			{
-				printf("ERROR opening monthly average outfile (%s) in output_init()\n",output->monavgout.name);
+				printf("ERROR opening monthly average outfile (%s) in output_init.c\n",output->monavgout.name);
 				errorCode=21608;
 			}
 			if (transient)
 			{
 				if (file_open(&(output->monavgoutT),'o',1))
 				{
-					printf("ERROR opening transient monthly average outfile (%s) in output_init()\n",output->dayout.name);
+					printf("ERROR opening transient monthly average outfile (%s) in output_init.c\n",output->dayout.name);
 					errorCode=21608;
 				}
 			}
@@ -218,14 +220,14 @@ int output_init(file init, int transient, harvesting_struct* HRV, output_struct*
 		{
 			if (file_open(&(output->annavgout),'w',1))
 			{
-				printf("ERROR opening annual average outfile (%s) in output_init()\n",output->annavgout.name);
+				printf("ERROR opening annual average outfile (%s) in output_init.c\n",output->annavgout.name);
 				errorCode=21608;
 			}
 			if (transient)
 			{
 				if (file_open(&(output->annavgoutT),'w',1))
 				{
-					printf("ERROR opening transient annual average outfile (%s) in output_init()\n",output->dayout.name);
+					printf("ERROR opening transient annual average outfile (%s) in output_init.c\n",output->dayout.name);
 					errorCode=21608;
 				}
 			}
@@ -234,14 +236,14 @@ int output_init(file init, int transient, harvesting_struct* HRV, output_struct*
 		{
 			if (file_open(&(output->annavgout),'o',1))
 			{
-				printf("ERROR opening annual average outfile (%s) in output_init()\n",output->annavgout.name);
+				printf("ERROR opening annual average outfile (%s) in output_init.c\n",output->annavgout.name);
 				errorCode=21608;
 			}
 			if (transient)
 			{
 				if (file_open(&(output->annavgoutT),'o',1))
 				{
-					printf("ERROR opening transient annual average outfile (%s) in output_init()\n",output->dayout.name);
+					printf("ERROR opening transient annual average outfile (%s) in output_init.c\n",output->dayout.name);
 					errorCode=21608;
 				}
 			}
@@ -261,14 +263,14 @@ int output_init(file init, int transient, harvesting_struct* HRV, output_struct*
 		{
 			if (file_open(&(output->annout),'w',1))
 			{
-				printf("ERROR opening annual outfile (%s) in output_init()\n",output->annout.name);
+				printf("ERROR opening annual outfile (%s) in output_init.c\n",output->annout.name);
 				errorCode=21608;
 			}
 			if (transient)
 			{
 				if (file_open(&(output->annoutT),'w',1))
 				{
-					printf("ERROR opening transient annual outfile (%s) in output_init()\n",output->dayout.name);
+					printf("ERROR opening transient annual outfile (%s) in output_init.c\n",output->dayout.name);
 					errorCode=21608;
 				}
 			}
@@ -277,14 +279,14 @@ int output_init(file init, int transient, harvesting_struct* HRV, output_struct*
 		{
 			if (file_open(&(output->annout),'o',1))
 			{
-				printf("ERROR opening annual  outfile (%s) in output_init()\n",output->annout.name);
+				printf("ERROR opening annual  outfile (%s) in output_init.c\n",output->annout.name);
 				errorCode=21608;
 			}
 			if (transient)
 			{
 				if (file_open(&(output->annoutT),'o',1))
 				{
-					printf("ERROR opening transient annual outfile (%s) in output_init()\n",output->dayout.name);
+					printf("ERROR opening transient annual outfile (%s) in output_init.c\n",output->dayout.name);
 					errorCode=21608;
 				}
 			}
@@ -315,7 +317,7 @@ int output_init(file init, int transient, harvesting_struct* HRV, output_struct*
 	/* read the number of daily output variables */
 	if (!errorCode && scan_value(init, &output->ndayout, 'i'))
 	{
-		printf("ERROR reading number of daily outputs: output_init()\n");
+		printf("ERROR reading number of daily outputs: output_init.c\n");
 		errorCode=21610;
 	}
 	/* allocate space for the daily output variable indices */
@@ -325,7 +327,7 @@ int output_init(file init, int transient, harvesting_struct* HRV, output_struct*
 		output->daynames = (char**) malloc(output->ndayout * sizeof(char*));
 		if 	(!output->daycodes || !output->daynames)
 		{
-			printf("ERROR allocating for daycodes/daynames array: output_init()\n");
+			printf("ERROR allocating for daycodes/daynames array: output_init.c\n");
 			errorCode=21610;
 		}
 	}
@@ -336,13 +338,13 @@ int output_init(file init, int transient, harvesting_struct* HRV, output_struct*
 		{
 			if (!errorCode && scan_array(init, &(output->daycodes[i]), 'i', 0, 1))
 			{
-				printf("ERROR reading daily output index #%d: output_init()\n",i);
+				printf("ERROR reading daily output index #%d: output_init.c\n",i);
 				errorCode=21610;
 			}
 			output->daynames[i] = (char*) malloc(STRINGSIZE * sizeof(char));
 			if (!errorCode && scan_array(init, output->daynames[i], 's', 1, 1))
 			{
-				printf("ERROR reading daily output names #%d: output_init()\n",i);
+				printf("ERROR reading daily output names #%d: output_init.c\n",i);
 				errorCode=21610; 
 			}
 		}
@@ -353,11 +355,11 @@ int output_init(file init, int transient, harvesting_struct* HRV, output_struct*
 		{
 			if (!errorCode && scan_array(init, &(output->daycodes[i]), 'i', 1, 1))
 			{
-				printf("ERROR reading daily output index #%d: output_init()\n",i);
+				printf("ERROR reading daily output index #%d: output_init.c\n",i);
 				errorCode=21610;
 			}
 			output->daynames[i] = (char*) malloc(STRINGSIZE * sizeof(char));
-			sprintf(output->daynames[i], "%s%i", "var", output->daycodes[i]);
+			sprintf(output->daynames[i], "%s%i","var", output->daycodes[i]);
 
 		}
 	}
@@ -386,7 +388,7 @@ int output_init(file init, int transient, harvesting_struct* HRV, output_struct*
 	/* read the number of annual output variables */
 	if (!errorCode && scan_value(init, &output->nannout, 'i'))
 	{
-		printf("ERROR reading number of annual outputs: output_init()\n");
+		printf("ERROR reading number of annual outputs: output_init.c\n");
 		errorCode=21611;
 	}
 	/* allocate space for the annual output variable indices */
@@ -396,7 +398,7 @@ int output_init(file init, int transient, harvesting_struct* HRV, output_struct*
 		output->annnames = (char**) malloc(output->nannout * sizeof(char*));
 		if 	(!output->anncodes || !output->annnames)
 		{
-			printf("ERROR allocating for anncodes or annnames array: output_init()\n");
+			printf("ERROR allocating for anncodes or annnames array: output_init.c\n");
 			errorCode=21611;
 		}
 	}
@@ -408,13 +410,13 @@ int output_init(file init, int transient, harvesting_struct* HRV, output_struct*
 		{
 			if (!errorCode && scan_array(init, &(output->anncodes[i]), 'i', 0, 1))
 			{
-				printf("ERROR reading annual output index #%d: output_init()\n",i);
+				printf("ERROR reading annual output index #%d: output_init.c\n",i);
 				errorCode=21611;
 			}
 			output->annnames[i] = (char*) malloc(STRINGSIZE * sizeof(char));
 			if (!errorCode && scan_array(init, output->annnames[i], 's',1, 1))
 			{
-				printf("ERROR reading annual output name #%d: output_init()\n",i);
+				printf("ERROR reading annual output name #%d: output_init.c\n",i);
 				errorCode=21611;
 			}
 		}
@@ -425,7 +427,7 @@ int output_init(file init, int transient, harvesting_struct* HRV, output_struct*
 		{
 			if (!errorCode && scan_array(init, &(output->anncodes[i]), 'i', 1, 1))
 			{
-				printf("ERROR reading annual output index #%d: output_init()\n",i);
+				printf("ERROR reading annual output index #%d: output_init.c\n",i);
 				errorCode=21611;
 			}
 			output->annnames[i] = (char*) malloc(STRINGSIZE * sizeof(char));

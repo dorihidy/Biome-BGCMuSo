@@ -48,7 +48,7 @@ int conduct_calc(const control_struct* ctrl, const metvar_struct* metv, const ep
 	
 	/*-----------------------*/
 	/* 2.1  CO2 multiplier */
-	if (epc->CO2conduct_flag)
+	if (ctrl->CO2conduct_flag)
 	{
 		p_co2 = 39.43 * pow(360, -0.64);
 		epv->m_co2 = 39.43 * pow(metv->co2, -0.64) / p_co2;
@@ -92,8 +92,8 @@ int conduct_calc(const control_struct* ctrl, const metvar_struct* metv, const ep
 	/*-----------------------*/
 	/* 2.7. apply all multipliers to the maximum stomatal conductance */
 	
-	epv->m_final_sun   = epv->m_SWCstress * epv->m_Tmin * epv->m_vpd * epv->m_ppfd_sun;
-	epv->m_final_shade = epv->m_SWCstress * epv->m_Tmin * epv->m_vpd * epv->m_ppfd_shade;
+	epv->m_final_sun   = epv->m_WS * epv->m_Tmin * epv->m_vpd * epv->m_ppfd_sun;
+	epv->m_final_shade = epv->m_WS * epv->m_Tmin * epv->m_vpd * epv->m_ppfd_shade;
 
 	epv->gl_s_sun      = epv->stomaCONDUCT_max * epv->m_final_sun;
 	epv->gl_s_shade    = epv->stomaCONDUCT_max * epv->m_final_shade;
@@ -120,10 +120,10 @@ int conduct_calc(const control_struct* ctrl, const metvar_struct* metv, const ep
 	epv->gl_sh = epv->gl_bl;
 	
 	/* 3.4 Canopy conductance to evaporated water vapor */
-	epv->gc_e_wv = epv->gl_e_wv * epv->proj_lai;
+	epv->gc_e_wv = epv->gl_e_wv * epv->projLAI;
 	
 	/* 3.5 Canopy conductane to sensible heat */
-	epv->gc_sh = epv->gl_sh * epv->proj_lai;
+	epv->gc_sh = epv->gl_sh * epv->projLAI;
 
 	
 	

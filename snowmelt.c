@@ -22,7 +22,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int snowmelt(const metvar_struct* metv, wflux_struct* wf, double snoww)
+int snowmelt(const metvar_struct* metv, wflux_struct* wf, wstate_struct* ws)
 {
 	/* temperature and radiation snowmelt, 
 	from Joseph Coughlan PhD thesis, 1991 */
@@ -33,27 +33,32 @@ int snowmelt(const metvar_struct* metv, wflux_struct* wf, double snoww)
 
 	/* canopy transmitted radiaiton: convert from W/m2 --> KJ/m2/d */	
 	rn = metv->swtrans * metv->dayl * sn_abs * 0.001;
-	tmelt = rmelt = rsub = 0.0;
+	tmelt = rmelt = rsub = melt = 0.0;
 	
 	if (metv->Tavg > 0.0)  /* temperature and radiaiton melt from snowpack */
-	{
+	{ 
+		/* precipitation causes snow to melt an order of magnitude faster */
 		tmelt = tcoef * (metv->Tmax + metv->Tmin)/2.;
 		rmelt = rn / lh_fus;
-		melt = tmelt+rmelt;
-	
-		if (melt > snoww)
-			melt = snoww;
+
+
+		melt = tmelt + rmelt;
+		
+		if (melt > ws->snoww)
+			melt = ws->snoww;
+		
 	
 		wf->snoww_to_soilw = melt;
+		
 	}
 	else  /* sublimation from snowpack */
 	{
 		rsub = rn / lh_sub;
 	
-		if (rsub > snoww)
-			rsub = snoww;
+		if (rsub > ws->snoww)
+			rsub = ws->snoww;
 	
-		wf->snowwSUBL = rsub;
+		wf->SUBLsnoww = rsub;
 	}	
 
 	

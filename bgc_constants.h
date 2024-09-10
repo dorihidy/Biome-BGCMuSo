@@ -1,6 +1,6 @@
 /*
 bgc_constants.h
-Holds macro definitions for constants used in bgc()
+Holds macro definitions for constants used in bgc.c
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
@@ -51,9 +51,11 @@ are set to 0.0 to control rounding and overflow errors */
 #define SPINUP_TOLERANCE_w 0.0005 
 
 /* output control constants */
-#define NMAP 4200
+#define NMAP 4000
 
 /* contants for multilayer soil model calculation */
+#define m_to_cm             100.
+#define mm_to_cm            0.1
 #define HC_water			4200000.	/* (J/m3/K) heat capacity of water */
 #define HC_soil				1260000.	/* (J/m3/K) heat capacity of soil */
 #define HC_air				1004.		/* (J/m3/K) heat capacity of air */
@@ -77,6 +79,8 @@ are set to 0.0 to control rounding and overflow errors */
 #define Celsius2Kelvin      273.15
 #define m2_to_ha            10000
 #define kg_to_t             0.001
+#define g_per_cm3_to_kg_per_m3	1000
+#define multi_ppm               100000
 
 /* constant for net radiation calculation */
 #define PI                  3.14159265358979323846
@@ -90,6 +94,26 @@ are set to 0.0 to control rounding and overflow errors */
 /* NO3 mobilen proportion */
 #define NO3_mobilen_prop    1
 
+/* limit of LAI below potential ET is limited */
+#define LAIlimit_potET      4
 
+/* initialization of SOIL pool ratios in GW */
+#define soil1ratio  0.01
+#define soil2ratio  0.02
+#define soil3ratio  0.02
+#define soil4ratio  0.83
+
+/* fictional 100m-depth GW storage */
+#define WinGW 100000
+#define GW_NH4ppm 0.2
+#define GW_NO3ppm 10
+#define GW_DOCppm 2
+
+/* greenhouse gas potential */
+#define GWP_N2O 273
+#define GWP_CH4 27
+#define N_to_N2O 44./28.
+#define C_to_CH4 18./14.
+#define CO2_to_C 12./44.
 
 

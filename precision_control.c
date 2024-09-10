@@ -34,7 +34,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 	/* force very low leaf C to 0.0, to avoid roundoff
 	error in canopy radiation routines. Send excess to litter 1.
 	Fine root C and N follow leaf C and N. This control is triggered
-	at a higher value than the others because leafc is used in exp()
+	at a higher value than the others because leafc is used in exp.c
 	in radtrans, and so can cause rounding error at larger values. */
 
 	/************************/
@@ -369,15 +369,13 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 			cs->HRsoil2_snk  += cs->soil2c[layer];
 			ns->Nprec_snk      += ns->soil2n[layer];
 			cs->soil2c[layer] = 0.0;
-			ns->soil2n[layer] = 0.0;
-		}
+			ns->soil2n[layer] = 0.0;		}
 		if ((cs->soil3c[layer] != 0 && fabs(cs->soil3c[layer]) < CRIT_PREC) || (ns->soil3n[layer] != 0 && fabs(ns->soil3n[layer])  < CRIT_PREC))
 		{
 			cs->HRsoil3_snk  += cs->soil3c[layer];
 			ns->Nprec_snk      += ns->soil3n[layer];
 			cs->soil3c[layer] = 0.0;
-			ns->soil3n[layer] = 0.0;
-		}
+			ns->soil3n[layer] = 0.0;		}
 		if ((cs->soil4c[layer] != 0 && fabs(cs->soil4c[layer]) < CRIT_PREC) || (ns->soil4n[layer] != 0 && fabs(ns->soil4n[layer])  < CRIT_PREC))
 		{
 			cs->HRsoil4_snk  += cs->soil4c[layer];
@@ -423,38 +421,6 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 			cs->cwdc[layer] = 0.0;
 			ns->cwdn[layer] = 0.0;
 		}	
-
-		if ((cs->soil1DOC[layer] != 0 && fabs(cs->soil1DOC[layer]) < CRIT_PREC) || (ns->soil1DON[layer] != 0 && fabs(ns->soil1DON[layer])  < CRIT_PREC))
-		{
-			cs->HRsoil1_snk += cs->soil1DOC[layer];
-			ns->Nprec_snk += ns->soil1DON[layer];
-			cs->soil1DOC[layer] = 0.0;
-			ns->soil1DON[layer] = 0.0;
-		}
-
-		if ((cs->soil2DOC[layer] != 0 && fabs(cs->soil2DOC[layer]) < CRIT_PREC) || (ns->soil2DON[layer] != 0 && fabs(ns->soil2DON[layer])  < CRIT_PREC))
-		{
-			cs->HRsoil2_snk += cs->soil2DOC[layer];
-			ns->Nprec_snk += ns->soil2DON[layer];
-			cs->soil2DOC[layer] = 0.0;
-			ns->soil2DON[layer] = 0.0;
-		}
-
-		if ((cs->soil3DOC[layer] != 0 && fabs(cs->soil3DOC[layer]) < CRIT_PREC) || (ns->soil3DON[layer] != 0 && fabs(ns->soil3DON[layer])  < CRIT_PREC))
-		{
-			cs->HRsoil3_snk += cs->soil3DOC[layer];
-			ns->Nprec_snk += ns->soil3DON[layer];
-			cs->soil3DOC[layer] = 0.0;
-			ns->soil3DON[layer] = 0.0;
-		}
-
-		if ((cs->soil4DOC[layer] != 0 && fabs(cs->soil4DOC[layer]) < CRIT_PREC) || (ns->soil4DON[layer] != 0 && fabs(ns->soil4DON[layer])  < CRIT_PREC))
-		{
-			cs->HRsoil4_snk += cs->soil4DOC[layer];
-			ns->Nprec_snk += ns->soil4DON[layer];
-			cs->soil4DOC[layer] = 0.0;
-			ns->soil4DON[layer] = 0.0;
-		}
 		
 	}
 
@@ -468,16 +434,16 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 	
 	for (layer = 0; layer < N_SOILLAYERS;layer++)
 	{
-		if (fabs(ns->sminNH4[layer]) < CRIT_PREC_RIG && ns->sminNH4[layer] != 0)
+		if (fabs(ns->NH4[layer]) < CRIT_PREC_RIG && ns->NH4[layer] != 0)
 		{
-			ns->Nprec_snk         += ns->sminNH4[layer];
-			ns->sminNH4[layer] = 0.0;
+			ns->Nprec_snk         += ns->NH4[layer];
+			ns->NH4[layer] = 0.0;
 		}
 
-		if (fabs(ns->sminNO3[layer]) < CRIT_PREC_RIG && ns->sminNO3[layer] != 0)
+		if (fabs(ns->NO3[layer]) < CRIT_PREC_RIG && ns->NO3[layer] != 0)
 		{
-			ns->Nprec_snk         += ns->sminNO3[layer];
-			ns->sminNO3[layer] = 0.0;
+			ns->Nprec_snk         += ns->NO3[layer];
+			ns->NO3[layer] = 0.0;
 		}
 	
 	}
@@ -503,9 +469,11 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 		ws->snowSUBL_snk += ws->snoww;
 		ws->snoww = 0.0;
 	}
+
+	
 	if (ws->canopyw < 0 && fabs(ws->canopyw) < CRIT_PREC)
 	{
-		ws->canopywEVP_snk += ws->canopyw;
+		ws->EVPcanopyw_snk += ws->canopyw;
 		ws->canopyw = 0.0;
 	}
 

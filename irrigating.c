@@ -150,7 +150,7 @@ int irrigating(const control_struct* ctrl, const irrigating_struct* IRG, const s
 		
 
 		/* if condIRG - calculation of irrigating amount */
-		if (condIRG && epv->proj_lai > LAIcrit_condIRG)
+		if (condIRG && epv->projLAI > LAIcrit_condIRG)
 		{
 			critVWCaft = VWCwp_condIRG + IRG->aftVWCratio_condIRG * (VWCfc_condIRG - VWCwp_condIRG);
 

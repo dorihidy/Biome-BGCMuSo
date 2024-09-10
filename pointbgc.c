@@ -21,11 +21,10 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include <time.h>
 
 #include "ini.h"              /* general file structure and I/O prototypes */
-#include "bgc_struct.h"       /* data structures for bgc() */
+#include "bgc_struct.h"       /* data structures for bgc.c */
 #include "pointbgc_struct.h"   /* data structures for point driver */
 #include "pointbgc_func.h"     /* function prototypes for point driver */
-#include "bgc_io.h"           /* bgc() interface definition */
-#include "bgc_epclist.h"      /* array structure for epc-by-vegtype */
+#include "bgc_io.h"           /* bgc.c interface definition */
 #include "bgc_constants.h"      /* array structure for epc-by-vegtype */
 
 int main(int argc, char *argv[])
@@ -58,39 +57,13 @@ int main(int argc, char *argv[])
 	
 	/* initialize the bgcin state variable structures before filling with
 	values from ini file */
-	if (presim_state_init(&bgcin.ws, &bgcin.cs, &bgcin.ns, &bgcin.cinit))
+	if (presim_state_init(&bgcin.ws, &bgcin.cs, &bgcin.ns, &bgcin.cinit, &bgcin.ctrl, &bgcin.soilInfo))
 	{
-		printf("ERROR in call to presim_state_init() from pointbgc.c ... Exiting()\n");
+		printf("ERROR in call to presim_state_init.c from pointbgc.c ... Exiting.c\n");
+		writeErrorCode(101);
 		exit(101);
 	}
 
-	/* initialization */
-	bgcin.ctrl.simyr = 0;								
-	bgcin.ctrl.yday = 0;								
-	bgcin.ctrl.plantyr = -1;								
-	bgcin.ctrl.spinyears = 0;							
-	bgcin.ctrl.month = 1;								
-	bgcin.ctrl.day = 1;									
-	bgcin.ctrl.limitEVP_flag = 0;
-	bgcin.ctrl.limitTRP_flag = 0;
-	bgcin.ctrl.limitMR_flag = 0;
-	bgcin.ctrl.limitSNSC_flag = 0;
-	bgcin.ctrl.limitleach_flag = 0;
-	bgcin.ctrl.limitdiffus_flag = 0;
-	bgcin.ctrl.pond_flag = 0;
-	bgcin.ctrl.noTRP_flag = 0;
-	bgcin.ctrl.noMR_flag = 0;
-	bgcin.ctrl.grazingW_flag = 0;
-	bgcin.ctrl.condMOWerr_flag = 0;      
-	bgcin.ctrl.condIRGerr_flag = 0;        
-	bgcin.ctrl.prephen1_flag = 0;         
-	bgcin.ctrl.prephen2_flag = 0;          
-	bgcin.ctrl.bareground_flag = 0;
-	bgcin.ctrl.vegper_flag = 0;
-	bgcin.ctrl.south_shift = 0;
-	bgcin.ctrl.allocControl_flag = 0;
-	bgcin.ctrl.NaddSPINUP_flag = 0;
-	bgcin.ctrl.soiltype = 0;
 
 
 	/******************************
@@ -104,7 +77,7 @@ int main(int argc, char *argv[])
 	{
         if(!strcmp(argv[1],"-v"))
 		{
-           	printf("Model version: Biome-BGCMuSo7.0-b10\n");
+           	printf("Model version: Biome-BGCMuSo7.0alfa\n");
 			exit(0);
         }
     }
@@ -115,6 +88,7 @@ int main(int argc, char *argv[])
 	{
 		printf("ERROR in reading the main init file from command line. Exiting\n");
 		printf("Correct usage: <executable name>  <initialization file name>\n");
+		writeErrorCode(102);
 		exit(102);
 	} 
 	
@@ -124,6 +98,7 @@ int main(int argc, char *argv[])
 	if (file_open(&init,'i',1))
 	{
 		printf("ERROR opening init file, pointbg.c ... Exiting\n");
+		writeErrorCode(103);
 		exit(103);
 	}
 
@@ -131,6 +106,7 @@ int main(int argc, char *argv[])
 	if (fgets(point.header, 100, init.ptr)==NULL)
 	{
 		printf("ERROR reading header string: pointbgc.c ... Exiting\n");
+		writeErrorCode(201);
 		exit(201);
 	}
 
@@ -138,7 +114,7 @@ int main(int argc, char *argv[])
 	errorCode = met_init(init, &point);
 	if (errorCode)
 	{
-		printf("ERROR in call to met_init() from pointbgc.c... Exiting\n");
+		printf("ERROR in call to met_init.c from pointbgc.c... Exiting\n");
 		writeErrorCode(errorCode);
 		exit(errorCode);
 	}
@@ -147,7 +123,7 @@ int main(int argc, char *argv[])
 	errorCode = restart_init(init, &restart);
 	if (errorCode)
 	{
-		printf("ERROR in call to restart_init() from pointbgc.c... Exiting\n");
+		printf("ERROR in call to restart_init.c from pointbgc.c... Exiting\n");
 		writeErrorCode(errorCode);
 		exit(errorCode);
 	}
@@ -156,7 +132,7 @@ int main(int argc, char *argv[])
 	errorCode = time_init(init, &point, &(bgcin.ctrl));
 	if (errorCode)
 	{
-		printf("ERROR in call to time_init() from pointbgc.c... Exiting\n");
+		printf("ERROR in call to time_init.c from pointbgc.c... Exiting\n");
 		writeErrorCode(errorCode);
 		exit(errorCode);
 	}
@@ -166,7 +142,7 @@ int main(int argc, char *argv[])
 	errorCode = co2_init(init, &(bgcin.co2), &(bgcin.ctrl));
 	if (errorCode)
 	{
-		printf("ERROR in call to co2_init() from pointbgc.c... Exiting\n");
+		printf("ERROR in call to co2_init.c from pointbgc.c... Exiting\n");
 		writeErrorCode(errorCode);
 		exit(errorCode);
 	}
@@ -176,7 +152,7 @@ int main(int argc, char *argv[])
 	errorCode = ndep_init(init, &bgcin.ndep, &(bgcin.ctrl));
 	if (errorCode)
 	{
-		printf("ERROR in call to ndep_init() from pointbgc.c... Exiting\n");
+		printf("ERROR in call to ndep_init.c from pointbgc.c... Exiting\n");
 		writeErrorCode(errorCode);
 		exit(errorCode);
 	}
@@ -186,7 +162,7 @@ int main(int argc, char *argv[])
 	errorCode = sitec_init(init, &bgcin.sitec, &(bgcin.ctrl));
 	if (errorCode)
 	{
-		printf("ERROR in call to sitec_init() from pointbgc.c... Exiting\n");
+		printf("ERROR in call to sitec_init.c from pointbgc.c... Exiting\n");
 		writeErrorCode(errorCode);
 		exit(errorCode);
 	}
@@ -195,7 +171,7 @@ int main(int argc, char *argv[])
 	errorCode = sprop_init(init, &bgcin.sprop, &bgcin.ctrl);
 	if (errorCode)
 	{
-		printf("ERROR in call to sprop_init() from pointbgc.c... Exiting\n");
+		printf("ERROR in call to sprop_init.c from pointbgc.c... Exiting\n");
 		writeErrorCode(errorCode);
 		exit(errorCode);
 	}
@@ -204,26 +180,25 @@ int main(int argc, char *argv[])
 	errorCode = epc_init(init, &bgcin.epc, &bgcin.ctrl, 1);
 	if (errorCode)
 	{
-		printf("ERROR in call to epc_init() from pointbgc.c... Exiting\n");
+		printf("ERROR in call to epc_init.c from pointbgc.c... Exiting\n");
 		writeErrorCode(errorCode);
 		exit(errorCode);
 	}
 
 	/* read management file with management information */
-	errorCode = mgm_init(init, &bgcin.ctrl, &bgcin.epc,
-		                       &bgcin.FRZ, &bgcin.GRZ, &bgcin.HRV, &bgcin.MOW, &bgcin.PLT, &bgcin.PLG, &bgcin.THN, &bgcin.IRG, &bgcin.MUL, &bgcin.CWE);
+	errorCode = mgm_init(init, &bgcin.ctrl, &bgcin.FRZ, &bgcin.GRZ, &bgcin.HRV, &bgcin.MOW, &bgcin.PLT, &bgcin.PLG, &bgcin.THN, &bgcin.IRG, &bgcin.MUL, &bgcin.CWE);
 	if (errorCode)
 	{
-		printf("ERROR in call to mgm_init() from pointbgc.c... Exiting\n");
+		printf("ERROR in call to mgm_init.c from pointbgc.c... Exiting\n");
 		writeErrorCode(errorCode);
 		exit(errorCode);
 	}
 
 	/* read simulation control flags */
-	errorCode = simctrl_init(init, &bgcin.epc, &bgcin.ctrl, &bgcin.PLT);
+	errorCode = simctrl_init(init, &bgcin.ctrl, &bgcin.epc, &bgcin.sprop, &bgcin.PLT);
 	if (errorCode)
 	{
-		printf("ERROR in call to simctrl_init() from pointbgc.c... Exiting\n");
+		printf("ERROR in call to simctrl_init.c from pointbgc.c... Exiting\n");
 		writeErrorCode(errorCode);
 		exit(errorCode);
 	}
@@ -232,7 +207,7 @@ int main(int argc, char *argv[])
 	errorCode = wstate_init(init, &bgcin.sitec, &bgcin.sprop, &bgcin.ws);
 	if (errorCode)
 	{
-		printf("ERROR in call to wstate_init() from pointbgc.c... Exiting\n");
+		printf("ERROR in call to wstate_init.c from pointbgc.c... Exiting\n");
 		writeErrorCode(errorCode);
 		exit(errorCode);
 	}
@@ -241,16 +216,16 @@ int main(int argc, char *argv[])
 	errorCode = cnstate_init(init, &bgcin.epc, &bgcin.sprop, &bgcin.sitec, &bgcin.cs, &bgcin.cinit, &bgcin.ns);
 	if (errorCode)
 	{
-		printf("ERROR in call to cstate_init() from pointbgc.c... Exiting\n");
-		writeErrorCode(errorCode);
-		exit(errorCode);
+		printf("ERROR in call to cstate_init.c from pointbgc.c... Exiting\n");
+		writeErrorCode(213);
+		exit(213);
 	}
   
 	/* read scalar climate change parameters */
 	errorCode = scc_init(init, &scc);
 	if (errorCode)
 	{
-		printf("ERROR in call to scc_init() from pointbgc.c... Exiting\n");
+		printf("ERROR in call to scc_init.c from pointbgc.c... Exiting\n");
 		writeErrorCode(errorCode);
 		exit(errorCode);
 	}
@@ -259,7 +234,7 @@ int main(int argc, char *argv[])
 	errorCode = conditionalMGM_init(init, &bgcin.ctrl, &bgcin.IRG, &bgcin.MOW);
 	if (errorCode)
 	{
-		printf("ERROR in call to scc_init() from pointbgc.c... Exiting\n");
+		printf("ERROR in call to scc_init.c from pointbgc.c... Exiting\n");
 		writeErrorCode(errorCode);
 		exit(errorCode);
 	}
@@ -269,7 +244,7 @@ int main(int argc, char *argv[])
 	errorCode = output_init(init, transient, &bgcin.HRV, &output);
 	if (errorCode)
 	{
-		printf("ERROR in call to output_init() from pointbgc.c... Exiting\n");
+		printf("ERROR in call to output_init.c from pointbgc.c... Exiting\n");
 		writeErrorCode(errorCode);
 		exit(errorCode);
 	}
@@ -282,7 +257,7 @@ int main(int argc, char *argv[])
 	errorCode = end_init(init);
 	if (errorCode)
 	{
-		printf("ERROR in call to end_init() from pointbgc.c... exiting\n");
+		printf("ERROR in call to end_init.c from pointbgc.c... exiting\n");
 		writeErrorCode(errorCode);
 		exit(errorCode);
 	}
@@ -292,7 +267,7 @@ int main(int argc, char *argv[])
 	errorCode = metarr_init(&point, &bgcin.metarr, &scc, &bgcin.sitec, &bgcin.ctrl);
 	if (errorCode)
 	{
-		printf("ERROR in call to metarr_init() from pointbgc.c... Exiting\n");
+		printf("ERROR in call to metarr_init.c from pointbgc.c... Exiting\n");
 		writeErrorCode(errorCode);
 		exit(errorCode);
 	}
@@ -302,16 +277,16 @@ int main(int argc, char *argv[])
 	errorCode = groundwater_init(&bgcin.GWS, &bgcin.ctrl);
 	if (errorCode)
 	{
-		printf("ERROR in call to groundwater_init() from pointbgc.c... Exiting\n");
+		printf("ERROR in call to groundwater_init.c from pointbgc.c... Exiting\n");
 		writeErrorCode(errorCode);
 		exit(errorCode);
 	}
 
 	/* read flooding height if it is available */
-	errorCode = flooding_init(&bgcin.FLD,&bgcin.ctrl);
+	errorCode = flooding_init(&bgcin.FLS,&bgcin.ctrl);
 	if (errorCode)
 	{
-		printf("ERROR in call to flooding_init() from pointbgc.c... Exiting\n");
+		printf("ERROR in call to flooding_init.c from pointbgc.c... Exiting\n");
 		writeErrorCode(errorCode);
 		exit(errorCode);
 	}
@@ -332,7 +307,6 @@ int main(int argc, char *argv[])
 	bgcin.ctrl.annnames = output.annnames;
 	bgcin.ctrl.read_restart = restart.read_restart;
 	bgcin.ctrl.write_restart = restart.write_restart;
-	bgcin.ctrl.GSI_flag = bgcin.epc.GSI_flag;			
 	bgcin.ctrl.condIRG_flag = bgcin.IRG.condIRG_flag;  
 	bgcin.ctrl.condMOW_flag = bgcin.MOW.condMOW_flag;   
 
@@ -561,23 +535,29 @@ int main(int argc, char *argv[])
 		free(bgcin.CWE.removePROP_CWE);
 	}
 
-	if (bgcin.GWS.GWD_num)
+	if (bgcin.GWS.GWnum)
 	{
 		free(bgcin.GWS.GWyear_array);	
 		free(bgcin.GWS.GWmonth_array);	
 		free(bgcin.GWS.GWday_array);	
         free(bgcin.GWS.GWdepth_array);	
+		free(bgcin.GWS.GW_NH4ppm_array);
+		free(bgcin.GWS.GW_NO3ppm_array);
+		free(bgcin.GWS.GW_DOCppm_array);
 	}
 
-	if (bgcin.FLD.FLD_num)
+	if (bgcin.FLS.FLnum)
 	{
-		free(bgcin.FLD.FLDstart_year_array);	
-		free(bgcin.FLD.FLDstart_month_array);	
-		free(bgcin.FLD.FLDstart_day_array);	
-		free(bgcin.FLD.FLDend_year_array);	
-		free(bgcin.FLD.FLDend_month_array);	
-		free(bgcin.FLD.FLDend_day_array);
-        free(bgcin.FLD.FLDheight);	
+		free(bgcin.FLS.FLstart_year_array);	
+		free(bgcin.FLS.FLstart_month_array);	
+		free(bgcin.FLS.FLstart_day_array);	
+		free(bgcin.FLS.FLend_year_array);	
+		free(bgcin.FLS.FLend_month_array);	
+		free(bgcin.FLS.FLend_day_array);
+        free(bgcin.FLS.FLheight_array);
+		free(bgcin.FLS.FL_NH4ppm_array);
+		free(bgcin.FLS.FL_NO3ppm_array);
+		free(bgcin.FLS.FL_DOCppm_array);
 	}
 
 	if (bgcin.co2.varco2) free(bgcin.co2.co2ppm_array);

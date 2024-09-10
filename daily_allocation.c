@@ -91,7 +91,7 @@ the accumulation of soil mineral N.
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, const metvar_struct* metv, const NdepControl_struct* ndep,
+int daily_allocation(const control_struct* ctrl, const epconst_struct* epc, const soilprop_struct* sprop, const metvar_struct* metv, const NdepControl_struct* ndep,
 	                 cstate_struct*cs,  nstate_struct* ns, cflux_struct* cf, nflux_struct* nf, epvar_struct* epv, ntemp_struct* nt, double naddfrac)
 {
 	int errorCode=0;
@@ -111,13 +111,13 @@ int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, co
 	int woody;
 	double c_allometry, n_allometry;
 	double retrans_layer, plantNsupply_layer, plantNdemand_layer, plant_remaining_ndemand,IMMOBratio;
-	double plantNalloc, plantCalloc;
-    double excess_c, pnow_Tcoeff, flowHSratio;
+	double plantNalloc, plantCalloc, NH4dissolv;
+    double excess_c, pnow_Tcoeff, flowHSratio, diff, change;
 	int layer;
 	double cn_l1,cn_l2,cn_l4,cn_s1,cn_s2,cn_s3,cn_s4;
 	double rfl1s1, rfl2s2, rfl4s3, rfs1s2, rfs2s3, rfs3s4;
-	double net_nmin, net_immob, actual_immob;
-	double Ndemand_total, ndemand, sminAVAIL,pot_immob, NdifSPIN, sminNH4_NdifSPIN, sminNO3_NdifSPIN;
+	double net_nmin, net_immob, actual_immob;;
+	double Ndemand_total, ndemand, sminAVAIL,pot_immob, NdifSPIN, NH4_NdifSPIN, NO3_NdifSPIN;
 	double pnow = 0;			/* proportion of growth displayed on current day */ 
 
 	/* actual phenological phase */
@@ -147,12 +147,11 @@ int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, co
 	cf->soil2c_to_soil3c_total = 0;              
 	cf->soil3c_to_soil4c_total = 0; 
 
-	nf->minerFlux_S4_total       = 0;
-	nf->minerFlux_StoS_total        = 0;
-	nf->minerFlux_LtoS_total        = 0;
-	nf->immobFlux_LtoS_total    = 0;
-	nf->immobFlux_StoS_total    = 0;
-	nf->sminn_to_soil_SUM_total		= 0;  
+
+	nf->minerFlux_StoS_total     = 0;
+	nf->minerFlux_LtoS_total     = 0;
+	nf->immobFlux_LtoS_total     = 0;
+	nf->immobFlux_StoS_total     = 0;
 	nf->litrn_to_soiln_total        = 0;
 	cf->litrc_to_soilc_total        = 0;
 	nf->sminn_to_soil1n_l1_total    = 0; 
@@ -161,7 +160,7 @@ int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, co
     nf->sminn_to_soil2n_s1_total    = 0; 
     nf->sminn_to_soil3n_s2_total    = 0; 
     nf->sminn_to_soil4n_s3_total    = 0; 
-	
+	nf->sminn_to_soiln_s4_total     = 0;
 
 
 	/* respiration fractions for fluxes between compartments */
@@ -188,10 +187,31 @@ int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, co
 	/* test for cpool deficit */
 	if (cs->cpool < 0.0 && fabs(cs->cpool) > CRIT_PREC)
 	{
+		if (ctrl->MRdeficit_flag == 3)
+		{
+			/* running a deficit in cpool, so the first priority is to let today's available C accumulate in cpool.
+		       The actual accumulation in the cpool is resolved in day_carbon_state.c. */
+			if (-cs->cpool < avail_c)
+			{
+				/* cpool deficit is less than the available carbon for the day, so aleviate cpool deficit and use the rest of the available carbon for
+				new growth and storage. Remember that fluxes in and out of the cpool are reconciled at the end of the daily loop, so for now, just keep track
+				of the amount of daily GPP-MR that is not needed to restore a negative cpool. */
+				avail_c += cs->cpool;
 
-		printf("\n");
-		printf("ERROR: negative cpool in daily_allocation\n");
-		errorCode=1;
+			}
+			else
+			{		
+				/* cpool deficit is >= available C, so all of the daily GPP, if any, is used to alleviate negative cpool */
+				avail_c = 0.0;
+			}
+		}
+		else
+		{
+			printf("\n");
+			printf("ERROR: negative cpool in daily_allocation\n");
+			errorCode = 1;
+		}
+		
 	} /* end if negative cpool */
 	
 	/*-----------------------------------------------------------------------------------------------------------------*/
@@ -236,7 +256,7 @@ int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, co
 		if (pnow_Tcoeff < 0 || pnow_Tcoeff > 1 || pnow < 0 || pnow > 1)
 		{
 			printf("\n");
-			printf("FATAL ERROR in pnow calculation (daily_allocation.c)\n");
+			printf("ERROR in daily_allocation.c: pnow calculation\n");
 			errorCode=1;
 		}
 	}
@@ -262,14 +282,12 @@ int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, co
 
 
 	/*-----------------------------------------------------------------------------------------------------------------*/
-	/* 4. calculation of spinup N-add and sminnAVAIL and potIMMOB */
+	/* 4. calculation of spinup N-add and sminNdissolv and potIMMOB */
 
 	nf->sminn_to_npool_total = nf->retransn_to_npool_total = plantNalloc = plantCalloc = 0;
 	for (layer=0; layer < N_SOILLAYERS; layer++)
 	{
-		ns->sminNH4avail[layer] = ns->sminNH4[layer] * sprop->NH4_mobilen_prop;
-		ns->sminNO3avail[layer] = ns->sminNO3[layer] * NO3_mobilen_prop;
-		sminAVAIL				= (ns->sminNH4avail[layer] + ns->sminNO3avail[layer]);
+		sminAVAIL				= (ns->NH4[layer] * sprop->NH4_mobilen_prop + ns->NO3[layer]);
 
 		plantNdemand_layer		= epv->plantNdemand * epv->rootlengthProp[layer];
 	
@@ -286,15 +304,15 @@ int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, co
 			{
 				NdifSPIN = (ndemand - sminAVAIL)  * naddfrac;
 
-				sminNH4_NdifSPIN    =  (NdifSPIN * ndep->NdepNH4_coeff)     / sprop->NH4_mobilen_prop;
-				sminNO3_NdifSPIN    =  (NdifSPIN * (1-ndep->NdepNH4_coeff)) / NO3_mobilen_prop;
+				NH4_NdifSPIN    =  (NdifSPIN * ndep->NdepNH4_coeff)     / sprop->NH4_mobilen_prop;
+				NO3_NdifSPIN    =  (NdifSPIN * (1-ndep->NdepNH4_coeff)) / NO3_mobilen_prop;
 			
-				ns->SPINUPsrc	         += (sminNH4_NdifSPIN + sminNO3_NdifSPIN);
-				ns->sminNH4[layer]       += sminNH4_NdifSPIN;
-				ns->sminNO3[layer]       += sminNO3_NdifSPIN;
-				ns->sminNH4avail[layer]  = ns->sminNH4[layer] * sprop->NH4_mobilen_prop;
-				ns->sminNO3avail[layer]  = ns->sminNO3[layer] * NO3_mobilen_prop;
-				sminAVAIL				 = (ns->sminNH4avail[layer] + ns->sminNO3avail[layer]);
+				ns->SPINUPsrc	         += (NH4_NdifSPIN + NO3_NdifSPIN);
+			
+				ns->NH4[layer]           += NH4_NdifSPIN;
+				ns->NO3[layer]           += NO3_NdifSPIN;
+				NH4dissolv               = ns->NH4[layer] * sprop->NH4_mobilen_prop;
+				sminAVAIL				 = (NH4dissolv + ns->NO3[layer]);
 			}
 		}
 
@@ -363,10 +381,10 @@ int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, co
 	}
 	
 	epv->plantCalloc = plantCalloc; 
-	epv->plantNalloc = plantNalloc; 
+	epv->plantNalloc = plantNalloc;
 
-	epv->plantCalloc_CUM += epv->plantCalloc;
-	epv->plantNalloc_CUM += epv->plantNalloc;
+	epv->cumCalloc_plant += epv->plantCalloc;
+	epv->cumNalloc_plant += epv->plantNalloc;
 	
 	excess_c                 = avail_c - plantCalloc;
 	if (excess_c > 0)
@@ -420,7 +438,7 @@ int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, co
 			errorCode=1;
 		}
 
-		cf->cpool_to_yield             = flowHSratio * f3 * pnow       * (plantCalloc/c_allometry);
+		cf->cpool_to_yield              = flowHSratio * f3 * pnow       * (plantCalloc/c_allometry);
 		cf->cpool_to_yieldc_storage     = flowHSratio * f3 * (1.0-pnow) * (plantCalloc/c_allometry);
 		nf->npool_to_yieldn             = flowHSratio * f3 * pnow       * (1./epc->yield_cn)    * (plantCalloc/c_allometry);
 		nf->npool_to_yieldn_storage     = flowHSratio * f3 * (1.0-pnow) * (1./epc->yield_cn)    * (plantCalloc/c_allometry);
@@ -491,7 +509,7 @@ int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, co
 	/* 7. calculate the amount of carbon that needs to go into growth respiration storage to satisfy all of the storage growth demands. 
 	Note that in version 4.1, this function has been changed to allow for the fraction of growth respiration that is released at the
 	time of fixation, versus the remaining fraction that is stored forrelease at the time of display. Note that all the growth respiration
-	fluxes that get released on a given day are calculated in growth_resp(), but that the storage of C for growth resp during display of 
+	fluxes that get released on a given day are calculated in growth_resp.c, but that the storage of C for growth resp during display of 
 	transferred growth is assigned here. (GRPNOW: proportion of growth resp to release at fixation ) */
 	
 	cf->cpool_to_gresp_storage = (cf->cpool_to_leafc_storage + cf->cpool_to_frootc_storage + cf->cpool_to_yieldc_storage + cf->cpool_to_softstemc_storage +
@@ -544,6 +562,12 @@ int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, co
 			else 
 				nf->litr1n_to_soil1n[layer] = 0.0;
 
+			/* control: if mineralization occurs, the appropriate layer must be able to cover the N requirement */
+			if (nt->pmnf_l1s1[layer] < 0 && ns->soil1n[layer] + nt->pmnf_l1s1[layer] < 0)
+			{
+				nt->pmnf_l1s1[layer] = -1 * ns->soil1n[layer];
+			}
+
 			nf->sminn_to_soil1n_l1[layer] = nt->pmnf_l1s1[layer];
 		}
 
@@ -562,6 +586,12 @@ int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, co
 				nf->litr2n_to_soil2n[layer] = nt->plitr2c_loss[layer] / cn_l2;
 			else 
 				nf->litr2n_to_soil2n[layer] = 0.0;
+
+			/* control: if mineralization occurs, the appropriate layer must be able to cover the N requirement */
+			if (nt->pmnf_l2s2[layer] < 0 && ns->soil2n[layer] + nt->pmnf_l2s2[layer] < 0)
+			{
+				nt->pmnf_l2s2[layer] = -1 * ns->soil2n[layer];
+			}
 
 			nf->sminn_to_soil2n_l2[layer] = nt->pmnf_l2s2[layer];
 		}
@@ -598,6 +628,12 @@ int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, co
 			else 
 				nf->litr4n_to_soil3n[layer] = 0.0;
 
+			/* control: if mineralization occurs, the appropriate layer must be able to cover the N requirement */
+			if (nt->pmnf_l4s3[layer] < 0 && ns->soil3n[layer] + nt->pmnf_l4s3[layer] < 0)
+			{
+				nt->pmnf_l4s3[layer] = -1 * ns->soil3n[layer];
+			}
+
 			nf->sminn_to_soil3n_l4[layer] = nt->pmnf_l4s3[layer];
 		}
 		
@@ -614,6 +650,29 @@ int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, co
 			nf->soil1n_to_soil2n[layer]		= nt->psoil1c_loss[layer] / cn_s1;
 			
 			nf->sminn_to_soil2n_s1[layer]   = nt->pmnf_s1s2[layer];
+
+
+			/* control to avoid negative pool */
+			change = nf->sminn_to_soil1n_l1[layer] - nf->soil1n_to_soil2n[layer];
+
+			diff = ns->soil1n[layer] + change;
+			if (diff < 0)
+			{
+				if (nf->sminn_to_soil1n_l1[layer] < 0)
+					nf->sminn_to_soil1n_l1[layer] -= diff;
+				else
+				{
+					if (nf->soil1n_to_soil2n[layer] > 0)
+					{
+						nf->soil1n_to_soil2n[layer] += diff;
+						nt->psoil2c_loss[layer] = nf->soil1n_to_soil2n[layer] * cn_s1;
+						cf->soil1_hr[layer] = rfs1s2 * nt->psoil1c_loss[layer];
+						cf->soil1c_to_soil2c[layer] = (1.0 - rfs1s2) * nt->psoil1c_loss[layer];
+					}
+				}
+			}
+		
+
 		}
 		
 		/* fast SOM pool  */
@@ -624,11 +683,33 @@ int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, co
 				nt->psoil2c_loss[layer] *= IMMOBratio;
 				nt->pmnf_s2s3[layer] *= IMMOBratio;
 			}
-			cf->soil2_hr[layer]           = rfs2s3 * nt->psoil2c_loss[layer];
-			cf->soil2c_to_soil3c[layer]   = (1.0 - rfs2s3) * nt->psoil2c_loss[layer];
-			nf->soil2n_to_soil3n[layer]   = nt->psoil2c_loss[layer] / cn_s2;
-			
+			cf->soil2_hr[layer] = rfs2s3 * nt->psoil2c_loss[layer];
+			cf->soil2c_to_soil3c[layer] = (1.0 - rfs2s3) * nt->psoil2c_loss[layer];
+			nf->soil2n_to_soil3n[layer] = nt->psoil2c_loss[layer] / cn_s2;
+
 			nf->sminn_to_soil3n_s2[layer] = nt->pmnf_s2s3[layer];
+
+
+			/* control to avoid negative pool */
+			change = nf->sminn_to_soil2n_l2[layer] + nf->sminn_to_soil2n_s1[layer] - nf->soil2n_to_soil3n[layer];
+			diff = ns->soil2n[layer] + change;
+			if (diff < 0)
+			{
+				if (nf->sminn_to_soil2n_s1[layer] < 0)
+					nf->sminn_to_soil2n_s1[layer] -= diff;
+				else
+				{
+					if (nf->soil2n_to_soil3n[layer] > 0)
+					{
+						nf->soil2n_to_soil3n[layer] += diff;
+						nt->psoil2c_loss[layer] = nf->soil2n_to_soil3n[layer] * cn_s2;
+						cf->soil2_hr[layer] = rfs2s3 * nt->psoil2c_loss[layer];
+						cf->soil2c_to_soil3c[layer] = (1.0 - rfs2s3) * nt->psoil2c_loss[layer];
+					}
+				}
+			}
+
+	
 		}
 
 		/* slow SOM pool */
@@ -645,6 +726,25 @@ int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, co
 			
 			nf->sminn_to_soil4n_s3[layer] = nt->pmnf_s3s4[layer];
 
+			/* control to avoid negative pool */
+			change = nf->sminn_to_soil3n_l4[layer] + nf->sminn_to_soil3n_s2[layer] - nf->soil3n_to_soil4n[layer];
+			diff = ns->soil3n[layer] + change;
+			if (diff < 0)
+			{
+				if (nf->sminn_to_soil3n_s2[layer] < 0)
+					nf->sminn_to_soil3n_s2[layer] -= diff;
+				else
+				{
+					if (nf->soil3n_to_soil4n[layer] > 0)
+					{
+						nf->soil3n_to_soil4n[layer] += diff;
+						nt->psoil3c_loss[layer] = nf->soil3n_to_soil4n[layer] * cn_s2;
+						cf->soil3_hr[layer] = rfs3s4 * nt->psoil3c_loss[layer];
+						cf->soil3c_to_soil4c[layer] = (1.0 - rfs3s4) * nt->psoil3c_loss[layer];
+					}
+				}
+			}
+
 		}
 		
 		/* stable SOM pool (rf = 1.0, always mineralizing) */
@@ -653,7 +753,16 @@ int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, co
 			cf->soil4_hr[layer]           = nt->psoil4c_loss[layer];
 			if (ns->soil4n[layer] > 0)
 			{
-				nf->minerFlux_S4[layer]  = -nt->pmnf_s4[layer];
+				nf->sminn_to_soiln_s4[layer]  = nt->pmnf_s4[layer];
+			}
+
+			/* control to avoid negative pool */
+			change = nf->sminn_to_soil4n_s3[layer] + nf->sminn_to_soiln_s4[layer];
+			diff = ns->soil4n[layer] + change;
+			if (diff < 0)
+			{
+				if (nf->sminn_to_soil4n_s3[layer] < 0) nf->sminn_to_soil4n_s3[layer] -= diff;
+				
 			}
 		}
 		
@@ -735,8 +844,8 @@ int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, co
 		}
 
 
-		nf->sminn_to_soil_SUM[layer] = nf->sminn_to_soil1n_l1[layer]+nf->sminn_to_soil2n_l2[layer]+nf->sminn_to_soil3n_l4[layer] + 
-			                           nf->sminn_to_soil2n_s1[layer]+nf->sminn_to_soil3n_s2[layer]+nf->sminn_to_soil4n_s3[layer];
+		nf->sminn_to_soilSUM[layer] = nf->sminn_to_soil1n_l1[layer]+nf->sminn_to_soil2n_l2[layer]+nf->sminn_to_soil3n_l4[layer] + 
+			                           nf->sminn_to_soil2n_s1[layer]+nf->sminn_to_soil3n_s2[layer]+nf->sminn_to_soil4n_s3[layer] + nf->sminn_to_soiln_s4[layer];
 
 	 
 		nf->sminn_to_soil1n_l1_total    += nf->sminn_to_soil1n_l1[layer];
@@ -745,12 +854,12 @@ int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, co
 		nf->sminn_to_soil2n_s1_total    += nf->sminn_to_soil2n_s1[layer]; 
 		nf->sminn_to_soil3n_s2_total    += nf->sminn_to_soil3n_s2[layer]; 
 		nf->sminn_to_soil4n_s3_total    += nf->sminn_to_soil4n_s3[layer];
-		nf->minerFlux_S4_total       += nf->minerFlux_S4[layer];
+		nf->sminn_to_soiln_s4_total     += nf->sminn_to_soiln_s4[layer];
 		nf->minerFlux_StoS_total        += nf->minerFlux_StoS[layer];
 		nf->minerFlux_LtoS_total        += nf->minerFlux_LtoS[layer];
-		nf->immobFlux_LtoS_total    += nf->immobFlux_LtoS[layer]; 
-		nf->immobFlux_StoS_total    += nf->immobFlux_StoS[layer];
-		nf->sminn_to_soil_SUM_total     += nf->sminn_to_soil_SUM[layer];
+		nf->immobFlux_LtoS_total        += nf->immobFlux_LtoS[layer]; 
+		nf->immobFlux_StoS_total        += nf->immobFlux_StoS[layer];
+
 
 		nf->litr1n_to_soil1n_total       += nf->litr1n_to_soil1n[layer];              
 		nf->litr2n_to_soil2n_total       += nf->litr2n_to_soil2n[layer];              
@@ -786,13 +895,8 @@ int daily_allocation(const epconst_struct* epc, const soilprop_struct* sprop, co
 
 	}
 
-	nf->sminn_to_npool_totalCUM     += nf->sminn_to_npool_total;
-	nf->minerFlux_StoS_totalCUM     += nf->minerFlux_StoS_total;
-	nf->minerFlux_LtoS_totalCUM     += nf->minerFlux_LtoS_total;
-	nf->immobFlux_LtoS_totalCUM += nf->immobFlux_LtoS_total; 
-	nf->immobFlux_StoS_totalCUM += nf->immobFlux_StoS_total; 
-	nf->netMINERflux_totalCUM       += nf->netMINERflux_total;
-	nf->actIMMOBflux_totalCUM       += nf->actIMMOBflux_total;
+
+
 
 	 
 

@@ -59,14 +59,14 @@ int ploughing_init(file init, const control_struct* ctrl, ploughing_struct* PLG)
 	/* header reading */
 	if (!errorCode && scan_value(init, header, 's'))
 	{
-		printf("ERROR reading keyword, ploughing_init()\n");
+		printf("ERROR reading keyword, ploughing_init.c\n");
 		errorCode=1;
 	}
 
 	/* header control */
 	if (!errorCode && scan_value(init, header, 's'))
 	{
-		printf("ERROR reading keyword, ploughing_init()\n");
+		printf("ERROR reading keyword, ploughing_init.c\n");
 		errorCode=1;
 	}
 

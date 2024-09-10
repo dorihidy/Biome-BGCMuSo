@@ -36,7 +36,7 @@ int check_water_balance(wstate_struct* ws, int first_balance)
 	/* control to avoid negative storage */
 	for (layer=0; layer < N_SOILLAYERS; layer++)
 	{
-		if (ws->soilw[layer] < 0.0)
+		if (ws->soilw[layer] < 0.0 && !errorCode)
 		{
 			printf("\n");
 			printf("ERROR: negative soil water content\n");
@@ -57,11 +57,13 @@ int check_water_balance(wstate_struct* ws, int first_balance)
 	}
 	
 	/* sum of sources */
-	ws->inW = ws->prcp_src + ws->groundwater_src + ws->IRGsrc_W +  ws->FRZsrc_W + ws->FLDsrc;
+	ws->inW = ws->prcp_src + ws->GWsrc_W + ws->IRGsrc_W +  ws->FRZsrc_W + ws->FLsrc_W;
+	
+
 	
 	/* sum of sinks */
-	ws->outW = ws->soilEVP_snk + ws->snowSUBL_snk + ws->groundwater_snk +
-		ws->canopywEVP_snk + ws->TRP_snk +
+	ws->outW = ws->soilEVP_snk + ws->snowSUBL_snk + ws->GWsnk_W +
+		ws->EVPcanopyw_snk + ws->TRP_snk +
 		ws->canopyw_THNsnk +			/* thinning */
 		ws->canopyw_MOWsnk +			/* mowing */
 		ws->canopyw_HRVsnk +			/* harvesting */
@@ -128,7 +130,7 @@ int check_carbon_balance(cstate_struct* cs, int first_balance)
 	/* summarizing soil and litter pools  */
 	for (layer=0; layer < N_SOILLAYERS; layer++)
 	{
-		if (cs->soil1c[layer] < 0.0 || cs->soil2c[layer] < 0.0 || cs->soil3c[layer] < 0.0 || cs-> soil4c[layer] < 0.0)
+		if ((cs->soil1c[layer] < 0.0 || cs->soil2c[layer] < 0.0 || cs->soil3c[layer] < 0.0 || cs-> soil4c[layer] < 0.0) && !errorCode)
 		{
 		 	printf("\n");
 			printf("ERROR: negative soil carbon stock\n");
@@ -140,16 +142,9 @@ int check_carbon_balance(cstate_struct* cs, int first_balance)
 		cs->soil4c_total	+= cs->soil4c[layer];
 		cs->soilC[layer]     = cs->soil1c[layer] + cs->soil2c[layer] + cs->soil3c[layer] + cs->soil4c[layer];
 
-		if (cs->soil1DOC[layer] < 0.0  || cs->soil2DOC[layer] < 0.0 || cs->soil3DOC[layer] < 0.0 || cs->soil4DOC[layer] < 0.0)
-		{			
-			printf("\n");
-			printf("ERROR: negative dissolved soil nitrogen pool\n");
-			errorCode=1;
-		}
-		cs->soilDOC[layer]     = cs->soil1DOC[layer] + cs->soil2DOC[layer] + cs->soil3DOC[layer] + cs->soil4DOC[layer];
+
 	
-		if (cs->litr1c[layer] < 0.0 || cs->litr2c[layer] < 0.0 || cs->litr3c[layer] < 0.0 || cs-> litr4c[layer] < 0.0  || 
-			cs->cwdc[layer] < 0.0)
+		if ((cs->litr1c[layer] < 0.0 || cs->litr2c[layer] < 0.0 || cs->litr3c[layer] < 0.0 || cs-> litr4c[layer] < 0.0  || cs->cwdc[layer] < 0.0) && !errorCode)
 		{	
 			printf("ERROR: negative litter carbon stock\n");
 			errorCode=1;
@@ -162,9 +157,6 @@ int check_carbon_balance(cstate_struct* cs, int first_balance)
 		cs->cwdc_total   += cs->cwdc[layer];
 	}
 
-
-
-	
 
 	/* summarizing cut-down and standing dead biomass */
 	cs->CTDBc_above = cs->CTDBc_leaf  + cs->CTDBc_yield  + cs->CTDBc_softstem + cs->CTDBc_cstem;
@@ -181,7 +173,9 @@ int check_carbon_balance(cstate_struct* cs, int first_balance)
 	/* DAILY CHECK ON CARBON BALANCE */
 	
 	/* sum of sources: photosynthesis and managenet */
-	cs->inC = cs->psnsun_src + cs->psnshade_src + cs->PLTsrc_C + cs->GRZsrc_C  + cs->FRZsrc_C + cs->MULsrc_C;
+	cs->inC = cs->psnsun_src + cs->psnshade_src + cs->GWsrc_C + cs->FLsrc_C + cs->PLTsrc_C + cs->GRZsrc_C  + cs->FRZsrc_C + cs->MULsrc_C;
+
+	
 	
 	/* sum of sinks: respiration, fire and management */
 	cs->outC = cs->MRleaf_snk      + cs->GRleaf_snk      + cs->MRfroot_snk     + cs->GRfroot_snk + 
@@ -191,9 +185,11 @@ int check_carbon_balance(cstate_struct* cs, int first_balance)
 			   cs->HRlitr1_snk + cs->HRlitr2_snk + cs->HRlitr4_snk + 
 			   cs->HRsoil1_snk + cs->HRsoil2_snk + cs->HRsoil3_snk + cs->HRsoil4_snk + 
 			   cs->FIREsnk_C +  cs->Cdeepleach_snk + 
-			   cs->GRZsnk_C + cs->THN_transportC + cs->MOW_transportC + cs->HRV_transportC + cs->CWEsnk_C; 
+		       cs->GWsnk_C +
+			   cs->GRZsnk_C + cs->THN_transportC + cs->MOW_snkC + cs->HRV_snkC + cs->CWEsnk_C; 
 		
-		     
+
+
 		
 	/* sum of current storage */
 	cs->storeC = cs->leafc      + cs->leafc_storage      + cs->leafc_transfer +
@@ -216,7 +212,7 @@ int check_carbon_balance(cstate_struct* cs, int first_balance)
 	balance = cs->inC - cs->outC - cs->storeC;
 	 
 	/* calculate actual maximum balance error */
-	if (!first_balance && (fabs(old_balance - balance) > cs->CbalanceERR))
+ 	if (!first_balance && (fabs(old_balance - balance) > cs->CbalanceERR))
 	{
 	 	cs->CbalanceERR = fabs(old_balance - balance);
 	}
@@ -234,7 +230,7 @@ int check_nitrogen_balance(nstate_struct* ns, int first_balance)
 	static double old_balance = 0.0;
 	
 	/* CONTROL AVOIDING NITROGEN POOLS */
-	if (ns->leafn < 0.0 || ns->leafn < 0.0 ||  ns->leafn_storage < 0.0 || ns->leafn_transfer < 0.0 || 
+	if (ns->leafn < 0.0 ||  ns->leafn_storage < 0.0 || ns->leafn_transfer < 0.0 || 
 		ns->frootn < 0.0 || ns->frootn_storage < 0.0 || ns->frootn_transfer < 0.0 || 
 		ns->yieldn < 0.0 || ns->yieldn_storage < 0.0 || ns->yieldn_transfer < 0.0 || 
 		ns->softstemn < 0.0 || ns->softstemn_storage < 0.0 || ns->softstemn_transfer < 0.0 || 
@@ -256,8 +252,8 @@ int check_nitrogen_balance(nstate_struct* ns, int first_balance)
 	ns->soil2n_total	= 0;
 	ns->soil3n_total	= 0;
 	ns->soil4n_total	= 0;
-	ns->sminNH4_total	= 0;
-	ns->sminNO3_total	= 0;
+	ns->NH4_total	= 0;
+	ns->NO3_total	= 0;
 	ns->litr1n_total	= 0;
 	ns->litr2n_total	= 0;
 	ns->litr3n_total	= 0;
@@ -267,7 +263,7 @@ int check_nitrogen_balance(nstate_struct* ns, int first_balance)
 	/* summarizing soil and litter pools  */
 	for (layer=0; layer < N_SOILLAYERS; layer++)
 	{
-		if (ns->soil1n[layer] < 0.0  || ns->soil2n[layer] < 0.0 || ns->soil3n[layer] < 0.0 || ns->soil4n[layer] < 0.0)
+		if ((ns->soil1n[layer] < 0.0  || ns->soil2n[layer] < 0.0 || ns->soil3n[layer] < 0.0 || ns->soil4n[layer] < 0.0) && !errorCode)
 		{			
 			printf("\n");
 			printf("ERROR: negative soil nitrogen pool\n");
@@ -279,14 +275,7 @@ int check_nitrogen_balance(nstate_struct* ns, int first_balance)
 		ns->soil4n_total	+= ns->soil4n[layer];
 		ns->soilN[layer]     = ns->soil1n[layer] + ns->soil2n[layer] + ns->soil3n[layer] + ns->soil4n[layer];
 
-		if (ns->soil1DON[layer] < 0.0  || ns->soil2DON[layer] < 0.0 || ns->soil3DON[layer] < 0.0 || ns->soil4DON[layer] < 0.0)
-		{			
-			printf("\n");
-			printf("ERROR: negative dissolved soil nitrogen pool\n");
-			errorCode=1;
-		}
-		ns->soilDON[layer]     = ns->soil1DON[layer] + ns->soil2DON[layer] + ns->soil3DON[layer] + ns->soil4DON[layer];
-		
+
 
 		if (ns->litr1n[layer] < 0.0 || ns->litr2n[layer] < 0.0 || ns->litr3n[layer] < 0.0 || ns-> litr4n[layer] < 0.0 || ns->cwdn[layer] < 0.0)
 		{	
@@ -301,15 +290,16 @@ int check_nitrogen_balance(nstate_struct* ns, int first_balance)
 		ns->litrN[layer]     = ns->litr1n[layer] + ns->litr2n[layer] + ns->litr3n[layer] + ns->litr4n[layer];
 		ns->cwdn_total		+= ns->cwdn[layer];
 
-		if (ns->sminNH4[layer] < 0 || ns->sminNO3[layer] < 0 )
+
+		if (ns->NH4[layer] < 0 || ns->NO3[layer] < 0 )
 		{
 			printf("\n");
 			printf("ERROR: negative mineralized nitrogen pool\n");
 			errorCode=1;
 		}
 	
-		ns->sminNH4_total	+= ns->sminNH4[layer];
-		ns->sminNO3_total	+= ns->sminNO3[layer];
+		ns->NH4_total	+= ns->NH4[layer];
+		ns->NO3_total	+= ns->NO3[layer];
 	}
 	
 	/* summarizing cut-down and standing dead biomass */
@@ -324,15 +314,16 @@ int check_nitrogen_balance(nstate_struct* ns, int first_balance)
 	/* DAILY CHECK ON NITROGEN BALANCE */
 	
 	/* sum of sources: fixation, deposition, spinup add, management */
-	ns->inN = ns->Nfix_src + ns->Ndep_src + ns->SPINUPsrc +
+	ns->inN = ns->Nfix_src + ns->Ndep_src + ns->SPINUPsrc + ns->GWsrc_N + ns->FLsrc_N +			            /* SUM of nitrogen plus from flooding */
 			  ns->PLTsrc_N +  ns->GRZsrc_N +  ns->FRZsrc_N + ns->MULsrc_N;
 	
 	
 	/* sum of sinks: volatilization, fire, deep leach, management */
 	ns->outN = ns->Nvol_snk + ns->Nprec_snk + ns->FIREsnk_N + ns->Ndeepleach_snk + 
-			   ns->GRZsnk_N + ns->THN_transportN + ns->MOW_transportN+  + ns->HRV_transportN + ns->CWEsnk_N;
+		       ns->GWsnk_N +
+			   ns->GRZsnk_N + ns->THNsnk_N + ns->MOWsnk_N+  + ns->HRVsnk_N + ns->CWEsnk_N;
 
-		
+
 	/* sum of current storage */
 	ns->storeN = ns->leafn      + ns->leafn_storage      + ns->leafn_transfer +
 				 ns->frootn     + ns->frootn_storage     + ns->frootn_transfer + 			
@@ -345,7 +336,7 @@ int check_nitrogen_balance(nstate_struct* ns, int first_balance)
 				ns->retransn + 
 				ns->litr1n_total + ns->litr2n_total + ns->litr3n_total + ns->litr4n_total +
 				ns->soil1n_total + ns->soil2n_total + ns->soil3n_total + ns->soil4n_total +
-				ns->sminNH4_total  + ns->sminNO3_total  + ns->cwdn_total + 
+				ns->NH4_total  + ns->NO3_total  + ns->cwdn_total + 
 				ns->npool        + 
 				ns->CTDBn_above + ns->STDBn_above + ns->CTDBn_below + ns->STDBn_below;
 

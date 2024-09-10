@@ -23,36 +23,41 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_func.h"
 
 
-int flooding_init(flooding_struct* FLD, control_struct* ctrl)
+int flooding_init(flooding_struct* FLS, control_struct* ctrl)
 {
 	int errorCode=0;
-	file FLD_file;	
+	file FL_file;	
+	char header[STRINGSIZE];
 
 	int dataread, leap;
 	int ndata = 0;
 
-	int p1,p2,p3,p4,p5,p6, maxFLD_num, nmgm;
-	double p7;
+	int p1,p2,p3,p4,p5,p6, maxFLnum, nmgm;
+	double p7,p8,p9,p10;
 	char tempvar;
 
-	int* FLDstart_year_array;			
-	int* FLDstart_month_array;						
-	int* FLDstart_day_array;
-	int* FLDend_year_array;			
-	int* FLDend_month_array;						
-	int* FLDend_day_array;
-	double* FLDheight_array;
+	int* FLstart_year_array;			
+	int* FLstart_month_array;						
+	int* FLstart_day_array;
+	int* FLend_year_array;			
+	int* FLend_month_array;						
+	int* FLend_day_array;
+	double* FLheight_array;
+	double* FL_NH4ppm_array;
+	double* FL_NO3ppm_array;
+	double* FL_DOCppm_array;
+
 
 	int* mondays=0;
 	int* enddays=0;
 
 	nmgm=0;
-	maxFLD_num=ctrl->simyears* nDAYS_OF_YEAR;
-	FLD->FLD_num = 0;
+	maxFLnum=ctrl->simyears* nDAYS_OF_YEAR;
+	FLS->FLnum = 0;
 
 	/********************************************************************
 	**                                                                 **
-	** Reading FLD data if available                                   ** 
+	** Reading FL data if available                                   ** 
 	**                                                                 **
 	********************************************************************/
 
@@ -60,26 +65,32 @@ int flooding_init(flooding_struct* FLD, control_struct* ctrl)
 	{
 		if (ctrl->spinup == 0)   /* normal run */
 		{
-			strcpy(FLD_file.name, "flooding_normal.txt");
-			if (!file_open(&FLD_file,'j',1)) FLD->FLD_num = 1;
+			strcpy(FL_file.name, "flooding_normal.txt");
+			if (!file_open(&FL_file,'j',1)) FLS->FLnum = 1;
 		}
 		else                     /* spinup and transient run */        
 		{ 	
-			strcpy(FLD_file.name, "flooding_spinup.txt");
-			if (!file_open(&FLD_file,'j',1)) FLD->FLD_num = 1;	
+			strcpy(FL_file.name, "flooding_spinup.txt");
+			if (!file_open(&FL_file,'j',1)) FLS->FLnum = 1;	
 		}
 	}
 
 
-	if (!errorCode && FLD->FLD_num > 0) 
+	if (!errorCode && FLS->FLnum > 0) 
 	{		
+
+		if (!errorCode && scan_value(FL_file, header, 's'))
+		{
+			printf("ERROR reading header for FLOODING file\n");
+			errorCode = 1;
+		}
 		
 		if (!errorCode) 
 		{
 			enddays = (int*) malloc(nMONTHS_OF_YEAR * sizeof(int));
 			if (!enddays)
 			{
-				printf("ERROR allocating for enddays in bgc.c()\n");
+				printf("ERROR allocating for enddays in bgc.c\n");
 				errorCode=1;
 			}
 		}
@@ -89,54 +100,60 @@ int flooding_init(flooding_struct* FLD, control_struct* ctrl)
 			mondays = (int*) malloc(nMONTHS_OF_YEAR * sizeof(int));
 			if (!mondays)
 			{
-				printf("ERROR allocating for enddays in bgc.c()\n");
+				printf("ERROR allocating for enddays in bgc.c\n");
 				errorCode=1;
 			}
 		}
 
 		/* allocate space for the temporary MGM array */
-		FLDstart_year_array    = (int*) malloc(maxFLD_num*sizeof(int));  
-		FLDstart_month_array   = (int*) malloc(maxFLD_num*sizeof(int)); 
-		FLDstart_day_array     = (int*) malloc(maxFLD_num*sizeof(int)); 
-		FLDend_year_array    = (int*) malloc(maxFLD_num*sizeof(int));  
-		FLDend_month_array   = (int*) malloc(maxFLD_num*sizeof(int)); 
-		FLDend_day_array     = (int*) malloc(maxFLD_num*sizeof(int)); 
-        FLDheight_array   = (double*) malloc(maxFLD_num*sizeof(double)); 
+		FLstart_year_array  = (int*) malloc(maxFLnum*sizeof(int));  
+		FLstart_month_array = (int*) malloc(maxFLnum*sizeof(int)); 
+		FLstart_day_array   = (int*) malloc(maxFLnum*sizeof(int)); 
+		FLend_year_array    = (int*) malloc(maxFLnum*sizeof(int));  
+		FLend_month_array   = (int*) malloc(maxFLnum*sizeof(int)); 
+		FLend_day_array     = (int*) malloc(maxFLnum*sizeof(int)); 
+        FLheight_array      = (double*) malloc(maxFLnum*sizeof(double)); 
+		FL_NH4ppm_array     = (double*) malloc(maxFLnum * sizeof(double));
+		FL_NO3ppm_array     = (double*) malloc(maxFLnum * sizeof(double));
+		FL_DOCppm_array     = (double*) malloc(maxFLnum * sizeof(double));
 
 		
 		ndata=0;
-		while (!errorCode && !(dataread = scan_array (FLD_file, &p1, 'i', 0, 0)))
+		while (!errorCode && !(dataread = scan_array (FL_file, &p1, 'i', 0, 0)))
 		{
-			dataread = fscanf(FLD_file.ptr, "%c%d%c%d%c%d%c%d%c%d%lf%*[^\n]", &tempvar,&p2,&tempvar,&p3,&tempvar,&p4,&tempvar,&p5,&tempvar,&p6, &p7);
+			dataread = fscanf(FL_file.ptr, "%c %d %c %d %d %c %d %c %d %lf %lf %lf %lf[^\n]", &tempvar, &p2, &tempvar, &p3, &p4, &tempvar, &p5, &tempvar, &p6, &p7, &p8, &p9, &p10);
 				
 			if (p1 >= ctrl->simstartyear && p1 < ctrl->simstartyear + ctrl->simyears)
 			{
-				FLDstart_year_array[ndata]     = p1;
-				FLDstart_month_array[ndata]    = p2;
-				FLDstart_day_array[ndata]      = p3;
-				FLDend_year_array[ndata]       = p4;
-				FLDend_month_array[ndata]      = p5;
-				FLDend_day_array[ndata]        = p6;
-				FLDheight_array[ndata]         = p7;
+				FLstart_year_array[ndata]     = p1;
+				FLstart_month_array[ndata]    = p2;
+				FLstart_day_array[ndata]      = p3;
+				FLend_year_array[ndata]       = p4;
+				FLend_month_array[ndata]      = p5;
+				FLend_day_array[ndata]        = p6;
+				FLheight_array[ndata]         = p7;
+				FL_NH4ppm_array[ndata]        = p8;
+				FL_NO3ppm_array[ndata]        = p9;
+				FL_DOCppm_array[ndata]        = p10;
 
-				if (!errorCode && leapControl(FLDstart_year_array[ndata], enddays, mondays, &leap))
+				if (!errorCode && leapControl(FLstart_year_array[ndata], enddays, mondays, &leap))
 				{
-					printf("ERROR in call to leapControl() from mgm_init.c\n");
+					printf("ERROR in call to leapControl.c from flooding_init.c\n");
 					errorCode=1;
 				}
-				if (leap == 1 && FLDstart_month_array[ndata] == 12 && FLDstart_day_array[ndata] == 31)
+				if (leap == 1 && FLstart_month_array[ndata] == 12 && FLstart_day_array[ndata] == 31)
 				{
 					printf("ERROR in flooding date in flooding_init.c: data from 31 December in a leap year is found in flooding file\n");
 					printf("Please read the manual and modify the input data\n");
 					errorCode=1;
 				}
 
-				if (!errorCode && leapControl(FLDend_year_array[ndata], enddays, mondays, &leap))
+				if (!errorCode && leapControl(FLend_year_array[ndata], enddays, mondays, &leap))
 				{
-					printf("ERROR in call to leapControl() from mgm_init.c\n");
+					printf("ERROR in call to leapControl.c from flooding_init.c\n");
 					errorCode=1;
 				}
-				if (leap == 1 && FLDend_month_array[ndata] == 12 && FLDend_day_array[ndata] == 31)
+				if (leap == 1 && FLend_month_array[ndata] == 12 && FLend_day_array[ndata] == 31)
 				{
 					printf("ERROR in flooding date in flooding_init.c: data from 31 December in a leap year is found in flooding file\n");
 					printf("Please read the manual and modify the input data\n");
@@ -148,31 +165,37 @@ int flooding_init(flooding_struct* FLD, control_struct* ctrl)
 			}
 		}
 
-		FLD->FLD_num = nmgm;
+		FLS->FLnum = nmgm;
 		nmgm = 0;
 	
-		FLD->FLDstart_year_array      = (int*) malloc(FLD->FLD_num*sizeof(double));  
-		FLD->FLDstart_month_array     = (int*) malloc(FLD->FLD_num*sizeof(double)); 
-		FLD->FLDstart_day_array       = (int*) malloc(FLD->FLD_num*sizeof(double)); 
-		FLD->FLDend_year_array        = (int*) malloc(FLD->FLD_num*sizeof(double));  
-		FLD->FLDend_month_array       = (int*) malloc(FLD->FLD_num*sizeof(double)); 
-		FLD->FLDend_day_array         = (int*) malloc(FLD->FLD_num*sizeof(double)); 
-		FLD->FLDheight                = (double*) malloc(FLD->FLD_num*sizeof(double)); 
+		FLS->FLstart_year_array      = (int*) malloc(FLS->FLnum*sizeof(double));  
+		FLS->FLstart_month_array     = (int*) malloc(FLS->FLnum*sizeof(double)); 
+		FLS->FLstart_day_array       = (int*) malloc(FLS->FLnum*sizeof(double)); 
+		FLS->FLend_year_array        = (int*) malloc(FLS->FLnum*sizeof(double));  
+		FLS->FLend_month_array       = (int*) malloc(FLS->FLnum*sizeof(double)); 
+		FLS->FLend_day_array         = (int*) malloc(FLS->FLnum*sizeof(double)); 
+		FLS->FLheight_array          = (double*) malloc(FLS->FLnum*sizeof(double)); 
+		FLS->FL_NH4ppm_array         = (double*) malloc(FLS->FLnum * sizeof(double));
+		FLS->FL_NO3ppm_array         = (double*) malloc(FLS->FLnum * sizeof(double));
+		FLS->FL_DOCppm_array         = (double*) malloc(FLS->FLnum * sizeof(double));
 
-		for (nmgm = 0; nmgm < FLD->FLD_num; nmgm++)
+		for (nmgm = 0; nmgm < FLS->FLnum; nmgm++)
 		{
-			FLD->FLDstart_year_array[nmgm]    = FLDstart_year_array[nmgm];
-			FLD->FLDstart_month_array[nmgm]   = FLDstart_month_array[nmgm];
-			FLD->FLDstart_day_array[nmgm]     = FLDstart_day_array[nmgm];
+			FLS->FLstart_year_array[nmgm]    = FLstart_year_array[nmgm];
+			FLS->FLstart_month_array[nmgm]   = FLstart_month_array[nmgm];
+			FLS->FLstart_day_array[nmgm]     = FLstart_day_array[nmgm];
 
-			FLD->FLDend_year_array[nmgm]      = FLDend_year_array[nmgm];
-			FLD->FLDend_month_array[nmgm]     = FLDend_month_array[nmgm];
-			FLD->FLDend_day_array[nmgm]       = FLDend_day_array[nmgm];
+			FLS->FLend_year_array[nmgm]      = FLend_year_array[nmgm];
+			FLS->FLend_month_array[nmgm]     = FLend_month_array[nmgm];
+			FLS->FLend_day_array[nmgm]       = FLend_day_array[nmgm];
 
-			FLD->FLDheight[nmgm]              = FLDheight_array[nmgm];
+			FLS->FLheight_array[nmgm]        = FLheight_array[nmgm];
+			FLS->FL_NH4ppm_array[nmgm]       = FL_NH4ppm_array[nmgm];
+			FLS->FL_NO3ppm_array[nmgm]       = FL_NO3ppm_array[nmgm];
+			FLS->FL_DOCppm_array[nmgm]       = FL_DOCppm_array[nmgm];
 		}
 
-		if (nmgm > maxFLD_num)
+		if (nmgm > maxFLnum)
 		{
 			printf("ERROR in flooding data reading flooding_init.c\n");
 			errorCode=1;
@@ -180,22 +203,25 @@ int flooding_init(flooding_struct* FLD, control_struct* ctrl)
 
 		/* read year and FLD for each simday in each simyear */
 		
-		free(FLDstart_year_array);	
-		free(FLDstart_month_array);	
-		free(FLDstart_day_array);	
-		free(FLDend_year_array);	
-		free(FLDend_month_array);	
-		free(FLDend_day_array);	
-        free(FLDheight_array);	
+		free(FLstart_year_array);	
+		free(FLstart_month_array);	
+		free(FLstart_day_array);	
+		free(FLend_year_array);	
+		free(FLend_month_array);	
+		free(FLend_day_array);	
+        free(FLheight_array);	
+		free(FL_NH4ppm_array);
+		free(FL_NO3ppm_array);
+		free(FL_DOCppm_array);
 
-		fclose(FLD_file.ptr);
+		fclose(FL_file.ptr);
 	}	
 
 	
 
-	FLD->mgmdFLD = 0;
+	FLS->mgmdFL = 0;
 
-	if (!errorCode && FLD->FLD_num > 0) 
+	if (!errorCode && FLS->FLnum > 0) 
 	{
 		free(enddays);
 		free(mondays);

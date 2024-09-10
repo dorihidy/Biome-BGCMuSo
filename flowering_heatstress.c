@@ -20,7 +20,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int flowering_heatstress(const epconst_struct* epc, const metvar_struct *metv, cstate_struct* cs, epvar_struct* epv, cflux_struct* cf, nflux_struct* nf)
+int flowering_heatstress(const epconst_struct* epc, const metvar_struct* metv, cstate_struct* cs, epvar_struct* epv, cflux_struct* cf, nflux_struct* nf)
 
 {
 	double mort_act;

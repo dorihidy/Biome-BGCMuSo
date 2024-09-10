@@ -22,7 +22,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "pointbgc_func.h"
 #include "bgc_constants.h"
 
-int mowing(const control_struct* ctrl, const epconst_struct* epc, const mowing_struct* MOW, const epvar_struct* epv, 
+int mowing(const control_struct* ctrl, const epconst_struct* epc, const mowing_struct* MOW, epvar_struct* epv, 
 		   cstate_struct* cs, nstate_struct* ns, wstate_struct* ws, cflux_struct* cf, nflux_struct* nf, wflux_struct* wf)
 {
 
@@ -107,8 +107,8 @@ int mowing(const control_struct* ctrl, const epconst_struct* epc, const mowing_s
 		if (epc->leaf_cn)
 		{
 			cf->leafc_to_MOW              = cs->leafc * MOWcoeff;
-			cf->leafc_transfer_to_MOW     = cs->leafc_transfer * MOWcoeff;
-			cf->leafc_storage_to_MOW      = cs->leafc_storage * MOWcoeff;
+			cf->leafc_transfer_to_MOW     = cs->leafc_transfer* MOWcoeff * 0.1;
+			cf->leafc_storage_to_MOW      = cs->leafc_storage * MOWcoeff * 0.1;
 
 			nf->leafn_to_MOW              = cf->leafc_to_MOW          / epc->leaf_cn;
 			nf->leafn_transfer_to_MOW     = cf->leafc_transfer_to_MOW / epc->leaf_cn;
@@ -118,8 +118,8 @@ int mowing(const control_struct* ctrl, const epconst_struct* epc, const mowing_s
 		if (epc->yield_cn)
 		{
 			cf->yieldc_to_MOW              = cs->yieldc * MOWcoeff;
-			cf->yieldc_transfer_to_MOW     = cs->yieldc_transfer * MOWcoeff;
-			cf->yieldc_storage_to_MOW      = cs->yieldc_storage * MOWcoeff;
+			cf->yieldc_transfer_to_MOW     = cs->yieldc_transfer * MOWcoeff * 0.1;
+			cf->yieldc_storage_to_MOW      = cs->yieldc_storage  * MOWcoeff * 0.1;
 
 			nf->yieldn_to_MOW              = cf->yieldc_to_MOW          / epc->yield_cn;
 			nf->yieldn_transfer_to_MOW     = cf->yieldc_transfer_to_MOW / epc->yield_cn;
@@ -129,16 +129,16 @@ int mowing(const control_struct* ctrl, const epconst_struct* epc, const mowing_s
 		if (epc->softstem_cn)
 		{
 			cf->softstemc_to_MOW              = cs->softstemc * MOWcoeff;
-			cf->softstemc_transfer_to_MOW     = cs->softstemc_transfer * MOWcoeff;
-			cf->softstemc_storage_to_MOW      = cs->softstemc_storage * MOWcoeff;
+			cf->softstemc_transfer_to_MOW     = cs->softstemc_transfer * MOWcoeff * 0.1;
+			cf->softstemc_storage_to_MOW      = cs->softstemc_storage  * MOWcoeff * 0.1;
 
 			nf->softstemn_to_MOW              = cf->softstemc_to_MOW          / epc->softstem_cn;
 			nf->softstemn_transfer_to_MOW     = cf->softstemc_transfer_to_MOW / epc->softstem_cn;
 			nf->softstemn_storage_to_MOW      = cf->softstemc_storage_to_MOW  / epc->softstem_cn;
 		}
 	
-		cf->gresp_transfer_to_MOW     = cs->gresp_transfer * MOWcoeff;
-		cf->gresp_storage_to_MOW      = cs->gresp_storage * MOWcoeff;
+		cf->gresp_transfer_to_MOW     = cs->gresp_transfer * MOWcoeff * 0.1;
+		cf->gresp_storage_to_MOW      = cs->gresp_storage  * MOWcoeff * 0.1;
 
 
 
@@ -168,7 +168,7 @@ int mowing(const control_struct* ctrl, const epconst_struct* epc, const mowing_s
 			              nf->yieldn_to_MOW    + nf->yieldn_transfer_to_MOW   + nf->yieldn_storage_to_MOW    + nf->STDBn_yield_to_MOW + 
 						  nf->softstemn_to_MOW + nf->softstemn_transfer_to_MOW + nf->softstemn_storage_to_MOW + nf->STDBn_softstem_to_MOW)  * (1-remained_prop);
 
-
+		cf->MOW_to_transpC = MOW_to_transpC;
 		/*----------------------------------------------------------*/
 		/* 3. cut-down biomass: the rest remains at the site (MOW_to_litrc_strg, MOW_to_litrn_strg)*/
 	
@@ -239,8 +239,8 @@ int mowing(const control_struct* ctrl, const epconst_struct* epc, const mowing_s
 
 	
 		/* 2. TRANSPORT*/
-		cs->MOW_transportC  += MOW_to_transpC;
-		ns->MOW_transportN  += MOW_to_transpN;
+		cs->MOW_snkC  += MOW_to_transpC;
+		ns->MOWsnk_N  += MOW_to_transpN;
 	
 	
 		/* 3. IN: cut-down biome  */
@@ -276,7 +276,6 @@ int mowing(const control_struct* ctrl, const epconst_struct* epc, const mowing_s
 			printf("BALANCE ERROR in mowing calculation in mowing.c\n");
 			errorCode=1;
 		}
-
 
 }
 

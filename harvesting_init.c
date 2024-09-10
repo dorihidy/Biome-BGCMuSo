@@ -59,7 +59,7 @@ int harvesting_init(file init, const control_struct* ctrl, harvesting_struct* HR
 	/* header reading */
 	if (!errorCode && scan_value(init, header, 's'))
 	{
-		printf("ERROR reading keyword, harvesting_init()\n");
+		printf("ERROR reading keyword, harvesting_init.c\n");
 		errorCode=1;
 	}
 

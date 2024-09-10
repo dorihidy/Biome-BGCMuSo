@@ -1,6 +1,6 @@
 /* 
 senescence.c
-calculation of daily senescence mortality fluxes (due to drought/water stress)
+calculation of daily senescence mortality fluxes (due to drought/anoxic water stress)
 Senescence mortality: these fluxes all enter litter sinks due to  low VWC during a long period
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -22,7 +22,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int senescence(const siteconst_struct *sitec, const epconst_struct* epc, const grazing_struct* GRZ, const metvar_struct* metv, 
+int senescence(const siteconst_struct* sitec, const epconst_struct* epc, const grazing_struct* GRZ, const metvar_struct* metv, 
 			   control_struct* ctrl, cstate_struct* cs, cflux_struct* cf,nstate_struct* ns, nflux_struct* nf, epvar_struct* epv)
 {
 	int errorCode=0;
@@ -32,14 +32,14 @@ int senescence(const siteconst_struct *sitec, const epconst_struct* epc, const g
 	double SNSCmort_leaf, SNSCmort_other, m_nscSNSCmort;
 	double mort_SNSC_to_litter = 0;
 	double propLAYER0, propLAYER1, propLAYER2;
-	double STDB_CN;
+	double STDB_CN, m_fullWS;
 	
 	SNSCmort_leaf=SNSCmort_other=m_nscSNSCmort=STDB_CN=0;
 	
 	/* initalizing N flux to retranslocation due to senescence */
 	nf->SNSC_to_retrans = 0;
 	
-	/*  SMSI - multiplication of m_SWCstress, m_extremT and m_SWCstressLENGTH */
+	/*  SMSI - multiplication of m_WS, m_extremT and m_WSlenght */
 	/* calculating EXTREM temperature effect */
 	
 	if (metv->Tmax < epc->SNSC_extremT1)
@@ -57,13 +57,16 @@ int senescence(const siteconst_struct *sitec, const epconst_struct* epc, const g
 	if (epv->m_extremT < 0 || epv->m_extremT > 1)
 	{
 		printf("\n");
-		printf("FATAL ERROR in extremT_effect calculation (senescence.c)\n");
+		printf("ERROR in senescence.c: invalid m_extremT coefficient\n");
 		errorCode=1;
 	}
 
+	/* calculation of fullWS mortality from nday_fullWS parameter (after which pool is decreased from 100% to 0.1%) */
+	m_fullWS = 1-pow(0.001, 1./epc->nday_fullWS);
+
 	if ((cs->leafc > 0 && ns->leafn > 0))
 	{	
-		epv->SMSI = 1 - epv->m_SWCstress * epv->m_extremT * epv->m_SWCstressLENGTH;
+		epv->SMSI = 1 - epv->m_WS * epv->m_extremT *epv->m_WSlenght;
 
 		/* control */
 		if (epv->SMSI < 0)
@@ -71,17 +74,39 @@ int senescence(const siteconst_struct *sitec, const epconst_struct* epc, const g
 			if (fabs(epv->SMSI) > CRIT_PREC)
 			{
 				printf("\n");
-				printf("FATAL ERROR in SMSI calculation (senescence.c)\n");
+				printf("ERROR in senescence.c: invalid SMSI coefficient\n");
 				errorCode=1;
 			}
 			else
 				epv->SMSI = 0;
 		}
 
-		SNSCmort_leaf = (epc->maxSNSCmort_leaf * epv->SMSI);
-		if (SNSCmort_leaf > 1) SNSCmort_leaf = 1;
+		if (epv->n_rootlayers)
+		{
+			if (epv->nlayer_fullWS > 0 && epv->nlayer_fullWS >= epv->n_rootlayers - epv->germ_layer)
+				SNSCmort_leaf = m_fullWS * epv->SMSI;
+			else
+				SNSCmort_leaf = epc->maxSNSCmort_leaf * epv->SMSI;
+				
+
+			if (SNSCmort_leaf > 1) SNSCmort_leaf = 1;
+		}
+		else
+		{
+			if (epv->m_WS != 1)
+			{
+				printf("\n");
+				printf("ERROR in senescence.c: invalid SMSI coefficient\n");
+				errorCode = 1;
+			}
+		}
 		
-		SNSCmort_other = (epc->maxSNSCmort_other * epv->SMSI); 
+		
+		if (epv->nlayer_fullWS < epv->n_rootlayers - 1)
+			SNSCmort_other = (epc->maxSNSCmort_other * epv->SMSI);
+		else
+			SNSCmort_other = m_fullWS * epv->SMSI;
+
 		if (SNSCmort_other > 1) SNSCmort_other = 1;
 
 		m_nscSNSCmort = epc->m_nscSNSCmort;
@@ -90,7 +115,7 @@ int senescence(const siteconst_struct *sitec, const epconst_struct* epc, const g
 		if (SNSCmort_leaf > 1  || SNSCmort_other > 1 || m_nscSNSCmort > 1)
 		{
 			printf("\n");
-			printf("FATAL ERROR in senescence mortality calculation (senescence.c)\n");
+			printf("ERROR in senescence.c: invalid SNSCmort coefficient\n");
 			errorCode=1;
 		}
 	
@@ -112,13 +137,15 @@ int senescence(const siteconst_struct *sitec, const epconst_struct* epc, const g
 	/****************************************************************************************/
 	/* 2. genetically programmed senescence */
 
-	if (!errorCode && genprog_senescence(epc, metv, epv, cf, nf))
-	{
-		printf("\n");
-		printf("ERROR in call to genprog_senescence() from senescence()\n");
-		errorCode=1;
+	if (!epc->evergreen)
+	{ 
+		if (!errorCode && genprog_senescence(epc, metv, epv, cf, nf))
+		{
+			printf("\n");
+			printf("ERROR in call to genprog_senescence.c from senescence.c\n");
+			errorCode=1;
+		}
 	}
-
 
 	/****************************************************************************************/
 	/* 3.  mortality fluxes:leaf, fine root, yield, softstem, gresp, retrans */
@@ -279,7 +306,7 @@ int senescence(const siteconst_struct *sitec, const epconst_struct* epc, const g
 		/* control */
 		if ((ns->leafn == 0 && cs->leafc !=0) || (ns->leafn != 0 && cs->leafc ==0))
 		{
-			printf("ERROR: in genetically programmed leaf senescence calculation in senescence.c\n");
+			printf("ERROR in senescence.c: in genetically programmed leaf senescence calculation\n");
 			errorCode=1;
 		}
 	}
@@ -344,12 +371,17 @@ int senescence(const siteconst_struct *sitec, const epconst_struct* epc, const g
 	/****************************************************************************************/
 	/* 9. mortality fluxes turn into litter pools: 	aboveground biomass into the top soil layer, belowground biomass divided between soil layers based on their root content */
 	
-	/* new feature: litter turns into the first AND the second soil layer */
+		/* litter turns into the first three soil layers  (non-woody biomass: proportion to soil layer thickness, woody-biomass: higher propotion in layer2 */
 	propLAYER0 = sitec->soillayer_thickness[0]/sitec->soillayer_depth[2];
 	propLAYER1 = sitec->soillayer_thickness[1]/sitec->soillayer_depth[2];
 	propLAYER2 = sitec->soillayer_thickness[2]/sitec->soillayer_depth[2];
 
-
+	if (epc->woody)
+	{
+		propLAYER0 = 0.05;
+		propLAYER1 = 0.15;
+		propLAYER2 = 0.8;
+	}
 
 	/* 9.1 aboveground biomass into the top soil layer */
 
@@ -542,7 +574,7 @@ int genprog_senescence(const epconst_struct* epc, const metvar_struct* metv, epv
 		if (leafday >= nDAYS_OF_YEAR*2)
 		{
 			printf("\n");
-			printf("ERROR in leafday calculation() in senescence.c: vegetation period must less than 730 ydays()\n");
+			printf("ERROR in genprog_senescence for senescence.c: vegetation period must less than 730 ydays.c\n");
 			errorCode=1;
 			
 		}

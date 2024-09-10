@@ -89,7 +89,7 @@ int grazing(control_struct* ctrl, const epconst_struct* epc, const siteconst_str
 			EFfer_CH4 = GRZ->EFfer_CH4[md]/nDAYS_OF_YEAR;;
 
 		
-			if (epv->proj_lai)
+			if (epv->projLAI)
 			{
 				/* daily total ingested carbon per m2 from daily ingested drymatter and carbon content of drymatter and stocking rate
 								[kgC/m2 = kgDM/LSU * (kgC/kgDM) * (LSU/m2)] */	
@@ -134,19 +134,19 @@ int grazing(control_struct* ctrl, const epconst_struct* epc, const siteconst_str
 		if (epc->leaf_cn)
 		{
 			cf->leafc_to_GRZ              = cs->leafc * GRZcoeff;
-			cf->leafc_transfer_to_GRZ     = 0; //cs->leafc_transfer * GRZcoeff;
-			cf->leafc_storage_to_GRZ      = 0; //cs->leafc_storage * GRZcoeff;
+			cf->leafc_transfer_to_GRZ     = cs->leafc_transfer * GRZcoeff * 0.1;
+			cf->leafc_storage_to_GRZ      = cs->leafc_storage  * GRZcoeff * 0.1;
 
 			nf->leafn_to_GRZ              = cf->leafc_to_GRZ          / epc->leaf_cn;
-			nf->leafn_transfer_to_GRZ     = 0; //cf->leafc_transfer_to_GRZ / epc->leaf_cn;
-			nf->leafn_storage_to_GRZ      = 0; //cf->leafc_storage_to_GRZ  / epc->leaf_cn;
+			nf->leafn_transfer_to_GRZ     = cf->leafc_transfer_to_GRZ / epc->leaf_cn;
+			nf->leafn_storage_to_GRZ      = cf->leafc_storage_to_GRZ  / epc->leaf_cn;
 		}
 	
 		if (epc->yield_cn)
 		{
 			cf->yieldc_to_GRZ              = cs->yieldc * GRZcoeff;
-			cf->yieldc_transfer_to_GRZ     = cs->yieldc_transfer * GRZcoeff;
-			cf->yieldc_storage_to_GRZ      = cs->yieldc_storage * GRZcoeff;
+			cf->yieldc_transfer_to_GRZ     = cs->yieldc_transfer * GRZcoeff * 0.1;
+			cf->yieldc_storage_to_GRZ      = cs->yieldc_storage  * GRZcoeff * 0.1;
 
 			nf->yieldn_to_GRZ              = cf->yieldc_to_GRZ          / epc->yield_cn;
 			nf->yieldn_transfer_to_GRZ     = cf->yieldc_transfer_to_GRZ / epc->yield_cn;
@@ -156,18 +156,18 @@ int grazing(control_struct* ctrl, const epconst_struct* epc, const siteconst_str
 		if (epc->softstem_cn)
 		{
 			cf->softstemc_to_GRZ              = cs->softstemc * GRZcoeff;
-			cf->softstemc_transfer_to_GRZ     = cs->softstemc_transfer * GRZcoeff;
-			cf->softstemc_storage_to_GRZ      = cs->softstemc_storage * GRZcoeff;
+			cf->softstemc_transfer_to_GRZ     = cs->softstemc_transfer * GRZcoeff * 0.1;
+			cf->softstemc_storage_to_GRZ      = cs->softstemc_storage * GRZcoeff  * 0.1;
 
 			nf->softstemn_to_GRZ              = cf->softstemc_to_GRZ          / epc->softstem_cn;
 			nf->softstemn_transfer_to_GRZ     = cf->softstemc_transfer_to_GRZ / epc->softstem_cn;
 			nf->softstemn_storage_to_GRZ      = cf->softstemc_storage_to_GRZ  / epc->softstem_cn;
 		}
 	
-		cf->gresp_transfer_to_GRZ     = cs->gresp_transfer * GRZcoeff;
-		cf->gresp_storage_to_GRZ      = cs->gresp_storage * GRZcoeff;
+		cf->gresp_transfer_to_GRZ     = cs->gresp_transfer * GRZcoeff * 0.1;
+		cf->gresp_storage_to_GRZ      = cs->gresp_storage  * GRZcoeff * 0.1;
 
-		nf->retransn_to_GRZ           = 0; //ns->retransn * GRZcoeff ;
+		nf->retransn_to_GRZ           = 0; // ns->retransn* GRZcoeff;
 
 	
 		/* 1.2.  standing dead biome */
@@ -207,7 +207,7 @@ int grazing(control_struct* ctrl, const epconst_struct* epc, const siteconst_str
 		/* 3. CH4 and N2O emissions */ 
 
 		/*  dimension: db animal/m2 * kgN/(kg animal * day) * kg animal/db animal = kgN/m2/day */
-		nf->N2O_flux_GRZ     = stocking_rate * Nexrate * weight_LSU/1000 *  EFman_N2O * MS_N2O;
+		nf->N2OfluxGRZ     = stocking_rate * Nexrate * weight_LSU/1000 *  EFman_N2O * MS_N2O;
 
 		/* dimension: kgCH4/LSU/day * LSU / m2 * (C/CH4)  = kgC/m2/day */
 		cf->CH4flux_manure  = EFman_CH4  * stocking_rate * 12./16.;  

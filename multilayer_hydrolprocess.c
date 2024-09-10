@@ -21,8 +21,9 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_constants.h"
 #include "bgc_func.h"    
 
-int multilayer_hydrolprocess(control_struct* ctrl, siteconst_struct* sitec, soilprop_struct* sprop, const epconst_struct* epc, epvar_struct* epv, 
-	                         wstate_struct* ws, wflux_struct* wf, groundwater_struct* GWS, GWcalc_struct* gwc, flooding_struct* FLD, int* mondays)
+int multilayer_hydrolprocess(control_struct* ctrl, siteconst_struct* sitec, soilprop_struct* sprop, soilInfo_struct* soilInfo, const epconst_struct* epc, epvar_struct* epv,
+	                         wstate_struct* ws, wflux_struct* wf, nstate_struct* ns, nflux_struct* nf, cstate_struct* cs, cflux_struct* cf, 
+	                         groundwaterINIT_struct* GWS, flooding_struct* FLS, int* mondays)
 {
 	/* given a list of site constants and the soil water mass (kg/m2),
 	this function returns the soil water potential (MPa)
@@ -40,156 +41,112 @@ int multilayer_hydrolprocess(control_struct* ctrl, siteconst_struct* sitec, soil
 	
 
 	/* internal variables */
-	double VWC_avg, VWC_maxRZ, relVWCsat_fc_maxRZ, relVWCfc_wp_maxRZ, VWC_RZ, PSI_RZ, soilw_RZ, weight, weight_SUM, ratio, hydrCONDUCTsat_avg;
-	double soilw_hw, soilw_wp, TRP_diff, TRP_diff_SUM, soilw_trans_ctrl, soilw_before;
-	double VWCsat_RZ, VWCfc_RZ, VWCwp_RZ, VWChw_RZ, soilw_RZ_avail;
+
+
+
 	int layer;
 	int errorCode=0;
-	soilw_before=soilw_hw=TRP_diff=TRP_diff_SUM=soilw_trans_ctrl=VWC_avg=VWC_RZ=PSI_RZ=soilw_RZ=weight=weight_SUM=ratio=soilw_wp=soilw_RZ_avail=0;
-	VWC_RZ=VWC_maxRZ=VWCsat_RZ=VWCfc_RZ=VWCwp_RZ=VWChw_RZ=hydrCONDUCTsat_avg=relVWCsat_fc_maxRZ=relVWCfc_wp_maxRZ=0.0;
-	
-	/* ---------------------------------------------------------------------------------------- */
-	/* 1. Richards-method */
-	/* ---------------------------------------------------------------------------------------- */
-	if (epc->SHCM_flag == 1)
+	double soilw_before = 0;
+
+
+	/* update of hydrolparams */
+	if (!errorCode && multilayer_hydrolparams(sitec, sprop, ws, epv))
 	{
-		/* *****************************/
-		/* 0. GROUNDWATER PREPROCESS: 10 layers to 12 layers */
-		if (!errorCode && groundwaterR_preproc(ctrl, sitec, sprop, epv, ws, wf, GWS, gwc))
-		{
-			printf("ERROR in groundwater() from bgc.c\n");
-			errorCode=1;
-		}
-
-		/* *****************************/
-		/* 1. HYDROLOGICAL CALCULATION BASED ON RICHARDS-METHOD: infiltration, percolation, diffusion, evaporation, transpiration */
-		if (!errorCode && richards(epc, sprop, ws, wf, gwc))
-		{
-			printf("\n");
-			printf("ERROR in richards() from multilayer_hydrolprocess.c()\n");
-			errorCode=1; 
-		} 
-	
-
-		/* *****************************/
-		/* 2. GROUNDWATER POSTPROCESS: 12 layers to 10 layers  */
-		if (!errorCode && groundwaterR_postproc(sitec,epv, ws, wf, gwc))
-		{
-			printf("ERROR in groundwater() from bgc.c\n");
-			errorCode=1;
-		}
-
-		/* *****************************/
-		/*  3. POND WATER from soil */
-		if (ws->pondw + wf->GW_to_pondw  > sprop->pondmax)
-		{
-			wf->prcp_to_runoff += ws->pondw + wf->GW_to_pondw  - sprop->pondmax;
-			ws->pondw = sprop->pondmax;
-		}
-		else
-			ws->pondw += wf->GW_to_pondw;
-
-		/* pond_flag: flag of WARNING writing (only at first time) */
-		if (ws->pondw > 0) if (!ctrl->pond_flag ) ctrl->pond_flag = 1;
-
+		printf("\n");
+		printf("ERROR in multilayer_hydrolparams.c from multilayer_hydrolprocess.c\n");
+		errorCode = 52610;
 	}
-	/* ---------------------------------------------------------------------------------------- */
-	/* 2. Tipping-method */
-	/* ---------------------------------------------------------------------------------------- */
-	else
+
+	/* GROUNDWATER preprocess: calculation depth of GW and CF, GW-movchange */	
+	if (!errorCode && groundwater_preproc(ctrl, sitec, GWS, sprop, epv, soilInfo, ws, wf, cs, cf, ns, nf))
 	{
-		/* ********************************************/
-		/* 0. GROUNDWATER preprocess: calculation depth of GW and CF, GW-movchange */
-	
-		if (!errorCode && groundwaterT_preproc(ctrl, epc, sitec, sprop, epv, ws, wf, GWS))
-		{
-			printf("ERROR in groundwaterT_preproc() from bgc.c\n");
-			errorCode=1;
-		}
+		printf("ERROR in groundwater_preproc.c from bgc.c\n");
+		errorCode=52601;
+	}
 
+	/* INFILTRATION AND PONDW FORMATION */
+	if (!errorCode && infiltANDpond(sitec,sprop, epv,ws, wf))
+	{
+		printf("\n");
+		printf("ERROR in infiltANDpond.c from multilayer_hydrolprocess.c\n");
+		errorCode=52602; 
+	} 
 
-		/* *****************************/
-		/* 2. INFILTRATION AND PONDW FORMATION */
-	
-		if (!errorCode && infiltANDpond(sitec,sprop, epv,ws, wf))
+	/* PERCOLATION  in layers without groundwater */	
+	if (!errorCode && tipping(sitec, sprop, epv, ws, wf))
+	{
+		printf("\n");
+		printf("ERROR in tipping.c from multilayer_hydrolprocess.c\n");
+		errorCode=52603;
+	} 
+
+	/* PERCOLATION  in layers with groundwater */
+	if (sprop->GWlayer != DATA_GAP)
+	{
+		if (!errorCode && groundwater_tipping(sitec, sprop, epv, ws, wf))
 		{
 			printf("\n");
-			printf("ERROR in infiltANDpond() from multilayer_hydrolprocess.c()\n");
-			errorCode=1; 
-		} 
+			printf("ERROR in tipping.c from multilayer_hydrolprocess.c\n");
+			errorCode = 52604;
+		}
+	}
 
-		/* ********************************/
-		/* 3. PERCOLATION  AND DIFFUSION  */
-		
-		if (!errorCode && tipping(sitec, sprop, epc, epv, ws, wf))
+	/* SOIL EVAPORATION */
+	if (!errorCode && soilEVP_calc(ctrl,sitec,sprop, epv, ws,wf))
+	{
+		printf("ERROR in soilEVP_calc.c from multilayer_hydrolprocess.c\n");
+		errorCode=52605;
+	}
+
+	/* TRANSPIRATION */
+	if (!errorCode && multilayer_transpiration(ctrl, sitec, sprop, epv, ws, wf))
+	{
+		printf("ERROR in multilayer_transpiration.c from multilayer_hydrolprocess.c\n");
+		errorCode=52606;
+	}
+
+	/* POND AND RUNOFF */	
+	if (!errorCode && pondANDrunoffD(ctrl,sitec,sprop, epv,ws, wf))
+	{
+		printf("\n");
+		printf("ERROR in pondANDrunoffD.c from multilayer_hydrolprocess.c\n");
+		errorCode=52607; 
+	} 
+
+	/* FLOODING : fills the soil layers and pondw */
+	if (!errorCode && flooding(ctrl, sitec, FLS, sprop, epv, ws, wf, cs, cf, ns, nf, soilInfo, mondays))
+	{
+		printf("ERROR in flooding.c from multilayer_hydrolprocess.c\n");
+		errorCode = 52608;
+	}
+
+	/* diffusion in GWlayers */
+	if (sprop->GWlayer != DATA_GAP)
+	{
+		if (!errorCode && groundwater_diffusion(sitec, sprop, epv, ws, wf))
 		{
 			printf("\n");
-			printf("ERROR in tipping() from multilayer_hydrolprocess.c()\n");
-			errorCode=1;
-		} 
-	
-		/* ********************************************/
-		/* 4. SOIL EVAPORATION */
-
-
-		if (!errorCode && soilEVP_calc(ctrl,sitec,sprop, epv, ws,wf))
-		{
-			printf("ERROR in soilEVP_calc() from multilayer_hydrolprocess.c()\n");
-			errorCode=1;
+			printf("ERROR in groundwater_diffusion.c from multilayer_hydrolprocess.c\n");
+			errorCode = 52609;
 		}
-	
-		
-		/* ********************************************/
-		/* 5. TRANSPIRATION */
+	}
 
-		if (!errorCode && multilayer_transpiration(ctrl, sitec, sprop, epv, ws, wf))
-		{
-			printf("ERROR in multilayer_transpiration() from multilayer_hydrolprocess.c()\n");
-			errorCode=1;
-		}
-	
-		/* *****************************/
-		/* 6. POND AND RUNOFF */
-	
-		if (!errorCode && pondANDrunoffD(ctrl,sitec,sprop, epv,ws, wf))
-		{
-			printf("\n");
-			printf("ERROR in pondANDrunoffD() from multilayer_hydrolprocess.c()\n");
-			errorCode=1; 
-		} 
-			
-		/* **********************************/
-		/* 7. GROUNDWATER CF-charge: diffusion between GW and CF */
-	
-		if (!errorCode && groundwaterT_CFcharge(sitec, sprop, epv, ws, wf, GWS))
-		{
-			printf("ERROR in groundwaterT_CFcharge() from multilayer_hydrolprocess.cc\n");
-			errorCode=1;
-		}
-
-		/* FLOODING */
-		if (!errorCode && flooding(ctrl, sitec, FLD, sprop, epv, ws, wf, mondays))
-		{
-			printf("ERROR in flooding() from bgc.c\n");
-			errorCode=1;
-		}
-	
+	/* diffusion in non-GWlayers */
+	if (!errorCode && diffusion(sitec, sprop, epv, ws, wf))
+	{
+		printf("\n");
+		printf("ERROR in diffusion.c from multilayer_hydrolprocess.c\n");
+		errorCode = 52610;
 	}
 
 	
 
-	/* evaportanspiration calculation */	
-	
-	wf->ET         = wf->canopywEVP + wf->soilwEVP + wf->soilwTRP_SUM + wf->pondwEVP + wf->snowwSUBL;
-	wf->surfaceEVP = wf->soilwEVP + wf->pondwEVP;
+	/* ET-calculation */	
+	wf->ET         = wf->EVPcanopyw + wf->EVPsoilw + wf->TRPsoilw_SUM + wf->EVPpondw + wf->SUBLsnoww;
+	wf->EVPsurface = wf->EVPsoilw + wf->EVPpondw;
 
-	if (wf->ET - wf->PET > CRIT_PRECwater)
-	{
-		printf("ERROR in potential evaporation calculation (ET > PET) in multilayer_hydrolprocess.c\n");
-		errorCode=1;
-	}
-	/* ********************************/
-	/* 6. BOTTOM LAYER IS SPECIAL: percolated water is net loss for the system, water content does not change 	*/
+	
+	/* BOTTOM LAYER IS SPECIAL: percolated water is net loss for the system, water content does not change 	*/
 	
 	if (sprop->GWD == DATA_GAP || (sprop->GWlayer == DATA_GAP))
 	{
@@ -201,127 +158,71 @@ int multilayer_hydrolprocess(control_struct* ctrl, siteconst_struct* sitec, soil
 
 	}
 	
-
-	
-	/* ********************************************/
-	/* 7. Soilstress calculation based on VWC or transpiration demand-possibitiy */
-	
-	if (!errorCode && soilstress_calculation(sprop, epc, epv, ws, wf))
+	/* Soilstress calculation based on VWC or transpiration demand-possibitiy */
+	if (!errorCode && soilstress_calculation(ctrl, epc, sprop, epv, ws, wf))
 	{
 		printf("\n");
-		printf("ERROR in soilstress_calculation() from multilayer_hydrolprocess.c()\n");
-		errorCode=1; 
+		printf("ERROR in soilstress_calculation.c from multilayer_hydrolprocess.c\n");
+		errorCode=52611; 
 	} 
 
-	/* ********************************/
-	/* 8. CONTROL and calculating averages - unrealistic VWC content (higher than saturation value or less then hygroscopic) - GWtest */
+	/* State update of hydroparams */	
+	if (!errorCode && multilayer_hydrolparams(sitec, sprop, ws, epv))
+	{
+		printf("\n");
+		printf("ERROR in multilayer_hydrolparams.c from multilayer_hydrolprocess.c\n");
+		errorCode = 52612;
+	}
+	
+	/* control to avoid irrealistic PET */
+	if (wf->ET - wf->PET > CRIT_PRECwater)
+	{
+		printf("ERROR in potential evaporation calculation (ET > PET) in multilayer_hydrolprocess.c\n");
+		errorCode = 52613;
+	}
 
+
+	/* CONTROL and calculating averages - unrealistic VWC content (higher than saturation value or less then hygroscopic) - GWtest */
 	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
-		if (epv->VWC[layer] < sprop->VWChw[layer])       
+		/* control */
+		if (wf->GWrecharge && wf->GWdischarge && !errorCode)
+		{
+			printf("ERROR in multilayer_hydrolprocess.c: GWrecharge AND GWdischarge in the same time and space\n");
+			errorCode = 52613;
+		}
+
+		if (epv->VWC[layer] < sprop->VWChw[layer])
 		{
 			if (sprop->VWChw[layer] - epv->VWC[layer] < 1e-3)
 			{
-				wf->soilwFlux[N_SOILLAYERS-1] -= (sprop->VWChw[layer] - epv->VWC[layer])* water_density * sitec->soillayer_thickness[layer];
-				epv->VWC[layer]                = sprop->VWChw[layer];
-				ws->soilw[layer]               = epv->VWC[layer] * water_density * sitec->soillayer_thickness[layer];
-			}
-			else
-			{
-				printf("\n");
-				printf("ERROR in soil water content calculation (multilayer_hydrolprocess.c)\n");
-				errorCode=1;	
-			}
-
-		}
-		
-		if (epv->VWC[layer] - sprop->VWCsat[layer] > CRIT_PREC)       
-		{
-			if (sprop->GWlayer == layer)
-			{
-				wf->GWrecharge[layer] = (epv->VWC[layer] - sprop->VWCsat[layer]) * water_density * sitec->soillayer_thickness[layer];
-				epv->VWC[layer] = sprop->VWCsat[layer];
+				wf->soilwFlux[N_SOILLAYERS - 1] -= (sprop->VWChw[layer] - epv->VWC[layer]) * water_density * sitec->soillayer_thickness[layer];
+				epv->VWC[layer] = sprop->VWChw[layer];
 				ws->soilw[layer] = epv->VWC[layer] * water_density * sitec->soillayer_thickness[layer];
 			}
 			else
 			{
-				if (epv->VWC[layer] - sprop->VWCsat[layer] < CRIT_PRECwater)
-				{
-					wf->soilwFlux[N_SOILLAYERS-1] += (epv->VWC[layer] - sprop->VWCsat[layer])/(water_density * sitec->soillayer_thickness[layer]);
-					epv->VWC[layer] = sprop->VWCsat[layer];
-					ws->soilw[layer] = epv->VWC[layer] * water_density * sitec->soillayer_thickness[layer];
-				}
-				else
-				{
+				if (!errorCode)
+				{ 
 					printf("\n");
-					printf("ERROR in soil water content calculation (multilayer_hydrolprocess)\n");
-					errorCode=1;	
+					printf("ERROR in soil water content calculation (multilayer_hydrolprocess.c) - actual is less than hygroscopic value\n");
+					errorCode = 52613;
 				}
 			}
 
 		}
-		VWC_avg	            += epv->VWC[layer]    * (sitec->soillayer_thickness[layer] / sitec->soillayer_depth[N_SOILLAYERS-1]);
-		hydrCONDUCTsat_avg	+= sprop->hydrCONDUCTsat[layer]   * (sitec->soillayer_thickness[layer] / sitec->soillayer_depth[N_SOILLAYERS-1]);
-		
-		
-		/* calculation of rootzone variables - weight of the last layer depends on the depth of the root */
-		if (epv->n_maxrootlayers && layer < epv->n_maxrootlayers)
-		{
-			VWC_maxRZ          += epv->VWC[layer]          * sitec->soillayer_thickness[layer]/sitec->soillayer_depth[epv->n_maxrootlayers-1];
-			relVWCsat_fc_maxRZ += epv->relVWCsat_fc[layer] * sitec->soillayer_thickness[layer]/sitec->soillayer_depth[epv->n_maxrootlayers-1];
-			relVWCfc_wp_maxRZ  += epv->relVWCfc_wp[layer]  * sitec->soillayer_thickness[layer]/sitec->soillayer_depth[epv->n_maxrootlayers-1];
-		}
-	
-		if (epv->n_rootlayers) 
-		{
-			weight_SUM += epv->rootlengthProp[layer];
 
-			VWC_RZ			+= epv->VWC[layer]      * epv->rootlengthProp[layer];
-			PSI_RZ			+= epv->PSI[layer]      * epv->rootlengthProp[layer];
-			VWCsat_RZ		+= sprop->VWCsat[layer] * epv->rootlengthProp[layer];
-			VWCfc_RZ		+= sprop->VWCfc[layer]  * epv->rootlengthProp[layer];
-			VWCwp_RZ		+= sprop->VWCwp[layer]  * epv->rootlengthProp[layer];
-			VWChw_RZ		+= sprop->VWChw[layer]  * epv->rootlengthProp[layer];
-			soilw_RZ        += ws->soilw[layer]     * epv->rootlengthProp[layer];
-			if (epv->VWC[layer] > sprop->VWCwp[layer])
-				soilw_RZ_avail  += ((epv->VWC[layer]-sprop->VWCwp[layer]) * sitec->soillayer_thickness[layer] * water_density) * epv->rootlengthProp[layer];
-		}
-		else
+		if (epv->VWC[layer] - sprop->VWCsat[layer] > CRIT_PREC)
 		{
-			VWC_RZ			= 0;
-			PSI_RZ			= 0;
-			VWCsat_RZ		= 0;
-			VWCfc_RZ		= 0;
-			VWCwp_RZ		= 0;
-			VWChw_RZ		= 0;
-			soilw_RZ        = 0;
-			soilw_RZ_avail  = 0;
+			if (!errorCode)
+			{
+				printf("\n");
+				printf("ERROR in soil water content calculation - actual is higher than saturation value (multilayer_hydrolprocess)\n");
+				errorCode = 52613;
+			}
 		}
 
-	
 	}
 
-	if (epv->rootDepth && fabs(1-weight_SUM) > CRIT_PREC)
-	{
-		printf("ERROR in calculation of rootzone variables (multilayer_hydrolprocess.c) \n");
-		errorCode=1;
-	}
-	epv->VWCsat_RZ = VWCsat_RZ;
-	epv->VWCfc_RZ  = VWCfc_RZ;
-	epv->VWCwp_RZ  = VWCwp_RZ;
-	epv->VWChw_RZ  = VWChw_RZ;
-	epv->VWC_maxRZ = VWC_maxRZ;
-	epv->relVWCsat_fc_maxRZ = relVWCsat_fc_maxRZ;
-	epv->relVWCfc_wp_maxRZ  = relVWCfc_wp_maxRZ;
-	
-	epv->hydrCONDUCTsat_avg = hydrCONDUCTsat_avg;
-	epv->VWC_avg = VWC_avg;
-	epv->VWC_RZ  = VWC_RZ;
-	epv->PSI_RZ  = PSI_RZ;
-	ws->soilw_RZ  = soilw_RZ;
-	ws->soilw_RZ_avail  = soilw_RZ_avail;
-	
-
-	
 	return (errorCode);
 }

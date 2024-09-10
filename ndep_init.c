@@ -24,7 +24,7 @@ Modified:
 #include "pointbgc_struct.h"
 #include "pointbgc_func.h"
 
-int ndep_init(file init, NdepControl_struct* ndep, control_struct *ctrl)
+int ndep_init(file init, NdepControl_struct* ndep, control_struct* ctrl)
 {
 	int errorCode, ny;
 	char key1[] = "NDEP_CONTROL";
@@ -47,7 +47,7 @@ int ndep_init(file init, NdepControl_struct* ndep, control_struct *ctrl)
 	/* scan for the climate change block keyword, exit if not next */
 	if (!errorCode && scan_value(init, keyword, 's'))
 	{
-		printf("ERROR reading keyword, ndep_init()\n");
+		printf("ERROR reading keyword, ndep_init.c\n");
 		errorCode=206;
 	}
 	if (!errorCode && strcmp(keyword,key1))
@@ -59,14 +59,14 @@ int ndep_init(file init, NdepControl_struct* ndep, control_struct *ctrl)
 	/* begin reading ndep information */
 	if (!errorCode && scan_value(init, &ndep->varndep, 'i'))
 	{
-		printf("ERROR reading varied Ndep flag: ndep_init()\n");
+		printf("ERROR reading varied Ndep flag: ndep_init.c\n");
 		errorCode=20601;
 	}
 
  
 	if (!errorCode && scan_value(init, &ndep->ndep, 'd'))
 	{
-		printf("ERROR reading N deposition, ndep_init()\n");
+		printf("ERROR reading N deposition, ndep_init.c\n");
 		errorCode=20602;
 	}
 
@@ -88,7 +88,7 @@ int ndep_init(file init, NdepControl_struct* ndep, control_struct *ctrl)
 
 	if (!errorCode && scan_value(init, &ndep->NdepNH4_coeff, 'd'))
 	{
-		printf("ERROR reading NdepNH4_coeff: sitec_init()\n");
+		printf("ERROR reading NdepNH4_coeff: sitec_init.c\n");
 		errorCode=20610;
 	}
 
@@ -118,7 +118,7 @@ int ndep_init(file init, NdepControl_struct* ndep, control_struct *ctrl)
 			ndep->Nyrs_array = (int*) malloc(ctrl->simyears * sizeof(int));
 			if (!ndep->Ndep_array)
 			{
-				printf("ERROR allocating for annual Ndep array, ndep_init()\n");
+				printf("ERROR allocating for annual Ndep array, ndep_init.c\n");
 				errorCode=20604;
 			}
 		}
@@ -127,7 +127,7 @@ int ndep_init(file init, NdepControl_struct* ndep, control_struct *ctrl)
 		{
 			if (!ny && yr > ctrl->simstartyear)
 			{
-				printf("ERROR reading annual ndep array, ndep_init()\n");
+				printf("ERROR reading annual ndep array, ndep_init.c\n");
 				printf("Note: file must contain a pair of values for each simulation years\n");
 				printf("simyear: year and ndep.\n");
 				errorCode=20605;
@@ -160,7 +160,7 @@ int ndep_init(file init, NdepControl_struct* ndep, control_struct *ctrl)
 	/* control */
 	if (!errorCode && ndep->varndep && ny != ctrl->simyears)
 	{
-		printf("ERROR reading annual ndep array, ndep_init()\n");
+		printf("ERROR reading annual ndep array, ndep_init.c\n");
 		printf("Note: file must contain a pair of values for each simulation years\n");
 		printf("simyear: year and ndep.\n");
 		errorCode=20608;

@@ -21,7 +21,7 @@ Missoula, MT 59812
 #include "pointbgc_struct.h"
 #include "pointbgc_func.h"
 
-int time_init(file init, point_struct* point, control_struct *ctrl)
+int time_init(file init, point_struct* point, control_struct* ctrl)
 {
 	int errorCode=0;
 	char key1[] = "TIME_DEFINE";

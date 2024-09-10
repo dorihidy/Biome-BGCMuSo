@@ -23,11 +23,55 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "pointbgc_struct.h"
 #include "pointbgc_func.h"
 
-int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, cinit_struct* cinit)
+int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, cinit_struct* cinit, control_struct* ctrl, soilInfo_struct* soilInfo)
 {
 	int errorCode=0;
-	int layer;
+	int layer, dm;
 	
+	/* initialization */
+	ctrl->simyr = 0;
+	ctrl->yday = 0;
+	ctrl->plantyr = -1;
+	ctrl->spinyears = 0;
+	ctrl->month = 1;
+	ctrl->day = 1;
+	ctrl->limitEVP_flag = 0;
+	ctrl->limitTRP_flag = 0;
+	ctrl->limitMR_flag = 0;
+	ctrl->limitDENIT_flag = 0;
+	ctrl->limitSNSC_flag = 0;
+	ctrl->limitleach_flag = 0;
+	ctrl->limitdiffus_flag = 0;
+	ctrl->pond_flag = 0;
+	ctrl->noTRP_flag = 0;
+	ctrl->grazingW_flag = 0;
+	ctrl->condMOWerr_flag = 0;
+	ctrl->condIRGerr_flag = 0;
+	ctrl->prephen1_flag = 0;
+	ctrl->prephen2_flag = 0;
+	ctrl->bareground_flag = 0;
+	ctrl->vegper_flag = 0;
+	ctrl->south_shift = 0;
+	ctrl->allocControl_flag = 0;
+	ctrl->NaddSPINUP_flag = 0;
+
+	ctrl->phenology_flag = 0;
+	ctrl->transferGDD_flag = 0;
+	ctrl->q10depend_flag = 0;
+	ctrl->phtsyn_acclim_flag = 0;
+	ctrl->resp_acclim_flag = 0;
+	ctrl->CO2conduct_flag = 0;
+	ctrl->STCM_flag = 0;
+	ctrl->photosynt_flag = 0;
+	ctrl->ET_flag = 0;
+	ctrl->radiation_flag = 0;
+	ctrl->soilstress_flag = 0;
+	ctrl->interception_flag = 0;
+	ctrl->MRdeficit_flag = 0;
+	ctrl->Ksat_flag = 0;
+	ctrl->firstsimday_flag = 1;
+
+	for (layer = 0; layer < N_SOILLAYERS; layer++) ctrl->soiltype_array[layer] = 0;
 
 	cinit->max_leafc = 0.0;
 	cinit->max_frootc = 0.0;
@@ -38,7 +82,7 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 	
 	ws->soilw_SUM = 0;
 	ws->soilw_RZ = 0;
-	ws->soilw_RZ_avail=0;
+	ws->soilwAVAIL_RZ=0;
 	ws->soilw_2m = 0;
 	ws->pondw = 0;
 	ws->snoww = 0;
@@ -46,14 +90,14 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 	ws->prcp_src = 0;
 	ws->soilEVP_snk = 0;
 	ws->snowSUBL_snk = 0;
-	ws->canopywEVP_snk = 0;
+	ws->EVPcanopyw_snk = 0;
 	ws->TRP_snk = 0;
 	ws->runoff_snk = 0;
 	ws->pondEVP_snk = 0;
 	ws->deeppercolation_snk = 0;
-	ws->groundwater_src = 0;
-	ws->groundwater_snk = 0;
-	ws->FLDsrc = 0;
+	ws->GWsrc_W = 0;
+	ws->GWsnk_W = 0;
+	ws->FLsrc_W = 0;
 	ws->canopyw_THNsnk = 0;
 	ws->canopyw_MOWsnk = 0;
 	ws->canopyw_HRVsnk = 0;
@@ -67,9 +111,8 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 	ws->inW = 0;
 	ws->outW = 0;
 	ws->storeW = 0;
-	ws->cumEVPsoil1 = 0.0;
-	ws->cumEVPsoil2 = 0.0;
-	ws->timestepRichards = 0;
+	ws->EVPsurface1cum = 0.0;
+	ws->EVPsurface2cum = 0.0;
 	cs->leafc = 0;
 	cs->leafc_storage = 0;
 	cs->leafc_transfer = 0;
@@ -124,8 +167,6 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 	cs->cpool = 0;
 	cs->psnsun_src = 0;
 	cs->psnshade_src = 0;
-	cs->MRdeficitNSC_snk = 0;
-	cs->MRdeficitSC_snk = 0;
 	cs->MRleaf_snk = 0;
 	cs->GRleaf_snk = 0;
 	cs->MRfroot_snk = 0;
@@ -155,19 +196,24 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 	cs->PLTsrc_C = 0;
 	cs->MULsrc_C = 0;
 	cs->THN_transportC = 0;
-	cs->HRV_transportC = 0;
-	cs->MOW_transportC = 0;
+	cs->HRV_snkC = 0;
+	cs->MOW_snkC = 0;
 	cs->GRZsnk_C = 0;
 	cs->GRZsrc_C = 0;
 	cs->FRZsrc_C = 0;
+	cs->GWsrc_C = 0;
+	cs->GWsnk_C = 0;
+	cs->FLsrc_C = 0;
 	cs->yieldC_HRV = 0.0;
 	cs->frootC_HRV = 0.0;
-	cs->vegC_HRV = 0.0;
+	cs->vegCabove_HRV = 0.0;
+
 	cs->CbalanceERR = 0;
 	cs->CNratioERR = 0.0;
 	cs->inC = 0;
 	cs->outC = 0;
 	cs->storeC = 0;
+
 	ns->leafn = 0;
 	ns->leafn_storage = 0;
 	ns->leafn_transfer = 0;
@@ -217,9 +263,8 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 	ns->soil3n_total = 0;
 	ns->soil4n_total = 0;
 	ns->retransn = 0;
-	ns->sminNH4_total = 0;
-	ns->sminNO3_total = 0;
-
+	ns->NH4_total = 0;
+	ns->NO3_total = 0;
 	ns->Nfix_src = 0;
 	ns->Ndep_src = 0;
 	ns->Ndeepleach_snk = 0;
@@ -231,11 +276,15 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 	ns->PLTsrc_N = 0;
 	ns->MULsrc_N = 0;
 	ns->CWEsnk_N = 0;
-	ns->THN_transportN = 0;
-	ns->MOW_transportN = 0;
-	ns->HRV_transportN = 0;
+	ns->FLsrc_N = 0;
+	ns->GWsrc_N = 0;
+	ns->GWsnk_N = 0;
+	ns->THNsnk_N = 0;
+	ns->MOWsnk_N = 0;
+	ns->HRVsnk_N = 0;
 	ns->GRZsnk_N = 0;
 	ns->GRZsrc_N = 0;
+	
 	ns->SPINUPsrc = 0;
 	ns->NbalanceERR = 0;
 	ns->inN = 0;
@@ -253,16 +302,7 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 		cs->litr3c[layer] = 0;
 		cs->litr4c[layer] = 0;
 		cs->litrC[layer] = 0;
-		cs->soil1c[layer] = 0;
-		cs->soil2c[layer] = 0;
-		cs->soil3c[layer] = 0;
-		cs->soil4c[layer] = 0;
 		cs->soilC[layer] = 0;
-		cs->soil1DOC[layer] = 0;
-		cs->soil2DOC[layer] = 0;
-		cs->soil3DOC[layer] = 0;
-		cs->soil4DOC[layer] = 0;
-		cs->soilDOC[layer] = 0;
 		ns->cwdn[layer] = 0;
 		ns->litr1n[layer] = 0;
 		ns->litr2n[layer] = 0;
@@ -274,14 +314,39 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 		ns->soil3n[layer] = 0;
 		ns->soil4n[layer] = 0;
 		ns->soilN[layer] = 0;
-		ns->soil1DON[layer] = 0;
-		ns->soil2DON[layer] = 0;
-		ns->soil3DON[layer] = 0;
-		ns->soil4DON[layer] = 0;
-		ns->soilDON[layer] = 0;
-		ns->sminNH4[layer] = 0;
-		ns->sminNO3[layer] = 0;
+		ns->NH4[layer] = 0;
+		ns->NO3[layer] = 0;	
 	}
+
+	for (dm = 0; dm < N_DISSOLVMATER; dm++)
+	{
+		soilInfo->dissolv_prop[dm] = 0;
+		soilInfo->conc_GW[dm] = 0;
+		soilInfo->conc_FL[dm] = 0;
+		soilInfo->content_zoneNORM[dm] = 0;
+		soilInfo->content_zoneCAPIL[dm] = 0;
+		soilInfo->content_zoneSAT[dm] = 0;
+		soilInfo->dismatLeach_NORM[dm] = 0;
+		soilInfo->dismatGWrecharge[dm] = 0;
+		soilInfo->dismatGWdischarge[dm] = 0;
+		soilInfo->dismatGWmovchange_NORM[dm] = 0;
+		soilInfo->dismatGWmovchange_CAPIL[dm] = 0;
+		soilInfo->dismatGWecofunc_NORM[dm] = 0;
+		soilInfo->dismatGWecofunc_CAPIL[dm] = 0;
+		soilInfo->dismatGWdecomp_CAPIL[dm] = 0;
+
+		for (layer = 0; layer < N_SOILLAYERS; layer++)
+		{
+			soilInfo->conc_soil[dm][layer] = 0;
+			soilInfo->content_soil[dm][layer] = 0;
+			soilInfo->dismatLeach[dm][layer] = 0;
+			soilInfo->dismatGWmovchange[dm][layer] = 0;
+			soilInfo->dismatGWecofunc[dm][layer] = 0;
+			soilInfo->dismatGWdecomp[dm][layer] = 0;
+			soilInfo->dismatGWdecomp_NORM[dm] = 0;
+		}
+	}
+
 
 	return(errorCode);
 }

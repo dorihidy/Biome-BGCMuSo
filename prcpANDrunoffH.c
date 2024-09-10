@@ -21,16 +21,16 @@ Missoula, MT 59812
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int prcpANDrunoffH(const metvar_struct* metv, const soilprop_struct* sprop,  const epconst_struct* epc, epvar_struct *epv, wflux_struct* wf) 
+int prcpANDrunoffH(const control_struct* ctrl, const wstate_struct* ws, const metvar_struct* metv, const soilprop_struct* sprop,  const epconst_struct* epc,
+	               epvar_struct* epv, wflux_struct* wf)
 {
-	/* Precipitation routing, as either rain or snow.  Rain can be
-	intercepted on the canopy, and amount in excess of interception is
-	routed to the soil.  The intercepted volume is saved in a temporary
-	variable that is later passed to the canopy evaporation routine,
-	but there is no day-to-day storage of water on the canopy: any that is
-	not evaporated in one day is routed to the soil in canopy_et().
+	/* Precipitation routing, as either rain or snow.  Rain can be intercepted on the canopy, and amount in excess of interception is
+	routed to the soil.  The intercepted volume is saved in a temporary variable that is later passed to the canopy evaporation routine,
+	but there is no day-to-day storage of water on the canopy: any that is not evaporated in one day is routed to the soil in canopy_et.c.
 	
 	There is no canopy interception of snow.
+
+	There is no runoff in absence of snow
 	*/
 	
 	int errorCode=0;
@@ -41,17 +41,17 @@ int prcpANDrunoffH(const metvar_struct* metv, const soilprop_struct* sprop,  con
 	prcp = metv->prcp + wf->IRG_to_prcp;
 
 	/* 1. maximum daily canopy interception  */
-	/* Original method: with all_lai (kg intercepted/kg rain/unit all-sided LAI/day)  */
+	/* Original method: with allLAI (kg intercepted/kg rain/unit all-sided LAI/day)  */
 	/* New method: with single LAI and (1/LAI/d) canopy water interception coefficient*/
 	
-	if (epc->interception_flag == 0)
-		max_int = epc->int_coef * prcp                   * epv->all_lai;
+	if (ctrl->interception_flag == 1)
+		max_int = epc->int_coef * prcp                   * epv->allLAI;
 	else
-		max_int = epc->int_coef * (1-exp(-0.1*(prcp+1))) * epv->proj_lai;
+		max_int = epc->int_coef * (1-exp(-0.1*(prcp+1))) * epv->projLAI;
 
 	
 	/* 2. rain vs. snow, and canopy interception */
-	if (metv->Tavg > 0.0)             /* rain */
+	if (metv->Tavg > 0.0 && ws->snoww == 0)             /* rain */
 	{
 		if (prcp <= max_int)          /* all intercepted */
 		{
@@ -66,7 +66,7 @@ int prcpANDrunoffH(const metvar_struct* metv, const soilprop_struct* sprop,  con
 		
 		/* 3. throughfall to soil water and Hortonian runoff */
 		/* when the precipitation at the surface exceeds the max. infiltration rate, the excess water is put into surface runoff (Balsamo et al. 20008; Eq.(7)) */
-		if (sprop->RCN > 0)
+		if (sprop->RCN > 0 && ws->snoww == 0 && ws->pondw == 0)
 		{
 			coeff_soiltype  = 254*(100 / sprop->RCN - 1);
 
@@ -79,7 +79,7 @@ int prcpANDrunoffH(const metvar_struct* metv, const soilprop_struct* sprop,  con
 			else
 				wf->prcp_to_runoff = 0;
 		}
-		else
+		else	
 			wf->prcp_to_runoff = 0;
 
 		if (through > wf->prcp_to_runoff)

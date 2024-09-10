@@ -1,6 +1,6 @@
 /*
 annual_rates.c
-Functions called annually from bgc()
+Functions called annually from bgc.c
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
@@ -33,16 +33,7 @@ int annual_rates(const epconst_struct* epc, epvar_struct* epv)
 		epv->day_frootc_litfall_increment = epv->annmax_frootc          * epc->nonwoody_turnover / nDAYS_OF_YEAR;
 		epv->day_yield_litfall_increment = epv->annmax_yieldc          * epc->nonwoody_turnover / nDAYS_OF_YEAR;
 		epv->day_softstemc_litfall_increment = epv->annmax_softstemc    * epc->nonwoody_turnover / nDAYS_OF_YEAR;
-		epv->day_livestemc_turnover_increment = epv->annmax_livestemc   * epc->woody_turnover / nDAYS_OF_YEAR;
-		epv->day_livecrootc_turnover_increment = epv->annmax_livecrootc * epc->woody_turnover / nDAYS_OF_YEAR;
 		
-		epv->annmax_leafc = 0.0;
-		epv->annmax_frootc = 0.0;
-		epv->annmax_yieldc = 0.0;
-		epv->annmax_softstemc = 0.0;
-		epv->annmax_livestemc = 0.0;
-		epv->annmax_livecrootc = 0.0;
-
 	}
 	else
 	{
@@ -52,12 +43,10 @@ int annual_rates(const epconst_struct* epc, epvar_struct* epv)
 		epv->day_frootc_litfall_increment = 0.0;
 		epv->day_yield_litfall_increment = 0.0;
 		epv->day_softstemc_litfall_increment = 0.0;
-		epv->day_livestemc_turnover_increment = 0.0;
-		epv->day_livecrootc_turnover_increment = 0.0;
-
 	
 	}
+	epv->day_livestemc_turnover_increment = epv->annmax_livestemc * epc->woody_turnover / nDAYS_OF_YEAR;
+	epv->day_livecrootc_turnover_increment = epv->annmax_livecrootc * epc->woody_turnover / nDAYS_OF_YEAR;
 
-	
 	return (errorCode);
 }

@@ -60,7 +60,7 @@ int mowing_init(file init, const control_struct* ctrl, mowing_struct* MOW)
 	/* header reading */
 	if (!errorCode && scan_value(init, header, 's'))
 	{
-		printf("ERROR reading keyword, mowing_init()\n");
+		printf("ERROR reading keyword, mowing_init.c\n");
 		errorCode=1;
 	}
 
@@ -116,7 +116,7 @@ int mowing_init(file init, const control_struct* ctrl, mowing_struct* MOW)
 		while (!errorCode && !(mgmread = scan_array (MOW_file, &p1, 'i', 0, 0)))
 		{
 			n_MOWparam = 6;
-			mgmread = fscanf(MOW_file.ptr, "%c%d%c%d%lf%lf%*[^\n]",&tempvar,&p2,&tempvar,&p3,&p4,&p5);
+			mgmread = fscanf(MOW_file.ptr, "%c %d %c %d %lf %lf[^\n]",&tempvar,&p2,&tempvar,&p3,&p4,&p5);
 			if (mgmread != n_MOWparam)
 			{
 				printf("ERROR reading MOWING parameters from MOWING file\n");

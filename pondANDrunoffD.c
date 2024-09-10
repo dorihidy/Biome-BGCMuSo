@@ -1,6 +1,6 @@
 /* 
 pondANDrunoffD.c
-state update of pond water, calculation of Dunnian runoff 
+state update of pond water, calculation of Dunnian runoff, pond water limitation
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
@@ -27,7 +27,7 @@ int pondANDrunoffD(control_struct* ctrl, siteconst_struct* sitec, soilprop_struc
 
 	/* internal variables */
 	int errorCode, layer, flagEXTRA;
-	double soilw_diff, soilw_sat;
+	double soilw_diff, soilw_sat, pondmax, soilwEXTRA, ratio;
 
 	errorCode=layer=flagEXTRA=0;
 	soilw_diff=soilw_sat=0;
@@ -36,76 +36,102 @@ int pondANDrunoffD(control_struct* ctrl, siteconst_struct* sitec, soilprop_struc
 	/*--------------------------------------*/
 	/* Water flux from soil to pond */
 	
+
 	ws->pondw += wf->soilw_to_pondw + wf->prcp_to_pondw;
 
+	
 	/*--------------------------------------*/
 	/* Pond water evaporation: water stored on surface  */
 
 	if (ws->pondw)
 	{
 		if (wf->potEVPsurface < ws->pondw)
-			wf->pondwEVP = wf->potEVPsurface;
-		else 
-			wf->pondwEVP = ws->pondw;
+			wf->EVPpondw = wf->potEVPsurface;
+		else
+			wf->EVPpondw = ws->pondw;
+	}
 
-		soilw_diff   = wf->soilwEVP - (wf->potEVPsurface-wf->pondwEVP);
 
-		/* in case of GW in layer 0, the source of soil evaporatiaton is GWdischarge */
-		if (sprop->GWeff[0] == 1)
-		{
-			wf->GWdischarge[0] -= soilw_diff;
-			wf->soilwEVP       -= soilw_diff;
-		}
+	if (ws->GW_waterlogging > 0)
+		ws->GWsrc_W += wf->EVPpondw;
+	else
+		ws->pondw    -= wf->EVPpondw;
+
+	/* control to avoid exceed the potential evaporation level 	*/
+	soilw_diff = wf->EVPsoilw + wf->EVPpondw - wf->potEVPsurface;
+
+	if (soilw_diff > 0)
+	{
+		wf->EVPsoilw -= soilw_diff;
+
+		/* in case of GW in layer 0, the source of soil evaporatiaton is groundwater */
+		if ((int)sprop->GWlayer == 0)
+			wf->GWevap -= soilw_diff;
 		else
 		{
-			soilw_sat     = sprop->VWCsat[layer] * sitec->soillayer_thickness[layer] * water_density;
-			if (ws->soilw[0] + soilw_diff > soilw_sat)
-			{
-				soilw_diff = soilw_sat - ws->soilw[0];
-			}
-			
 			ws->soilw[0] += soilw_diff;
-			epv->VWC[0]   = ws->soilw[0] / (sitec->soillayer_thickness[0] * water_density);
-			wf->soilwEVP  -= soilw_diff; 
+			epv->VWC[0] = ws->soilw[0] / (sitec->soillayer_thickness[0] * water_density);
 		}
-
-		ws->pondw    -= wf->pondwEVP;
 	}
-
-
 	
-	/* saturation of top soil layer: correction of water flux from pond to soil */
-	soilw_diff = (sprop->VWCsat[0] - epv->VWC[0]) * sitec->soillayer_thickness[0] * water_density;
+	/*--------------------------------------*/
+	/* saturation of top soil layers: correction of water flux from pond to soil */
 
-	if (soilw_diff && ws->pondw)
+
+	layer = 0;
+	flagEXTRA = 0;
+	while (flagEXTRA == 0 && layer < N_SOILLAYERS - 1)
 	{
-		if (soilw_diff > ws->pondw)
-			soilw_diff = ws->pondw;
-
-		ws->pondw          -= soilw_diff;
-		wf->pondw_to_soilw += soilw_diff;
-
-		ws->soilw[0]       += soilw_diff;
-		epv->VWC[0]         = ws->soilw[0] / (sitec->soillayer_thickness[0] * water_density);
-		if (fabs(epv->VWC[0] - sprop->VWCsat[0]) > CRIT_PRECwater && ws->pondw)
+		if ((layer == 0 || sprop->infiltDepth_max > sitec->soillayer_depth[layer-1]) && ws->pondw > 0)
 		{
-			printf("\n");
-			printf("ERROR: pondwANDrunoffD() in tipping.c\n");
-			errorCode=1;
+			if (sprop->infiltDepth_max > sitec->soillayer_depth[layer] || layer == 0)
+				soilwEXTRA = (sprop->VWCsat[layer] - epv->VWC[layer]) * sitec->soillayer_thickness[layer] * water_density;
+			else
+			{
+				ratio = ((sprop->infiltDepth_max - sitec->soillayer_depth[layer - 1]) / sitec->soillayer_thickness[layer]);
+				soilwEXTRA = ((sprop->VWCsat[layer] - epv->VWC[layer]) * sitec->soillayer_thickness[layer] * water_density) * ratio;
+			}
+		
+			if (soilwEXTRA)
+			{
+				if (soilwEXTRA > ws->pondw)
+					soilwEXTRA = ws->pondw;
+
+				ws->pondw          -= soilwEXTRA;
+				wf->pondw_to_soilw += soilwEXTRA;
+
+				ws->soilw[layer] += soilwEXTRA;
+				epv->VWC[layer] = ws->soilw[layer] / (sitec->soillayer_thickness[layer] * water_density);
+				if (epv->VWC[layer] - sprop->VWCsat[layer] > CRIT_PRECwater && ws->pondw)
+				{
+					printf("\n");
+					printf("ERROR in pondwANDrunoffD.c for tipping.c\n");
+					errorCode = 1;
+				}
+			}
 		}
+			
+		else
+			flagEXTRA = 1;
+
+		layer += 1;
 	}
 
-	
 	/* Dunnian runoff */
-	if (ws->pondw > sprop->pondmax)
+	if (ws->GW_waterlogging > sprop->pondmax)
+		pondmax = ws->GW_waterlogging;
+	else
+		pondmax = sprop->pondmax;
+
+	if (ws->pondw > pondmax)
 	{
-		wf->pondw_to_runoff  = ws->pondw - sprop->pondmax;
-		ws->pondw            = sprop->pondmax;	
+		wf->pondw_to_runoff  = ws->pondw - pondmax;
+		ws->pondw            = pondmax;	
 	}
 
 
 	/* pond_flag: flag of WARNING writing (only at first time) */
-	if (!ctrl->pond_flag ) ctrl->pond_flag = 1;
+	if (!ctrl->pond_flag && ws->pondw) ctrl->pond_flag = 1;
 
 
 	return (errorCode);

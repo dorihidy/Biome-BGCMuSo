@@ -73,14 +73,14 @@ int grazing_init(file init, const control_struct* ctrl, grazing_struct* GRZ)
 	/* header reading */
 	if (!errorCode && scan_value(init, header, 's'))
 	{
-		printf("ERROR reading keyword, grazing_init()\n");
+		printf("ERROR reading keyword, grazing_init.c\n");
 		errorCode=1;
 	}
 
 	/* keyword control */
 	if (!errorCode && scan_value(init, header, 's'))
 	{
-		printf("ERROR reading keyword, grazing_init()\n");
+		printf("ERROR reading keyword, grazing_init.c\n");
 		errorCode=1;
 	}
 	
@@ -143,8 +143,8 @@ int grazing_init(file init, const control_struct* ctrl, grazing_struct* GRZ)
 		while (!errorCode && !(mgmread = scan_array (GRZ_file, &p1, 'i', 0, 0)))
 		{
 			n_GRZparam = 22;
-			mgmread = fscanf(GRZ_file.ptr, "%c%d%c%d%d%c%d%c%d%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf*[^\n]",&tempvar,&p2,&tempvar,&p3,&p4,&tempvar,&p5,&tempvar,&p6, 
-				                                                      &p7,&p8,&p9,&p10,&p11,&p12,&p13,&p14,&p15,&p16,&p17,&p18,&p19);
+			mgmread = fscanf(GRZ_file.ptr, "%c %d %c %d %d %c %d %c %d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf[^\n]",&tempvar,&p2,&tempvar,&p3,&p4,&tempvar,&p5,&tempvar,&p6, 
+				                                                                                                                 &p7,&p8,&p9,&p10,&p11,&p12,&p13,&p14,&p15,&p16,&p17,&p18,&p19);
 			if (mgmread != n_GRZparam)
 			{
 				printf("ERROR reading GRAZING parameters from GRZ_file\n");

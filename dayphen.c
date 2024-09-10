@@ -72,7 +72,7 @@ int dayphen(control_struct* ctrl, const epconst_struct* epc, const phenarray_str
 		{
 			if (epc->offdayUSER != DATA_GAP)
 			{
-				printf("FATAL ERROR: if onday is equal to -9999 offday must be equal to -9999 - bare soil simulation (dayphen.c)\n");
+				printf("ERROR in dayphen.c: if onday is equal to -9999 offday must be equal to -9999 - bare soil simulation\n");
 				errorCode=1;
 			}
 			phen->onday         = (double)(phenarr->onday_arr[ctrl->plantyr][1]);
@@ -86,7 +86,7 @@ int dayphen(control_struct* ctrl, const epconst_struct* epc, const phenarray_str
 
 		if (phen->offday <= phen->onday && (phen->offday != DATA_GAP && phen->onday != DATA_GAP))
 		{
-			printf("FATAL ERROR: onday is greater or equal than offday (dayphen.c)\n");
+			printf("ERROR in dayphen.c: onday is greater or equal than offday\n");
 			errorCode=1;
 		}
 
@@ -106,8 +106,19 @@ int dayphen(control_struct* ctrl, const epconst_struct* epc, const phenarray_str
 	}
 	else
 	{
-		phen->n_transferday = floor(phen->n_growthday * epc->transfer_pdays);
-		phen->n_litfallday  = floor(phen->n_growthday * epc->litfall_pdays);
+		if (phen->onday != -1)
+		{
+			phen->n_transferday = floor(phen->n_growthday * epc->transfer_pdays);
+			phen->n_litfallday = floor(phen->n_growthday * epc->litfall_pdays);
+		
+		}
+		else
+		{
+			phen->n_transferday = -1;
+			phen->n_litfallday  = -1;
+			phen->n_growthday   = -1;
+		}
+		
 	}
 	
 

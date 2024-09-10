@@ -22,7 +22,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int maint_resp(const planting_struct* PLT, const cstate_struct* cs, const nstate_struct* ns, const epconst_struct* epc, const metvar_struct* metv,
+int maint_resp(const control_struct* ctrl, const planting_struct* PLT, const cstate_struct* cs, const nstate_struct* ns, const epconst_struct* epc, const metvar_struct* metv,
 	          epvar_struct* epv, cflux_struct* cf)
 {
 	/*
@@ -62,7 +62,7 @@ int maint_resp(const planting_struct* PLT, const cstate_struct* cs, const nstate
 	/* ********************************************************* */
 	/* 1. possibility to use temperature dependent Q10 */ 
 
-	if (epc->q10depend_flag)
+	if (ctrl->q10depend_flag)
 		q10= 3.22 - 0.046 * metv->Tavg;
 	else
 		q10 = Q10_VALUE;
@@ -70,7 +70,7 @@ int maint_resp(const planting_struct* PLT, const cstate_struct* cs, const nstate
 	/* ********************************************************* */
 	/* 2. Leaf day and night maintenance respiration when leaves on */
 
-	if (cs->leafc && epv->sun_proj_sla && epv->shade_proj_sla)
+	if (cs->leafc && epv->projSLA_sun && epv->projSLA_shade)
 	{
 		t1 = ns->leafn * MRperN;
 		
@@ -83,8 +83,8 @@ int maint_resp(const planting_struct* PLT, const cstate_struct* cs, const nstate
 		the canopy, for use in the photosynthesis routine */
 		/* first, calculate the mass of N per unit of projected leaf area
 		in each canopy fraction (kg N/m2 projected area) */
-		n_area_sun   = 1.0/(epv->sun_proj_sla * epc->leaf_cn);
-		n_area_shade = 1.0/(epv->shade_proj_sla * epc->leaf_cn);
+		n_area_sun   = 1.0/(epv->projSLA_sun * epc->leaf_cn);
+		n_area_shade = 1.0/(epv->projSLA_shade * epc->leaf_cn);
 		/* convert to respiration flux in kg C/m2 projected area/day, and
 		correct for temperature */
 		dlmr_area_sun   = n_area_sun * MRperN * pow(q10, exponent);
@@ -184,7 +184,7 @@ int maint_resp(const planting_struct* PLT, const cstate_struct* cs, const nstate
 	/* 7. acclimation (acc_flag=1 - only respiration is acclimated, acc_flag=3 - respiration and photosynt. are acclimated) */
 	
 	
-	if (epc->resp_acclim_flag)
+	if (ctrl->resp_acclim_flag)
 	{
 		cf->leaf_day_MR   = cf->leaf_day_MR   * pow(10,(acclim_const * (metv->TavgRA10-20.0)));
 		cf->leaf_night_MR = cf->leaf_night_MR * pow(10,(acclim_const * (metv->TavgRA10-20.0)));

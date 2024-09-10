@@ -33,7 +33,7 @@ int run_avg(const double *input, double *output, int n, int w, int w_flag)
 
     if (w>n)
     {
-        printf("ERROR: averaging window longer than input array\n");
+        printf("ERROR in smooth.c: averaging window longer than input array\n");
         errorCode=1;
     }
 
@@ -85,7 +85,7 @@ int run_avg(const double *input, double *output, int n, int w, int w_flag)
     return (errorCode);
 }
 
-/* boxcar_smooth() performs a windowed smoothing on the input array, returns
+/* boxcar_smooth.c performs a windowed smoothing on the input array, returns
 result in output array. Both arrays must be doubles. n=array length,
 w = windowing width, w_flag (0=flat boxcar, 1=ramped boxcar, e.g. [1 2 3 2 1])
 */

@@ -1,6 +1,6 @@
 /*
 state_update.c
-Resolve the fluxes in bgc() daily loop to update state variables
+Resolve the fluxes in bgc.c daily loop to update state variables
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
@@ -25,67 +25,65 @@ for complete description of this change.
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-
-int water_state_update(const wflux_struct* wf, wstate_struct* ws)
+int water_state_update(wflux_struct* wf, wstate_struct* ws, soilprop_struct* sprop)
 {
 	/* daily update of the water state variables */
-	 
-	int errorCode=0;
+
+	int errorCode = 0;
 	int layer;
-	double preGWsrc;
-	
+
+
 	/* snoww */
-	ws->snoww          += wf->prcp_to_snoww;
-	ws->snoww          -= wf->snoww_to_soilw;
-	ws->snoww          -= wf->snowwSUBL;
+	ws->snoww += wf->prcp_to_snoww;
+	ws->snoww -= wf->snoww_to_soilw;
+	ws->snoww -= wf->SUBLsnoww;
 
 	/* precipitation fluxes */
-	ws->canopyw        += wf->prcp_to_canopyw;
-	ws->canopyw        -= wf->canopywEVP;
-	ws->canopyw        -= wf->canopyw_to_soilw;
+	ws->canopyw += wf->prcp_to_canopyw;
+	ws->canopyw -= wf->EVPcanopyw;
+	ws->canopyw -= wf->canopyw_to_soilw;
 
 
 	/* precipitation src */
-	ws->prcp_src       += wf->prcp_to_canopyw;
-	ws->prcp_src       += (wf->prcp_to_soilSurface - wf->IRG_to_prcp);
-	ws->prcp_src       += wf->prcp_to_snoww;
+	ws->prcp_src += wf->prcp_to_canopyw;
+	ws->prcp_src += (wf->prcp_to_soilSurface - wf->IRG_to_prcp);
+	ws->prcp_src += wf->prcp_to_snoww;
 
-	
+
 	/* evapotranspiration/sublimation snk */
-	ws->canopywEVP_snk += wf->canopywEVP;
-	ws->snowSUBL_snk   += wf->snowwSUBL;
-	ws->soilEVP_snk   += wf->soilwEVP;
-	ws->TRP_snk       += wf->soilwTRP_SUM;
-	ws->pondEVP_snk   += wf->pondwEVP;
-	
-	
+	ws->EVPcanopyw_snk += wf->EVPcanopyw;
+	ws->snowSUBL_snk += wf->SUBLsnoww;
+	ws->soilEVP_snk += wf->EVPsoilw;
+	ws->TRP_snk += wf->TRPsoilw_SUM;
+	ws->pondEVP_snk += wf->EVPpondw;
+
+
 	/* runoff */
-	ws->runoff_snk	  += wf->pondw_to_runoff;
-	 
-	ws->deeppercolation_snk += wf->soilwFlux[N_SOILLAYERS-1];
-		
+	ws->runoff_snk += wf->pondw_to_runoff;
+
+	ws->deeppercolation_snk += wf->soilwFlux[N_SOILLAYERS - 1];
+
 	/* groundwater src/snk */
-
-	preGWsrc = ws->groundwater_src;
-
 	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
-		ws->groundwater_src += wf->GWdischarge[layer];
+		wf->GWtransp_total    += wf->GWtransp[layer];
 
-		ws->groundwater_snk += wf->GWrecharge[layer];
-
+		
 		if (wf->GWmovchange[layer] > 0)
-			ws->groundwater_src += wf->GWmovchange[layer];
-		else 
-			ws->groundwater_snk -= wf->GWmovchange[layer];
-	}
-	ws->groundwater_src += wf->GW_to_pondw;
+			ws->GWsrc_W += wf->GWmovchange[layer];
+		else
+			ws->GWsnk_W += -1* wf->GWmovchange[layer];
 
-	ws->cumGWchange += (ws->groundwater_src - preGWsrc);
+	}
+	ws->GWsrc_W += wf->GWevap;
+	ws->GWsrc_W += wf->GW_to_pondw;
+	ws->GWsrc_W += wf->GWtransp_total;
+	ws->GWsrc_W += wf->GWdischarge;
+	ws->GWsnk_W += wf->GWrecharge;
+
 
 	/* flooding src */
-	ws->FLDsrc += wf->FLD_to_soilw;
-	ws->FLDsrc += wf->FLD_to_pondw;
+	ws->FLsrc_W += wf->FL_to_soilwTOTAL;
 
 	/* irrigating src*/
 	ws->IRGsrc_W += wf->IRG_to_prcp;
@@ -95,33 +93,32 @@ int water_state_update(const wflux_struct* wf, wstate_struct* ws)
 	return (errorCode);
 }
 
-int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, control_struct* ctrl, epvar_struct* epv, 
-	                      cflux_struct* cf, nflux_struct* nf, cstate_struct* cs, nstate_struct* ns, int alloc, int evergreen)
+int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, soilInfo_struct* soilInfo, soilprop_struct* sprop, control_struct* ctrl, epvar_struct* epv,
+	cflux_struct* cf, nflux_struct* nf, cstate_struct* cs, nstate_struct* ns, wstate_struct* ws, int alloc, int evergreen)
 {
 	/* daily update of the carbon state variables */
-	
-	int errorCode=0;
-	int layer, pp;
+
+	int errorCode = 0;
+	int layer, pp, dm, GWlayer;
 	double leafc_to_litr, leafn_to_litr, frootc_to_litr, frootn_to_litr, yieldc_to_litr, yieldn_to_litr, softstemc_to_litr, softstemn_to_litr;
 	double propLAYER0, propLAYER1, propLAYER2;
+	double change[N_DISSOLVMATER][N_SOILLAYERS];
+	double ratioNORM, ratioCAPIL, ratioSAT, diffNORM, diffCAPIL, diffSAT, diff;
 
-	/* estimating aboveground litter and cwdc*/
-	double cwdc_total1, cwdc_total2, litrc_total1, litrc_total2;
-	cwdc_total1=cwdc_total2=litrc_total1=litrc_total2=0;
-			
-	for (layer = 0; layer < N_SOILLAYERS; layer++) 
-	{
-		cwdc_total1 += cs->cwdc[layer];
-		litrc_total1 += cs->litr1c[layer] + cs->litr2c[layer] + cs->litr3c[layer] + cs->litr4c[layer];
-	}
-	
 	/* C state variables are updated below in the order of the relevant fluxes in the daily model loop */
-	
-	/* NOTE: Mortality fluxes are all accounted for in a separate routine, which is to be called after this routine.  
-	This is a special case where the updating of state variables is order-sensitive, since otherwise the complications of possibly having 
-	mortality fluxes drive the pools negative would create big, unnecessary headaches. */
-	
 
+	/* NOTE: Mortality fluxes are all accounted for in a separate routine, which is to be called after this routine.
+	This is a special case where the updating of state variables is order-sensitive, since otherwise the complications of possibly having
+	mortality fluxes drive the pools negative would create big, unnecessary headaches. */
+
+	/* 0. Initialization of local variables */
+	for (dm = 0; dm < N_DISSOLVMATER; dm++)
+	{
+		for (layer = 0; layer < N_SOILLAYERS; layer++) change[dm][layer] = 0;
+	}
+	GWlayer = (int)sprop->GWlayer;
+
+	/***************************************************************************************************************************************************/
 	/* 1. Phenology fluxes */
 	if (!errorCode && epc->leaf_cn && CNratio_control(cs, epc->leaf_cn, cs->leafc, ns->leafn, cf->leafc_transfer_to_leafc, nf->leafn_transfer_to_leafn, 0)) 
 	{
@@ -227,16 +224,22 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, co
 		errorCode=1;
 	}
 
-	
+	/***************************************************************************************************************************************************/
 	/* 2. Aboveground pool litterfall and retranslocation to the first soil layer */
 	leafc_to_litr = cf->leafc_to_litr1c + cf->leafc_to_litr2c + cf->leafc_to_litr3c + cf->leafc_to_litr4c;
 	leafn_to_litr = nf->leafn_to_litr1n + nf->leafn_to_litr2n + nf->leafn_to_litr3n + nf->leafn_to_litr4n;
 		
-	/* new feature: litter turns into the first AND the second soil layer */
+	/* litter turns into the first three soil layers  (non-woody biomass: proportion to soil layer thickness, woody-biomass: higher propotion in layer2 */
 	propLAYER0 = sitec->soillayer_thickness[0]/sitec->soillayer_depth[2];
 	propLAYER1 = sitec->soillayer_thickness[1]/sitec->soillayer_depth[2];
 	propLAYER2 = sitec->soillayer_thickness[2]/sitec->soillayer_depth[2];
 
+	if (epc->woody)
+	{
+		propLAYER0 = 0.05;
+		propLAYER1 = 0.15;
+		propLAYER2 = 0.8;
+	}
 	
 
 	if (!errorCode && epc->leaf_cn && CNratio_control(cs, epc->leaf_cn, cs->leafc, ns->leafn, leafc_to_litr, leafn_to_litr, epc->leaflitr_cn)) 
@@ -371,7 +374,8 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, co
 		if (!errorCode) printf("ERROR in softstem_to_litr CN calculation in state_update.c\n");
 		errorCode=1;
 	}
-	
+
+	/***************************************************************************************************************************************************/
 	/* 3. Belowground litterfall is distributed between the different soil layers */
 	
 	frootc_to_litr = cf->frootc_to_litr1c + cf->frootc_to_litr2c + cf->frootc_to_litr3c + cf->frootc_to_litr4c;
@@ -399,6 +403,7 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, co
 		errorCode=1;
 	}
 
+	/***************************************************************************************************************************************************/
 	 /* 4. Livewood turnover fluxes */
 	cs->deadstemc  += cf->livestemc_to_deadstemc;
 	cs->livestemc  -= cf->livestemc_to_deadstemc;
@@ -415,95 +420,250 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, co
 	ns->deadcrootn += nf->livecrootn_to_deadcrootn;
 	ns->livecrootn -= nf->livecrootn_to_deadcrootn;
 	
-
+	/***************************************************************************************************************************************************/
 	/* 6. Photosynthesis fluxes */
 	cs->psnsun_src   += cf->psnsun_to_cpool;
 	cs->psnshade_src += cf->psnshade_to_cpool;
 	cs->cpool        += (cf->psnsun_to_cpool + cf->psnshade_to_cpool);
 
+	/***************************************************************************************************************************************************/
 	/* 7. Plant allocation flux, from N retrans pool */
 	ns->npool		    += nf->retransn_to_npool_total;
 	ns->retransn        -= nf->retransn_to_npool_total;
 
-	
+	/***************************************************************************************************************************************************/
 	/* 8. Litter decomposition fluxes - MULTILAYER SOIL */
 	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
 		/* Fluxes out of coarse woody debris into litter pools */
-		cs->litr2c[layer]       += cf->cwdc_to_litr2c[layer];
-		cs->litr3c[layer]       += cf->cwdc_to_litr3c[layer];
-		cs->litr4c[layer]       += cf->cwdc_to_litr4c[layer];
-		cs->cwdc[layer]         -= (cf->cwdc_to_litr2c[layer] + cf->cwdc_to_litr3c[layer] + cf->cwdc_to_litr4c[layer]);
+		cs->litr2c[layer] += cf->cwdc_to_litr2c[layer];
+		cs->litr3c[layer] += cf->cwdc_to_litr3c[layer];
+		cs->litr4c[layer] += cf->cwdc_to_litr4c[layer];
+		cs->cwdc[layer] -= (cf->cwdc_to_litr2c[layer] + cf->cwdc_to_litr3c[layer] + cf->cwdc_to_litr4c[layer]);
 		/* Fluxes out of labile litter pool */
-		cs->HRlitr1_snk		+= cf->litr1_hr[layer];
-		cs->litr1c[layer]       -= cf->litr1_hr[layer];
-		cs->soil1c[layer]       += cf->litr1c_to_soil1c[layer];
-		cs->litr1c[layer]       -= cf->litr1c_to_soil1c[layer];
+		cs->HRlitr1_snk += cf->litr1_hr[layer];
+		cs->litr1c[layer] -= cf->litr1_hr[layer];
+		cs->soil1c[layer] += cf->litr1c_to_soil1c[layer];
+		cs->litr1c[layer] -= cf->litr1c_to_soil1c[layer];
 		/* Fluxes out of cellulose litter pool */
-		cs->HRlitr2_snk		+= cf->litr2_hr[layer];
-		cs->litr2c[layer]       -= cf->litr2_hr[layer];
-		cs->soil2c[layer]       += cf->litr2c_to_soil2c[layer];
-		cs->litr2c[layer]       -= cf->litr2c_to_soil2c[layer];
+		cs->HRlitr2_snk += cf->litr2_hr[layer];
+		cs->litr2c[layer] -= cf->litr2_hr[layer];
+		cs->soil2c[layer] += cf->litr2c_to_soil2c[layer];
+		cs->litr2c[layer] -= cf->litr2c_to_soil2c[layer];
 		/* Fluxes from shielded to unshielded cellulose pools */
-		cs->litr2c[layer]       += cf->litr3c_to_litr2c[layer];
-		cs->litr3c[layer]       -= cf->litr3c_to_litr2c[layer];
+		cs->litr2c[layer] += cf->litr3c_to_litr2c[layer];
+		cs->litr3c[layer] -= cf->litr3c_to_litr2c[layer];
 		/* Fluxes out of lignin litter pool */
-		cs->HRlitr4_snk		+= cf->litr4_hr[layer];
-		cs->litr4c[layer]       -= cf->litr4_hr[layer];
-		cs->soil3c[layer]       += cf->litr4c_to_soil3c[layer];
-		cs->litr4c[layer]       -= cf->litr4c_to_soil3c[layer];
+		cs->HRlitr4_snk += cf->litr4_hr[layer];
+		cs->litr4c[layer] -= cf->litr4_hr[layer];
+		cs->soil3c[layer] += cf->litr4c_to_soil3c[layer];
+		cs->litr4c[layer] -= cf->litr4c_to_soil3c[layer];
 		/* Fluxes out of fast soil pool */
-		cs->HRsoil1_snk		+= cf->soil1_hr[layer];
-		cs->soil1c[layer]       -= cf->soil1_hr[layer];
-		cs->soil2c[layer]       += cf->soil1c_to_soil2c[layer];
-		cs->soil1c[layer]       -= cf->soil1c_to_soil2c[layer];
+		cs->HRsoil1_snk += cf->soil1_hr[layer];
+		cs->soil1c[layer] -= cf->soil1_hr[layer];
+		cs->soil2c[layer] += cf->soil1c_to_soil2c[layer];
+		cs->soil1c[layer] -= cf->soil1c_to_soil2c[layer];
 		/* Fluxes out of medium soil pool */
-		cs->HRsoil2_snk		+= cf->soil2_hr[layer];
-		cs->soil2c[layer]       -= cf->soil2_hr[layer];
-		cs->soil3c[layer]       += cf->soil2c_to_soil3c[layer];
-		cs->soil2c[layer]       -= cf->soil2c_to_soil3c[layer];
+		cs->HRsoil2_snk += cf->soil2_hr[layer];
+		cs->soil2c[layer] -= cf->soil2_hr[layer];
+		cs->soil3c[layer] += cf->soil2c_to_soil3c[layer];
+		cs->soil2c[layer] -= cf->soil2c_to_soil3c[layer];
 		/* Fluxes out of slow soil pool */
-		cs->HRsoil3_snk		+= cf->soil3_hr[layer];
-		cs->soil3c[layer]       -= cf->soil3_hr[layer];
-		cs->soil4c[layer]       += cf->soil3c_to_soil4c[layer];
-		cs->soil3c[layer]       -= cf->soil3c_to_soil4c[layer];
+		cs->HRsoil3_snk += cf->soil3_hr[layer];
+		cs->soil3c[layer] -= cf->soil3_hr[layer];
+		cs->soil4c[layer] += cf->soil3c_to_soil4c[layer];
+		cs->soil3c[layer] -= cf->soil3c_to_soil4c[layer];
 		/* Fluxes out of recalcitrant SOM pool */
-		cs->HRsoil4_snk		+= cf->soil4_hr[layer];
-		cs->soil4c[layer]       -= cf->soil4_hr[layer];
+		cs->HRsoil4_snk += cf->soil4_hr[layer];
+		cs->soil4c[layer] -= cf->soil4_hr[layer];
 
-	
 		/* Fluxes out of coarse woody debris into litter pools */
-		ns->litr2n[layer]       += nf->cwdn_to_litr2n[layer];
-		ns->litr3n[layer]       += nf->cwdn_to_litr3n[layer];
-		ns->litr4n[layer]       += nf->cwdn_to_litr4n[layer];
-		ns->cwdn[layer]         -= (nf->cwdn_to_litr2n[layer] + nf->cwdn_to_litr3n[layer] + nf->cwdn_to_litr4n[layer]);
+		ns->litr2n[layer] += nf->cwdn_to_litr2n[layer];
+		ns->litr3n[layer] += nf->cwdn_to_litr3n[layer];
+		ns->litr4n[layer] += nf->cwdn_to_litr4n[layer];
+		ns->cwdn[layer] -= (nf->cwdn_to_litr2n[layer] + nf->cwdn_to_litr3n[layer] + nf->cwdn_to_litr4n[layer]);
 		/* Fluxes out of labile litter pool */
-		ns->soil1n[layer]       += nf->litr1n_to_soil1n[layer];
-		ns->litr1n[layer]       -= nf->litr1n_to_soil1n[layer];
-		ns->litr1n[layer]       -= nf->litr1n_to_release[layer];
+		ns->soil1n[layer] += nf->litr1n_to_soil1n[layer];
+		ns->litr1n[layer] -= nf->litr1n_to_soil1n[layer];
+		ns->litr1n[layer] -= nf->litr1n_to_release[layer];
 		/* Fluxes out of cellulose litter pool */
-		ns->soil2n[layer]       += nf->litr2n_to_soil2n[layer];
-		ns->litr2n[layer]       -= nf->litr2n_to_soil2n[layer];
-		ns->litr2n[layer]       -= nf->litr2n_to_release[layer];
+		ns->soil2n[layer] += nf->litr2n_to_soil2n[layer];
+		ns->litr2n[layer] -= nf->litr2n_to_soil2n[layer];
+		ns->litr2n[layer] -= nf->litr2n_to_release[layer];
 		/* Fluxes from shielded to unshielded cellulose pools */
-		ns->litr2n[layer]       += nf->litr3n_to_litr2n[layer];
-		ns->litr3n[layer]       -= nf->litr3n_to_litr2n[layer];
+		ns->litr2n[layer] += nf->litr3n_to_litr2n[layer];
+		ns->litr3n[layer] -= nf->litr3n_to_litr2n[layer];
 		/* Fluxes out of lignin litter pool */
-		ns->soil3n[layer]       += nf->litr4n_to_soil3n[layer];
-		ns->litr4n[layer]       -= nf->litr4n_to_soil3n[layer];
-		ns->litr4n[layer]       -= nf->litr4n_to_release[layer];
+		ns->soil3n[layer] += nf->litr4n_to_soil3n[layer];
+		ns->litr4n[layer] -= nf->litr4n_to_soil3n[layer];
+		ns->litr4n[layer] -= nf->litr4n_to_release[layer];
 		/* Fluxes out of fast soil pool */
-		ns->soil2n[layer]       += nf->soil1n_to_soil2n[layer];
-		ns->soil1n[layer]       -= nf->soil1n_to_soil2n[layer];
+		ns->soil2n[layer] += nf->soil1n_to_soil2n[layer];
+		ns->soil1n[layer] -= nf->soil1n_to_soil2n[layer];
 		/* Fluxes out of medium soil pool */
-		ns->soil3n[layer]       += nf->soil2n_to_soil3n[layer];
-		ns->soil2n[layer]       -= nf->soil2n_to_soil3n[layer];
+		ns->soil3n[layer] += nf->soil2n_to_soil3n[layer];
+		ns->soil2n[layer] -= nf->soil2n_to_soil3n[layer];
 		/* Fluxes out of slow soil pool */
-		ns->soil4n[layer]       += nf->soil3n_to_soil4n[layer];
-		ns->soil3n[layer]       -= nf->soil3n_to_soil4n[layer];
+		ns->soil4n[layer] += nf->soil3n_to_soil4n[layer];
+		ns->soil3n[layer] -= nf->soil3n_to_soil4n[layer];
+
+		/*-------------------------------------------------*/
+		/* 8.1 control */
+		if ((ns->soil1n[layer] == 0 && fabs(cs->soil1c[layer]) > CRIT_PREC) || (ns->soil2n[layer] == 0 && fabs(cs->soil2c[layer]) > CRIT_PREC) ||
+			(ns->soil3n[layer] == 0 && fabs(cs->soil3c[layer]) > CRIT_PREC) || (ns->soil4n[layer] == 0 && fabs(cs->soil4c[layer]) > CRIT_PREC) ||
+			(ns->litr1n[layer] == 0 && fabs(cs->litr1c[layer]) > CRIT_PREC) || (ns->litr2n[layer] == 0 && fabs(cs->litr2c[layer]) > CRIT_PREC) ||
+			(ns->litr3n[layer] == 0 && fabs(cs->litr3c[layer]) > CRIT_PREC) || (ns->litr4n[layer] == 0 && fabs(cs->litr4c[layer]) > CRIT_PREC))
+		{
+			if (!errorCode)
+			{
+				printf("\n");
+				printf("ERROR: CN ratio problem in state_update.c\n");
+				errorCode = 1;
+			}
+		}
+		/*-------------------------------------------------*/
+		/* 8.2 soil pool changes for GW-calculations */
+	
+		if (GWlayer != DATA_GAP)
+		{
+			if (layer >= GWlayer)
+			{
+				change[2][layer] = nf->litr1n_to_soil1n[layer] - nf->soil1n_to_soil2n[layer];
+				change[3][layer] = nf->litr2n_to_soil2n[layer] + nf->soil1n_to_soil2n[layer] - nf->soil2n_to_soil3n[layer];
+				change[4][layer] = nf->litr4n_to_soil3n[layer] + nf->soil2n_to_soil3n[layer] - nf->soil3n_to_soil4n[layer];
+				change[5][layer] = nf->soil3n_to_soil4n[layer];
+				change[6][layer] = cf->litr1c_to_soil1c[layer] - cf->soil1c_to_soil2c[layer] - cf->soil1_hr[layer];
+				change[7][layer] = cf->litr2c_to_soil2c[layer] + cf->soil1c_to_soil2c[layer] - cf->soil2c_to_soil3c[layer] - cf->soil2_hr[layer];
+				change[8][layer] = cf->litr4c_to_soil3c[layer] + cf->soil2c_to_soil3c[layer] - cf->soil3c_to_soil4c[layer] - cf->soil3_hr[layer];
+				change[9][layer] = cf->soil3c_to_soil4c[layer] - cf->soil4_hr[layer];
+			}
+		
+		}
+		
+	}
+
+	/*-------------------------------------------------*/
+	/* 8.4. Groundwater transport */
+
+
+	if (sprop->GWD != DATA_GAP)
+	{ 
+
+		/* transfer value: NH4, NO3, DOC, DON - > content_array  etc.*/
+		if (!errorCode && calc_soilconc(-1, 0, sprop, ws, cs, ns, soilInfo))
+		{
+			printf("ERROR in calc_soilconc.c for groundwater_preproc.c\n");
+			errorCode = 1;
+		}
+
+		for (layer = GWlayer; layer < N_SOILLAYERS; layer++)
+		{
+			/* in GWlayer: change is distributed proportionally - change in saturated zone is accounted for  GWdecomp: -: sink, +: source*/
+
+			if (layer == GWlayer)
+			{
+				ratioNORM = sprop->dz_zoneNORM / (sprop->dz_zoneCAPIL + sprop->dz_zoneNORM + sprop->dz_zoneSAT);
+				ratioCAPIL = sprop->dz_zoneCAPIL / (sprop->dz_zoneCAPIL + sprop->dz_zoneNORM + sprop->dz_zoneSAT);
+				ratioSAT = sprop->dz_zoneSAT / (sprop->dz_zoneCAPIL + sprop->dz_zoneNORM + sprop->dz_zoneSAT);
+
+				for (dm = 0; dm < N_DISSOLVMATER; dm++)
+				{
+					diffNORM = change[dm][layer] * ratioNORM;
+					diffCAPIL = change[dm][layer] * ratioCAPIL;
+					diffSAT = change[dm][layer] * ratioSAT;
+
+
+					/* NORM zone: negative storage value is not possible - covered by GW */
+					if (diffNORM < 0)
+						diff = -1 * diffNORM - soilInfo->content_zoneNORM[dm];
+					else
+						diff = 0;
+
+					soilInfo->dismatGWdecomp_NORM[dm] = diff;
+					soilInfo->content_zoneNORM[dm] += diffNORM + soilInfo->dismatGWdecomp_NORM[dm];
+
+					/* CAPIL zone: negative storage value is not possible - covered by GW */
+					if (diffCAPIL < 0)
+						diff = -1 * diffCAPIL - soilInfo->content_zoneCAPIL[dm];
+					else
+						diff = 0;
+
+					soilInfo->dismatGWdecomp_CAPIL[dm] = diff;
+					soilInfo->content_zoneCAPIL[dm] += diffCAPIL + soilInfo->dismatGWdecomp_CAPIL[dm];
+
+					/* SAT zone: no change is possible (constant conc) - covered by GW */
+					soilInfo->dismatGWdecomp[dm][GWlayer] = -1 * diffSAT;
+
+					soilInfo->content_soil[dm][GWlayer] += soilInfo->dismatGWdecomp_NORM[dm] + soilInfo->dismatGWdecomp_CAPIL[dm] + soilInfo->dismatGWdecomp[dm][GWlayer];
+				}
+
+			}
+			else
+			{
+				/* below GWlayer - change is covered by GW*/
+				for (dm = 0; dm < N_DISSOLVMATER; dm++)
+				{
+					soilInfo->dismatGWdecomp[dm][layer] = -1 * change[dm][layer];
+					soilInfo->content_soil[dm][layer] += soilInfo->dismatGWdecomp[dm][layer];
+				}
+			}
+
+
+			/* transfer value: content_array -> NH4, NO3, DOC, DON */
+			if (!errorCode && calc_soilconc(layer, 1, sprop, ws, cs, ns, soilInfo))
+			{
+				printf("ERROR in calc_soilconc.c for groundwater_preproc.c\n");
+				errorCode = 1;
+			}
+
+		}
+	}
+
+	/* src/snk variables*/
+	for (dm = 0; dm < N_DISSOLVN; dm++)
+	{
+		if (soilInfo->dismatGWdecomp_NORM[dm] > 0)
+			ns->GWsrc_N += soilInfo->dismatGWdecomp_NORM[dm];
+		else
+			ns->GWsnk_N += -1 * soilInfo->dismatGWdecomp_NORM[dm];
+
+		if (soilInfo->dismatGWdecomp_CAPIL[dm] > 0)
+			ns->GWsrc_N += soilInfo->dismatGWdecomp_CAPIL[dm];
+		else
+			ns->GWsnk_N += -1 * soilInfo->dismatGWdecomp_CAPIL[dm];
+
+		for (layer = 0; layer < N_SOILLAYERS; layer++)
+		{
+			if (soilInfo->dismatGWdecomp[dm][layer] > 0)
+				ns->GWsrc_N += soilInfo->dismatGWdecomp[dm][layer];
+			else
+				ns->GWsnk_N += -1 * soilInfo->dismatGWdecomp[dm][layer];
+		}
+	}
+
+	for (dm = N_DISSOLVN; dm < N_DISSOLVMATER; dm++)
+	{
+		if (soilInfo->dismatGWdecomp_NORM[dm] > 0)
+			cs->GWsrc_C += soilInfo->dismatGWdecomp_NORM[dm];
+		else
+			cs->GWsnk_C += -1 * soilInfo->dismatGWdecomp_NORM[dm];
+
+		if (soilInfo->dismatGWdecomp_CAPIL[dm] > 0)
+			cs->GWsrc_C += soilInfo->dismatGWdecomp_CAPIL[dm];
+		else
+			cs->GWsnk_C += -1 * soilInfo->dismatGWdecomp_CAPIL[dm];
+
+		for (layer = 0; layer < N_SOILLAYERS; layer++)
+		{
+			if (soilInfo->dismatGWdecomp[dm][layer] > 0)
+				cs->GWsrc_C += soilInfo->dismatGWdecomp[dm][layer];
+			else
+				cs->GWsnk_C += -1 * soilInfo->dismatGWdecomp[dm][layer];
+		}
 	}
 
 
+	/***************************************************************************************************************************************************/
 	/* 9. Daily allocation fluxes */
 	/* daily leaf allocation fluxes */
 	
@@ -761,7 +921,7 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, co
 	pp = (int) epv->n_actphen - 1;
 	cs->leafcSUM_phenphase[pp] += cf->cpool_to_leafc + cf->leafc_transfer_to_leafc;
 
-	
+	/***************************************************************************************************************************************************/
 	/* 10. Daily growth respiration fluxes */
 	/* Leaf growth respiration */
 	cs->GRleaf_snk     += cf->cpool_leaf_GR;
@@ -821,17 +981,17 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, co
 	cs->gresp_transfer   -= cf->transfer_deadcroot_GR;
 
 	
-
+	/***************************************************************************************************************************************************/
 	/* 11. Maintanance respiration fluxes
 	       covering of maintananance respiration fluxes from NSC (non-structural carbohydrate), namely storage and transfer pools*/
-	if (!errorCode && nsc_maintresp(epc, ctrl, epv, cf, nf, cs, ns))
+	if (!errorCode && MRdeficit_calculation(epc, ctrl, cf, nf, cs, ns))
 	{
 		errorCode=1;
-		if (!errorCode) printf("ERROR in nsc_maintresp() from bgc()\n");
+		if (!errorCode) printf("ERROR in MRdeficit_calculation.c from bgc.c\n");
 	}
 	
 	
-	
+	/***************************************************************************************************************************************************/
 	
 	/* 12. Annual allocation fluxes, one day per year */
 	if (alloc)
@@ -909,13 +1069,13 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, co
 			if (-cs->leafc > CRIT_PREC || -cs->frootc > CRIT_PREC || -cs->yieldc > CRIT_PREC || -cs->softstemc > CRIT_PREC)
 			{
 				printf("\n");
-				if (!errorCode) printf("ERROR: negative plant carbon pool in state_update.c\n");
+				if (!errorCode) printf("ERROR in state_update.c: negative plant carbon pool\n");
 				errorCode=1;
 			}
 			if (-ns->leafn > CRIT_PREC || -ns->frootn > CRIT_PREC || -ns->yieldn > CRIT_PREC || -ns->softstemn > CRIT_PREC)
 			{
 				printf("\n");
-				if (!errorCode) printf("ERROR: negative plant nitrogen pool in state_update.c\n");
+				if (!errorCode) printf("ERROR in state_update.c: negative plant nitrogen pool\n");
 				errorCode=1;
 			}
 			if (cs->leafc < CRIT_PREC || ns->leafn  < CRIT_PREC) 
@@ -942,6 +1102,7 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, co
 		}
 	} /* end if allocation day */
 
+	
 
 
 	return (errorCode);
@@ -957,7 +1118,7 @@ int CNratio_control(cstate_struct* cs, double CNratio, double cpool, double npoo
 	/* control for leaf C:N ratio of pools */
 	if ((npool ==0 && cpool > CRIT_PREC ) || (npool > CRIT_PREC  && cpool == 0))
 	{
-		if (!errorCode) printf("ERROR: CNratio_control in CN_state_update.c\n");
+		if (!errorCode) printf("ERROR in CNratio_control for CN_state_update.c\n");
 		errorCode = 1;
 	}
 	
@@ -980,7 +1141,7 @@ int CNratio_control(cstate_struct* cs, double CNratio, double cpool, double npoo
 	/* control for leaf C:N ratio of fluxes */
 	if ((nflux == 0 && cflux > CRIT_PREC ) || (nflux > CRIT_PREC  && cflux == 0))
 	{
-		if (!errorCode) printf("ERROR: CNratio_control in CN_state_update.c\n");
+		if (!errorCode) printf("ERROR in CNratio_control for CN_state_update.c\n");
 		errorCode = 1;
 	}
 
@@ -995,23 +1156,25 @@ int CNratio_control(cstate_struct* cs, double CNratio, double cpool, double npoo
 		CNdiff = cflux/nflux - CNratio;
 
 	}
-	
+
+
 	return (!errorCode);
 }
 
-int nsc_maintresp(const epconst_struct* epc, control_struct *ctrl, epvar_struct* epv, cflux_struct* cf, nflux_struct* nf, cstate_struct* cs, nstate_struct* ns)
+int MRdeficit_calculation(const epconst_struct* epc, control_struct* ctrl, cflux_struct* cf, nflux_struct* nf, cstate_struct* cs, nstate_struct* ns)
 {	
 	/* Covering of maintananance respiration fluxes from storage pools */
 	
 	int errorCode=0;
-	double MR_nw, MR_w, NSCnw, NSCw, SCnw, SCw, nsc_crit, diff_total, diff_total_nw, diff_total_w, diff, day_MR_ratio, excess, nsc_avail;
-	
-	diff_total_nw = diff_total_w = day_MR_ratio = excess = 0;
-	
+	double MR, MR_nw, MR_w, NSC, NSCnw, NSCw, SC, SCnw, SCw, NSC_crit, diffTOTAL, diffTOTAL_nw, diffTOTAL_w, diffNSC, diffSC, diff, excess, NSC_avail;
+	double reduction, npool_to_MRdef, CpoolNpool_ratio;
+
+	diffTOTAL_nw = diffTOTAL_w = excess = diffSC = diffNSC = diff = reduction = npool_to_MRdef = CpoolNpool_ratio = 0;
 	
 	/* summarizing maint.resp fluxes and available non-structural carbohydrate fluxes - non-woody and woody */
 	MR_nw = cf->leaf_day_MR + cf->leaf_night_MR + cf->froot_MR + cf->yield_MR + cf->softstem_MR;
 	MR_w  = cf->livestem_MR + cf->livecroot_MR;
+	MR    = MR_nw + MR_w;
 	
 		
 	NSCnw  = (cs->leafc_storage      +  cs->frootc_storage     + cs->yieldc_storage     + cs->softstemc_storage + 
@@ -1029,400 +1192,778 @@ int nsc_maintresp(const epconst_struct* epc, control_struct *ctrl, epvar_struct*
 	if (fabs(SCnw)  < CRIT_PREC) SCnw = 0;
 	if (fabs(SCw)   < CRIT_PREC) SCw = 0;
 
+	NSC = NSCnw + NSCw;
+	SC  = SCnw  + SCw;
+
 	
 	/* calculation of difference between between the demand (MR) and the source (cpool) - non-woody and woody */
-	diff_total  = MR_nw + MR_w - cs->cpool;
+	diffTOTAL  = MR - cs->cpool;
 
-	if (MR_nw + MR_w)
-	{
-		diff_total_nw = diff_total * (MR_nw / (MR_nw + MR_w));
-		diff_total_w  = diff_total * (MR_w  / (MR_nw + MR_w));
-	}
+	
+	/********************************************************************************************************/
+	/* I: method 0.: non-separated MR */
+	/*******************************************************************************************************/
 
-
-
-	/* 1: non-woody biomass */
-	if (MR_nw)
+	if (ctrl->MRdeficit_flag == 0 && MR)
 	{
 
-		/* 1.1. calculation the difference between NSC and diff (based on available amount) */
-		if (diff_total_nw > CRIT_PREC)
+		/* calculation the difference between NSC and diff (based on available amount) */
+		if (diffTOTAL > 0)
 		{
 			/* critical NSC value: NSC pool = fixed ratio of theroretical maximum of NSC value -> but not all is available */
-			nsc_crit  = epc->NSC_avail_prop * (SCnw * epc->NSC_SC_prop);
-			nsc_avail = NSCnw - nsc_crit;
-			if (nsc_avail < 0) 
+			NSC_crit = (epc->prop_NSCcrit) * (SC * epc->prop_NSCvsSC);
+			NSC_avail = NSC - NSC_crit;
+
+			if (NSC_avail < 0) NSC_avail = 0;
+
+			/* calculation of deficit regarding to structural biomass  */
+			if (diffTOTAL <= NSC_avail)
 			{
-				nsc_avail = 0;
-			}
-		
-			/* MRdeficit_nw = 1: diff_total_nw < nsc_avail
-			   MRdeficit_nw = 2: diff_total_nw > nsc_avail */
-			 
-			if (diff_total_nw < nsc_avail)
-			{
-				diff = diff_total_nw;
-				epv->MRdeficit_nw = 1;
+				diffNSC = diffTOTAL;
+				diffSC = 0;
 			}
 			else
 			{
-				diff = nsc_avail;
-				epv->MRdeficit_nw = 2;
-			}
-			
-
-
-			/* 1.2. calculation of flxues from nsc pools */
-			if (NSCnw && diff)
-			{
-				cf->leafc_storage_to_MR		 = diff * cs->leafc_storage/NSCnw;
-				cf->frootc_storage_to_MR	 = diff * cs->frootc_storage/NSCnw;
-				cf->yieldc_storage_to_MR	 = diff * cs->yieldc_storage/NSCnw;
-				cf->softstemc_storage_to_MR	 = diff * cs->softstemc_storage/NSCnw;
-
-				cf->leafc_transfer_to_MR	 = diff * cs->leafc_transfer/NSCnw;
-				cf->frootc_transfer_to_MR	 = diff * cs->frootc_transfer/NSCnw;
-				cf->yieldc_transfer_to_MR	 = diff * cs->yieldc_transfer/NSCnw;
-				cf->softstemc_transfer_to_MR = diff * cs->softstemc_transfer/NSCnw;
-			
-
-				cf->NSCnw_to_MR  = cf->leafc_storage_to_MR  + cf->frootc_storage_to_MR  + cf->yieldc_storage_to_MR  + cf->softstemc_storage_to_MR +
-								   cf->leafc_transfer_to_MR + cf->frootc_transfer_to_MR + cf->yieldc_transfer_to_MR + cf->softstemc_transfer_to_MR;
-	
-				if (epc->leaf_cn)     nf->leafn_storage_to_MR		  = cf->leafc_storage_to_MR / epc->leaf_cn;
-				if (epc->froot_cn)    nf->frootn_storage_to_MR		  = cf->frootc_storage_to_MR / epc->froot_cn;
-				if (epc->yield_cn)    nf->yieldn_storage_to_MR		  = cf->yieldc_storage_to_MR / epc->yield_cn;
-				if (epc->softstem_cn) nf->softstemn_storage_to_MR      = cf->softstemc_storage_to_MR / epc->softstem_cn;
-
-				if (epc->leaf_cn)     nf->leafn_transfer_to_MR		  = cf->leafc_transfer_to_MR / epc->leaf_cn;
-				if (epc->froot_cn)    nf->frootn_transfer_to_MR		  = cf->frootc_transfer_to_MR / epc->froot_cn;
-				if (epc->yield_cn)    nf->yieldn_transfer_to_MR		  = cf->yieldc_transfer_to_MR / epc->yield_cn;
-				if (epc->softstem_cn) nf->softstemn_transfer_to_MR     = cf->softstemc_transfer_to_MR / epc->softstem_cn;
-	
-
-			
-				nf->NSNnw_to_MR = nf->leafn_storage_to_MR  + nf->frootn_storage_to_MR  + nf->yieldn_storage_to_MR  + nf->softstemn_storage_to_MR +
-								  nf->leafn_transfer_to_MR + nf->frootn_transfer_to_MR + nf->yieldn_transfer_to_MR + nf->softstemn_transfer_to_MR;
-			
-			
-				/* 1.3. state update of storage and transfer pools */
-				cs->leafc_storage					-= cf->leafc_storage_to_MR;
-				cs->frootc_storage					-= cf->frootc_storage_to_MR;
-				cs->yieldc_storage					-= cf->yieldc_storage_to_MR;
-				cs->softstemc_storage				-= cf->softstemc_storage_to_MR;
-		
-
-				cs->leafc_transfer					-= cf->leafc_transfer_to_MR;
-				cs->frootc_transfer					-= cf->frootc_transfer_to_MR;
-				cs->yieldc_transfer					-= cf->yieldc_transfer_to_MR;
-				cs->softstemc_transfer				-= cf->softstemc_transfer_to_MR;
-		
-				ns->leafn_storage					-= nf->leafn_storage_to_MR;
-				ns->frootn_storage					-= nf->frootn_storage_to_MR;
-				ns->yieldn_storage					-= nf->yieldn_storage_to_MR;
-				ns->softstemn_storage				-= nf->softstemn_storage_to_MR;
-		
-				ns->leafn_transfer					-= nf->leafn_transfer_to_MR;
-				ns->frootn_transfer					-= nf->frootn_transfer_to_MR;
-				ns->yieldn_transfer					-= nf->yieldn_transfer_to_MR;
-				ns->softstemn_transfer				-= nf->softstemn_transfer_to_MR;
-	
-				ns->retransn                        += nf->NSNnw_to_MR;
-			
+				diffNSC = NSC_avail;
+				diffSC = diffTOTAL - NSC_avail;
 			}
 
-			/* 1.4. if NSC is not enough -> transfer from actual pool */
-			if (NSCnw == 0 || (diff_total_nw - cf->NSCnw_to_MR) > CRIT_PREC)
+			/* calculation of flxues from NSC pools */
+			if (NSC)
 			{
-				diff = diff_total_nw - cf->NSCnw_to_MR;
-				
-				if (cf->leaf_day_MR > 0)
+				cf->leafc_storage_to_MRdef = diffNSC * cs->leafc_storage / NSC;
+				cf->frootc_storage_to_MRdef = diffNSC * cs->frootc_storage / NSC;
+				cf->yieldc_storage_to_MRdef = diffNSC * cs->yieldc_storage / NSC;
+				cf->softstemc_storage_to_MRdef = diffNSC * cs->softstemc_storage / NSC;
+
+				cf->leafc_transfer_to_MRdef = diffNSC * cs->leafc_transfer / NSC;
+				cf->frootc_transfer_to_MRdef = diffNSC * cs->frootc_transfer / NSC;
+				cf->yieldc_transfer_to_MRdef = diffNSC * cs->yieldc_transfer / NSC;
+				cf->softstemc_transfer_to_MRdef = diffNSC * cs->softstemc_transfer / NSC;
+
+				cf->livestemc_storage_to_MRdef = diffNSC * cs->livestemc_storage / NSC;
+				cf->livecrootc_storage_to_MRdef = diffNSC * cs->livecrootc_storage / NSC;
+				cf->deadstemc_storage_to_MRdef = diffNSC * cs->deadstemc_storage / NSC;
+				cf->deadcrootc_storage_to_MRdef = diffNSC * cs->deadcrootc_storage / NSC;
+
+				cf->livestemc_transfer_to_MRdef = diffNSC * cs->livestemc_transfer / NSC;
+				cf->livecrootc_transfer_to_MRdef = diffNSC * cs->livecrootc_transfer / NSC;
+				cf->deadstemc_transfer_to_MRdef = diffNSC * cs->deadstemc_transfer / NSC;
+				cf->deadcrootc_transfer_to_MRdef = diffNSC * cs->deadcrootc_transfer / NSC;
+			}
+			else
+			{
+				if (diffNSC)
 				{
-					if (cs->leafc > CRIT_PREC)
-					{
-						cf->leafc_to_MR = diff * (cf->leaf_day_MR / MR_nw); 
-						if (cf->leafc_to_MR > cs->leafc)
-						{
-							cf->leafc_to_MR = cs->leafc;
-							excess += diff * (cf->leaf_day_MR / MR_nw) - cf->leafc_to_MR;
-						}
-						nf->leafn_to_MR = cf->leafc_to_MR / epc->leaf_cn;
-					}
-					else
-					{
-						excess += diff * (cf->leaf_day_MR / MR_nw);
-					}
-					
+					printf("ERROR in MRdeficit calculaton in state_update.c\n");
+					errorCode = 1;
+				}
+			}
+
+			/* if NSC is not enough -> transfer from actual pool */
+			if (diffSC > 0)
+			{
+				cf->leafc_to_MRdef = diffSC * ((cf->leaf_day_MR + cf->leaf_night_MR) / MR);
+				if (cf->leafc_to_MRdef > cs->leafc)
+				{
+					cf->leafc_to_MRdef = cs->leafc;
+					excess += diffSC * ((cf->leaf_day_MR + cf->leaf_night_MR) / MR) - cf->leafc_to_MRdef;
 				}
 
-				if (cf->leaf_night_MR > 0 && cs->leafc > cf->leafc_to_MR)
+
+				cf->frootc_to_MRdef = diffSC * (cf->froot_MR / MR);
+				if (cf->frootc_to_MRdef > cs->frootc)
 				{
-					if (cs->leafc > CRIT_PREC)
-					{
-						cf->leafc_to_MR += diff * (cf->leaf_night_MR / MR_nw); 
-						if (cf->leafc_to_MR > cs->leafc)
-						{
-							cf->leafc_to_MR = cs->leafc;
-							excess += diff * (cf->leaf_day_MR / MR_nw) - cf->leafc_to_MR;
-						}
-						nf->leafn_to_MR = cf->leafc_to_MR / epc->leaf_cn;
-					}
-					else
-					{
-						excess += diff * (cf->leaf_night_MR / MR_nw);
-					}
+					cf->frootc_to_MRdef = cs->frootc;
+					excess += diffSC * (cf->froot_MR / MR) - cf->frootc_to_MRdef;
 				}
 
-				if (cf->froot_MR > 0)
+
+				cf->yieldc_to_MRdef = diffSC * (cf->yield_MR / MR);
+				if (cf->yieldc_to_MRdef > cs->yieldc)
 				{
-					if (cs->frootc > CRIT_PREC)
-					{
-						cf->frootc_to_MR = diff * (cf->froot_MR / MR_nw); 
-						if (cf->frootc_to_MR > cs->frootc)
-						{
-							cf->frootc_to_MR = cs->frootc;
-							excess += diff * (cf->froot_MR / MR_nw) - cf->frootc_to_MR;
-						}
-						nf->frootn_to_MR = cf->frootc_to_MR / epc->froot_cn; 
-					}
-					else
-					{
-						excess += diff * (cf->froot_MR / MR_nw);
-					}
+					cf->yieldc_to_MRdef = cs->yieldc;
+					excess += diffSC * (cf->yield_MR / MR) - cf->yieldc_to_MRdef;
 				}
 
-				if (cf->yield_MR > 0)
+
+				cf->softstemc_to_MRdef = diffSC * (cf->softstem_MR / MR);
+				if (cf->softstemc_to_MRdef > cs->softstemc)
 				{
-					if (cs->yieldc > CRIT_PREC)
-					{
-						cf->yieldc_to_MR = diff * (cf->yield_MR / MR_nw); 
-						if (cf->yieldc_to_MR > cs->yieldc)
-						{
-							cf->yieldc_to_MR = cs->yieldc;
-							excess += diff * (cf->yield_MR / MR_nw) - cf->yieldc_to_MR;
-						}
-						nf->yieldn_to_MR = cf->yieldc_to_MR / epc->yield_cn; 
-					}
-					else
-					{
-						excess += diff * (cf->yield_MR / MR_nw);
-					}
+					cf->softstemc_to_MRdef = cs->softstemc;
+					excess += diffSC * (cf->softstem_MR / MR) - cf->softstemc_to_MRdef;
 				}
 
-				if (cf->softstem_MR > 0)
+				cf->livestemc_to_MRdef = diffSC * (cf->livestem_MR / MR);
+				if (cs->livestemc < cf->livestemc_to_MRdef)
 				{
-					if (cs->softstemc > CRIT_PREC)
-					{
-						cf->softstemc_to_MR = diff * (cf->softstem_MR / MR_nw); 
-						if (cf->softstemc_to_MR > cs->softstemc)
-						{
-							cf->softstemc_to_MR = cs->softstemc;
-							excess += diff * (cf->softstem_MR / MR_nw) - cf->softstemc_to_MR;
-						}
-						nf->softstemn_to_MR = cf->softstemc_to_MR / epc->softstem_cn; 
-					}
-					else
-					{
-						excess += diff * (cf->softstem_MR / MR_nw);
-					}
+					cf->livestemc_to_MRdef = cs->livestemc;
+					excess += diffSC * (cf->livestem_MR / MR) - cf->livestemc_to_MRdef;
 				}
 
-			
+				cf->livecrootc_to_MRdef = diffSC * (cf->livecroot_MR / MR);
+				if (cs->livecrootc < cf->livecrootc_to_MRdef)
+				{
+					cf->livecrootc_to_MRdef = cs->livecrootc;
+					excess += diffSC * (cf->livecroot_MR / MR) - cf->livecrootc_to_MRdef;
+				}
 
-				cf->SCnw_to_MR  = cf->leafc_to_MR + cf->frootc_to_MR + cf->yieldc_to_MR + cf->softstemc_to_MR;
 
-				nf->actNnw_to_MR  = nf->leafn_to_MR + nf->frootn_to_MR + nf->yieldn_to_MR + nf->softstemn_to_MR;
-
-				/* 1.5. state update of actual pools */
-				cs->leafc					-= cf->leafc_to_MR;
-				cs->frootc					-= cf->frootc_to_MR;
-				cs->yieldc					-= cf->yieldc_to_MR;
-				cs->softstemc				-= cf->softstemc_to_MR;
-
-				ns->leafn					-= nf->leafn_to_MR;
-				ns->frootn					-= nf->frootn_to_MR;
-				ns->yieldn					-= nf->yieldn_to_MR;
-				ns->softstemn				-= nf->softstemn_to_MR;
-			
-				ns->retransn                += nf->actNnw_to_MR;
-				
-				
-				MR_nw = cf->leaf_day_MR + cf->leaf_night_MR + cf->froot_MR + cf->yield_MR + cf->softstem_MR;
-
-				/* if maintresp of non-woody biomass can not be covered from non-woody biomass -> added to woody demand */
+				/* if maintresp of non-woody biomass can not be covered from non-woody biomass -> decreasing of maintanance flux */
 				if (excess)
 				{
-					diff_total_w += excess;
+					if (!ctrl->limitMR_flag) ctrl->limitMR_flag = 1;
+					cs->MRlimitSUM += excess;
+					cf->leaf_day_MR -= excess * (cf->leaf_day_MR / MR);
+					cf->leaf_night_MR -= excess * (cf->leaf_night_MR / MR);
+					cf->froot_MR -= excess * (cf->froot_MR / MR);
+					cf->softstem_MR -= excess * (cf->softstem_MR / MR);
+					cf->yield_MR -= excess * (cf->yield_MR / MR);
+					cf->livestem_MR -= excess * (cf->livestem_MR / MR);
+					cf->livecroot_MR -= excess * (cf->livecroot_MR / MR);
+					excess = 0;
 				}
-
-		
 			}
 		}
 	}
 
-	/* 2: woody biomass */
+	/********************************************************************************************************/
+	/* II: method 1.: organ-separated MR */
+	/*******************************************************************************************************/
 	
-	if (MR_w)
+	if (ctrl->MRdeficit_flag == 1 && MR)
 	{
+		/*------------------------*/
+		/* I/1. leaves */
+		/*------------------------*/
+		diff = diffTOTAL * ((cf->leaf_day_MR + cf->leaf_night_MR) / MR);
 		
-		/* 2.1. calculation the difference between NSC and diff (based on available amount) */
-		if (diff_total_w > CRIT_PREC)
+		/* calculation the difference between NSC and diff (based on available amount) */
+		if (diff > 0)
 		{
 			/* critical NSC value: NSC pool = fixed ratio of theroretical maximum of NSC value -> but not all is available */
-			nsc_crit  = epc->NSC_avail_prop * (SCw * epc->NSC_SC_prop);
-			nsc_avail = NSCw - nsc_crit;
-			if (nsc_avail < 0) 
-			{
-				nsc_avail = 0;
-			}
+			NSC_crit  = (epc->prop_NSCcrit) * (cs->leafc * epc->prop_NSCvsSC);
+			NSC_avail = (cs->leafc_storage + cs->leafc_transfer) - NSC_crit;
+			
+			if (NSC_avail < 0) NSC_avail = 0;
+
 		
-			/* MRdeficit_w = 1: diff_total_w < nsc_avail
-			   MRdeficit_w = 2: diff_total_w > nsc_avail */
-			 
-			if (diff_total_w < nsc_avail)
+			/* calculation of deficit regarding to structural/non-structural biomass  */	 
+			if (diff <= NSC_avail)
 			{
-				diff = diff_total_w;
-				epv->MRdeficit_w = 1;
+				diffSC  = 0;
+				diffNSC = diff; 
 			}
 			else
 			{
-				diff = nsc_avail;
-				epv->MRdeficit_w = 2;
+				diffSC  = diff - NSC_avail;
+				diffNSC = NSC_avail;
+			}
+			
+			/* calculation of flxues from NSC pools */
+			if (cs->leafc_storage + cs->leafc_transfer > 0)
+			{
+				cf->leafc_storage_to_MRdef		 = diffNSC * cs->leafc_storage/(cs->leafc_storage + cs->leafc_transfer);
+				cf->leafc_transfer_to_MRdef	 = diffNSC * cs->leafc_transfer/(cs->leafc_storage + cs->leafc_transfer);
 			}
 
-
-			/* 2.2. calculation of flxues from nsc pools */
-			if (NSCw && diff)
+			/* calculation of flxues from SC pools */
+			cf->leafc_to_MRdef = diffSC; 
+			if (cf->leafc_to_MRdef > cs->leafc)
 			{
-				cf->livestemc_storage_to_MR	 = diff * cs->livestemc_storage/NSCw;
-				cf->livecrootc_storage_to_MR  = diff * cs->livecrootc_storage/NSCw;
-				cf->deadstemc_storage_to_MR	 = diff * cs->deadstemc_storage/NSCw;
-				cf->deadcrootc_storage_to_MR  = diff * cs->deadcrootc_storage/NSCw;
+				excess             = cf->leafc_to_MRdef - cs->leafc;
+				cf->leafc_to_MRdef    = cs->leafc;	
+				cf->leaf_day_MR   -= excess *(cf->leaf_day_MR/(cf->leaf_day_MR +cf->leaf_night_MR));
+				cf->leaf_night_MR -= excess *(cf->leaf_night_MR/(cf->leaf_day_MR +cf->leaf_night_MR));
+				if (!ctrl->limitMR_flag) ctrl->limitMR_flag = 1;
+			}
+		}	
 
-				cf->livestemc_transfer_to_MR	 = diff * cs->livestemc_transfer/NSCw;
-				cf->livecrootc_transfer_to_MR = diff * cs->livecrootc_transfer/NSCw;
-				cf->deadstemc_transfer_to_MR	 = diff * cs->deadstemc_transfer/NSCw;
-				cf->deadcrootc_transfer_to_MR = diff * cs->deadcrootc_transfer/NSCw;
+		/*------------------------*/
+		/* I/2. froot */
+		/*------------------------*/
+		diff = diffTOTAL * ((cf->froot_MR) / MR);
+		
+		/* calculation the difference between NSC and diff (based on available amount) */
+		if (diff > 0)
+		{
+			/* critical NSC value: NSC pool = fixed ratio of theroretical maximum of NSC value -> but not all is available */
+			NSC_crit  = (epc->prop_NSCcrit) * (cs->frootc * epc->prop_NSCvsSC);
+			NSC_avail = (cs->frootc_storage + cs->frootc_transfer) - NSC_crit;
+			
+			if (NSC_avail < 0) NSC_avail = 0;
 
-				cf->NSCw_to_MR  = cf->livestemc_storage_to_MR  + cf->livecrootc_storage_to_MR  + cf->deadstemc_storage_to_MR  + cf->deadcrootc_storage_to_MR +
-								   cf->livestemc_transfer_to_MR + cf->livecrootc_transfer_to_MR + cf->deadstemc_transfer_to_MR + cf->deadcrootc_transfer_to_MR;
+	    	/* calculation of deficit regarding to structural/non-structural biomass  */	 
+			if (diff <= NSC_avail)
+			{
+				diffSC  = 0;
+				diffNSC = diff; 
+			}
+			else
+			{
+				diffSC  = diff - NSC_avail;
+				diffNSC = NSC_avail;
+			}
+			
+			/* calculation of flxues from NSC pools */
+			if (cs->frootc_storage + cs->frootc_transfer > 0)
+			{
+				cf->frootc_storage_to_MRdef   = diffNSC * cs->frootc_storage/(cs->frootc_storage + cs->frootc_transfer);
+				cf->frootc_transfer_to_MRdef  = diffNSC * cs->frootc_transfer/(cs->frootc_storage + cs->frootc_transfer);
+			}
+
+			/* calculation of flxues from SC pools */
+			cf->frootc_to_MRdef = diffSC; 
+			if (cf->frootc_to_MRdef > cs->frootc)
+			{
+				excess            = cf->frootc_to_MRdef - cs->frootc;
+				cf->frootc_to_MRdef  = cs->frootc;	
+				cf->froot_MR     -= excess;
+				if (!ctrl->limitMR_flag) ctrl->limitMR_flag = 1;
+			}
+		}	
+
+		/*------------------------*/
+		/* I/3. softstem */
+		/*------------------------*/
+		diff = diffTOTAL * ((cf->softstem_MR) / MR);
+		
+		/* calculation the difference between NSC and diff (based on available amount) */
+		if (diff > 0)
+		{
+			/* critical NSC value: NSC pool = fixed ratio of theroretical maximum of NSC value -> but not all is available */
+			NSC_crit  = (epc->prop_NSCcrit) * (cs->softstemc * epc->prop_NSCvsSC);
+			NSC_avail = (cs->softstemc_storage + cs->softstemc_transfer) - NSC_crit;
+			
+			if (NSC_avail < 0) NSC_avail = 0;
+
+			/* calculation of deficit regarding to structural/non-structural biomass  */	 
+			if (diff <= NSC_avail)
+			{
+				diffSC  = 0;
+				diffNSC = diff; 
+			}
+			else
+			{
+				diffSC  = diff - NSC_avail;
+				diffNSC = NSC_avail;
+			}
+			
+			/* calculation of flxues from NSC pools */
+			if (cs->softstemc_storage + cs->softstemc_transfer > 0)
+			{
+				cf->softstemc_storage_to_MRdef		 = diffNSC * cs->softstemc_storage/(cs->softstemc_storage + cs->softstemc_transfer);
+				cf->softstemc_transfer_to_MRdef	 = diffNSC * cs->softstemc_transfer/(cs->softstemc_storage + cs->softstemc_transfer);
+			}
+
+			/* calculation of flxues from SC pools */
+			cf->softstemc_to_MRdef = diffSC; 
+			if (cf->softstemc_to_MRdef > cs->softstemc)
+			{
+				excess               = cf->softstemc_to_MRdef - cs->softstemc;
+				cf->softstemc_to_MRdef  = cs->softstemc;	
+				cf->softstem_MR     -= excess;
+				if (!ctrl->limitMR_flag) ctrl->limitMR_flag = 1;
+			}
+		}	
+
+		/*------------------------*/
+		/* I/4. yield */
+		/*------------------------*/
+		diff = diffTOTAL * ((cf->yield_MR) / MR);
+		
+		/* calculation the difference between NSC and diff (based on available amount) */
+		if (diff > 0)
+		{
+			/* critical NSC value: NSC pool = fixed ratio of theroretical maximum of NSC value -> but not all is available */
+			NSC_crit  = (epc->prop_NSCcrit) * (cs->yieldc * epc->prop_NSCvsSC);
+			NSC_avail = (cs->yieldc_storage + cs->yieldc_transfer) - NSC_crit;
+			
+			if (NSC_avail < 0) NSC_avail = 0;
+
+			/* calculation of deficit regarding to structural/non-structural biomass  */	 
+			if (diff <= NSC_avail)
+			{
+				diffSC  = 0;
+				diffNSC = diff; 
+			}
+			else
+			{
+				diffSC  = diff - NSC_avail;
+				diffNSC = NSC_avail;
+			}
+			
+			/* calculation of flxues from NSC pools */
+			if (cs->yieldc_storage + cs->yieldc_transfer > 0)
+			{
+				cf->yieldc_storage_to_MRdef	= diffNSC * cs->yieldc_storage/(cs->yieldc_storage + cs->yieldc_transfer);
+				cf->yieldc_transfer_to_MRdef	= diffNSC * cs->yieldc_transfer/(cs->yieldc_storage + cs->yieldc_transfer);
+			}
+
+			/* calculation of flxues from SC pools */
+			cf->yieldc_to_MRdef = diffSC; 
+			if (cf->yieldc_to_MRdef > cs->yieldc)
+			{
+				excess            = cf->yieldc_to_MRdef - cs->yieldc;
+				cf->yieldc_to_MRdef  = cs->yieldc;	
+				cf->yield_MR     -= excess;
+				if (!ctrl->limitMR_flag) ctrl->limitMR_flag = 1;
+			}
+		}	
+
+		/*------------------------*/
+		/* I/5. livestem */
+		/*------------------------*/
+		diff = diffTOTAL * ((cf->livestem_MR) / MR);
+		
+		/* calculation the difference between NSC and diff (based on available amount) */
+		if (diff > 0)
+		{
+			/* critical NSC value: NSC pool = fixed ratio of theroretical maximum of NSC value -> but not all is available */
+			NSC_crit  = (epc->prop_NSCcrit) * (cs->livestemc * epc->prop_NSCvsSC);
+			NSC_avail = (cs->livestemc_storage + cs->livestemc_transfer) - NSC_crit;
+			
+			if (NSC_avail < 0) NSC_avail = 0;
+
+		   /* calculation of deficit regarding to structural/non-structural biomass  */	 
+			if (diff <= NSC_avail)
+			{
+				diffSC  = 0;
+				diffNSC = diff; 
+			}
+			else
+			{
+				diffSC  = diff - NSC_avail;
+				diffNSC = NSC_avail;
+			}
+			
+			/* calculation of flxues from NSC pools */
+			if (cs->livestemc_storage + cs->livestemc_transfer > 0)
+			{
+				cf->livestemc_storage_to_MRdef		 = diffNSC * cs->livestemc_storage/(cs->livestemc_storage + cs->livestemc_transfer);
+				cf->livestemc_transfer_to_MRdef	 = diffNSC * cs->livestemc_transfer/(cs->livestemc_storage + cs->livestemc_transfer);
+			}
+
+			/* calculation of flxues from SC pools */
+			cf->livestemc_to_MRdef = diffSC; 
+			if (cf->livestemc_to_MRdef > cs->livestemc)
+			{
+				excess               = cf->livestemc_to_MRdef - cs->livestemc;
+				cf->livestemc_to_MRdef  = cs->livestemc;	
+				cf->livestem_MR     -= excess;
+				if (!ctrl->limitMR_flag) ctrl->limitMR_flag = 1;
+			}
+		}	
+
+		/*------------------------*/
+		/* I/6. livecroot */
+		/*------------------------*/
+		diff = diffTOTAL * ((cf->livecroot_MR) / MR);
+		
+		/* calculation the difference between NSC and diff (based on available amount) */
+		if (diff > 0)
+		{
+			/* critical NSC value: NSC pool = fixed ratio of theroretical maximum of NSC value -> but not all is available */
+			NSC_crit  = (epc->prop_NSCcrit) * (cs->livecrootc * epc->prop_NSCvsSC);
+			NSC_avail = (cs->livecrootc_storage + cs->livecrootc_transfer) - NSC_crit;
+			
+			if (NSC_avail < 0) NSC_avail = 0;
+
+		    /* calculation of deficit regarding to structural/non-structural biomass  */	 
+			if (diff <= NSC_avail)
+			{
+				diffSC  = 0;
+				diffNSC = diff; 
+			}
+			else
+			{
+				diffSC  = diff - NSC_avail;
+				diffNSC = NSC_avail;
+			}
+			
+			/* calculation of flxues from NSC pools */
+			if (cs->livecrootc_storage + cs->livecrootc_transfer > 0)
+			{
+				cf->livecrootc_storage_to_MRdef	 = diffNSC * cs->livecrootc_storage/(cs->livecrootc_storage + cs->livecrootc_transfer);
+				cf->livecrootc_transfer_to_MRdef	 = diffNSC * cs->livecrootc_transfer/(cs->livecrootc_storage + cs->livecrootc_transfer);
+			}
+
+			/* calculation of flxues from SC pools */
+			cf->livecrootc_to_MRdef = diffSC; 
+			if (cf->livecrootc_to_MRdef > cs->livecrootc)
+			{		
+				excess                = cf->livecrootc_to_MRdef - cs->livecrootc;
+				cf->livecrootc_to_MRdef  = cs->livecrootc;	
+				cf->livecroot_MR     -= excess;
+				if (!ctrl->limitMR_flag) ctrl->limitMR_flag = 1;
+			}
+		}	
+
+	}
+
 	
-				if (epc->livewood_cn) nf->livestemn_storage_to_MR  = cf->livestemc_storage_to_MR / epc->livewood_cn;
-				if (epc->livewood_cn) nf->livecrootn_storage_to_MR = cf->livecrootc_storage_to_MR / epc->livewood_cn;
-				if (epc->deadwood_cn) nf->deadstemn_storage_to_MR  = cf->deadstemc_storage_to_MR / epc->deadwood_cn;
-				if (epc->deadwood_cn) nf->deadcrootn_storage_to_MR = cf->deadcrootc_storage_to_MR / epc->deadwood_cn;
+	/********************************************************************************************************/
+	/* IIÍI: method 2.: woody/non-woody separated MR */
+	/*******************************************************************************************************/
 
-				if (epc->livewood_cn) nf->livestemn_transfer_to_MR  = cf->livestemc_transfer_to_MR / epc->livewood_cn;
-				if (epc->livewood_cn) nf->livecrootn_transfer_to_MR = cf->livecrootc_transfer_to_MR / epc->livewood_cn;
-				if (epc->deadwood_cn) nf->deadstemn_transfer_to_MR  = cf->deadstemc_transfer_to_MR / epc->deadwood_cn;
-				if (epc->deadwood_cn) nf->deadcrootn_transfer_to_MR = cf->deadcrootc_transfer_to_MR / epc->deadwood_cn;
+	if (ctrl->MRdeficit_flag == 2 && MR)
+	{
+		diffTOTAL_nw = diffTOTAL * (MR_nw / MR);
+		diffTOTAL_w  = diffTOTAL * (MR_w  / MR);
 
+		/*------------------------*/
+		/* II/1. non-woody */
+		/*------------------------*/
+		/* calculation the difference between NSC and diff (based on available amount) */
+		if (diffTOTAL_nw > 0)
+		{
+			/* critical NSC value: NSC pool = fixed ratio of theroretical maximum of NSC value -> but not all is available */
+			NSC_crit  = (epc->prop_NSCcrit) * (SCnw * epc->prop_NSCvsSC);
+			NSC_avail = NSCnw - NSC_crit;
 			
-				nf->NSNw_to_MR = nf->livestemn_storage_to_MR  + nf->livecrootn_storage_to_MR  + nf->deadstemn_storage_to_MR  + nf->deadcrootn_storage_to_MR +
-								 nf->livestemn_transfer_to_MR + nf->livecrootn_transfer_to_MR + nf->deadstemn_transfer_to_MR + nf->deadcrootn_transfer_to_MR;
-			
-			
-				/* 2.3. state update of storage and transfer pools */
-				cs->livestemc_storage				-= cf->livestemc_storage_to_MR;
-				cs->livecrootc_storage				-= cf->livecrootc_storage_to_MR;
-				cs->deadstemc_storage				-= cf->deadstemc_storage_to_MR;
-				cs->deadcrootc_storage				-= cf->deadcrootc_storage_to_MR;
+			if (NSC_avail < 0) NSC_avail = 0;
 
-				cs->livestemc_transfer				-= cf->livestemc_transfer_to_MR;
-				cs->livecrootc_transfer				-= cf->livecrootc_transfer_to_MR;
-				cs->deadstemc_transfer				-= cf->deadstemc_transfer_to_MR;
-				cs->deadcrootc_transfer				-= cf->deadcrootc_transfer_to_MR;
+			/* calculation of deficit regarding to structural biomass  */
+			if (diffTOTAL_nw <= NSC_avail)
+			{
+				diffNSC = diffTOTAL_nw;
+				diffSC  = 0;
+			}
+			else
+			{
+				diffNSC = NSC_avail;
+				diffSC  = diffTOTAL_nw - NSC_avail;		
+			}
 			
-				ns->livestemn_storage				-= nf->livestemn_storage_to_MR;
-				ns->livecrootn_storage				-= nf->livecrootn_storage_to_MR;
-				ns->deadstemn_storage				-= nf->deadstemn_storage_to_MR;
-				ns->deadcrootn_storage				-= nf->deadcrootn_storage_to_MR;
+			/* calculation of flxues from NSC pools */
+			if (NSCnw)
+			{
+				cf->leafc_storage_to_MRdef		 = diffNSC * cs->leafc_storage/NSCnw;
+				cf->frootc_storage_to_MRdef	 = diffNSC * cs->frootc_storage/NSCnw;
+				cf->yieldc_storage_to_MRdef	 = diffNSC * cs->yieldc_storage/NSCnw;
+				cf->softstemc_storage_to_MRdef	 = diffNSC * cs->softstemc_storage/NSCnw;
 
-				ns->livestemn_transfer				-= nf->livestemn_transfer_to_MR;
-				ns->livecrootn_transfer				-= nf->livecrootn_transfer_to_MR;
-				ns->deadstemn_transfer				-= nf->deadstemn_transfer_to_MR;
-				ns->deadcrootn_transfer				-= nf->deadcrootn_transfer_to_MR;
-			
-				ns->retransn                        += nf->NSNw_to_MR;
-			
+				cf->leafc_transfer_to_MRdef	 = diffNSC * cs->leafc_transfer/NSCnw;
+				cf->frootc_transfer_to_MRdef	 = diffNSC * cs->frootc_transfer/NSCnw;
+				cf->yieldc_transfer_to_MRdef	 = diffNSC * cs->yieldc_transfer/NSCnw;
+				cf->softstemc_transfer_to_MRdef = diffNSC * cs->softstemc_transfer/NSCnw;	
+			}
+			else
+			{
+				if (diffNSC) 
+				{
+					printf("ERROR in MRdeficit calculaton in state_update.c\n");
+					errorCode = 1;
+				}
 			}
 
-			/* 1.5. if NSC is not enough -> transfer from actual pool */
-			if (NSCw == 0 || (diff_total_w - cf->NSCw_to_MR) > CRIT_PREC)
-			{
-				diff = diff_total_w - cf->NSCw_to_MR;
-
-				if (cf->livestem_MR > 0)
+			/* if NSC is not enough -> transfer from actual pool */
+			if (diffSC > 0)
+			{			
+				cf->leafc_to_MRdef = diffSC * ((cf->leaf_day_MR+cf->leaf_night_MR) / MR_nw); 
+				if (cf->leafc_to_MRdef > cs->leafc)
 				{
-					if (cs->livestemc > CRIT_PREC)
-					{
-						cf->livestemc_to_MR = diff * (cf->livestem_MR / MR_w); 
-						nf->livestemn_to_MR = cf->livestemc_to_MR / epc->livewood_cn; 
-					}
-					else
-					{
-						cf->livestem_MR       = 0;
-					}
+					cf->leafc_to_MRdef = cs->leafc;
+					excess += diffSC * ((cf->leaf_day_MR+cf->leaf_night_MR) / MR_nw) - cf->leafc_to_MRdef;
 				}
 
-				if (cf->livecroot_MR > 0)
+
+				cf->frootc_to_MRdef = diffSC * (cf->froot_MR / MR_nw); 
+				if (cf->frootc_to_MRdef > cs->frootc)
 				{
-					if (cs->livecrootc > CRIT_PREC)
-					{
-						cf->livecrootc_to_MR = diff * (cf->livecroot_MR / MR_w); 
-						nf->livecrootn_to_MR = cf->livecrootc_to_MR / epc->livewood_cn;
-					}
-					else
-					{
-						cf->livecroot_MR       = 0;
-					}
+					cf->frootc_to_MRdef = cs->frootc;
+					excess += diffSC * (cf->froot_MR / MR_nw) - cf->frootc_to_MRdef;
 				}
 
-				/* noMR_flag: flag for WARNING writing in log file (only at first time) */
-				if ((cf->livecroot_MR == 0 || cf->livecroot_MR == 0) && ctrl->noMR_flag == 0) ctrl->noMR_flag = 1;
 
-				cf->SCw_to_MR  = cf->livestemc_to_MR + cf->livecrootc_to_MR;
+				cf->yieldc_to_MRdef = diffSC * (cf->yield_MR / MR_nw); 
+				if (cf->yieldc_to_MRdef > cs->yieldc)
+				{
+					cf->yieldc_to_MRdef = cs->yieldc;
+					excess += diffSC * (cf->yield_MR / MR_nw) - cf->yieldc_to_MRdef;
+				}
 
-				nf->actNw_to_MR  = nf->livestemn_to_MR + nf->livecrootn_to_MR;
+				cf->softstemc_to_MRdef = diffSC * (cf->softstem_MR / MR_nw); 
+				if (cf->softstemc_to_MRdef > cs->softstemc)
+				{
+					cf->softstemc_to_MRdef = cs->softstemc;
+					excess += diffSC * (cf->softstem_MR / MR_nw) - cf->softstemc_to_MRdef;
+				}
 
-				/* 1.6. state update of actual pools */
-				cs->livestemc				-= cf->livestemc_to_MR;
-				cs->livecrootc				-= cf->livecrootc_to_MR;
 
-				ns->livestemn				-= nf->livestemn_to_MR;
-				ns->livecrootn				-= nf->livecrootn_to_MR;
-			
-				ns->retransn                += nf->actNw_to_MR;
-				
-				
-				MR_w = cf->livestem_MR + cf->livecroot_MR;
-
-			
+				/* if maintresp of non-woody biomass can not be covered from non-woody biomass -> decreasing of maintanance flux */
+				if (excess)
+				{
+					if (!ctrl->limitMR_flag) ctrl->limitMR_flag = 1;
+					cs->MRlimitSUM    += excess;
+					reduction         += excess * (cf->leaf_day_MR   / MR_nw);
+					cf->leaf_day_MR   -= excess * (cf->leaf_day_MR   / MR_nw);
+					reduction         += excess * (cf->leaf_night_MR / MR_nw);
+ 					cf->leaf_night_MR -= excess * (cf->leaf_night_MR / MR_nw);
+					reduction         += excess * (cf->froot_MR      / MR_nw);
+					cf->froot_MR      -= excess * (cf->froot_MR      / MR_nw);
+					reduction         += excess * (cf->softstem_MR   / MR_nw);
+					cf->softstem_MR   -= excess * (cf->softstem_MR   / MR_nw);
+					reduction         += excess * (cf->yield_MR      / MR_nw);
+					cf->yield_MR      -= excess * (cf->yield_MR      / MR_nw);
+					excess            -= reduction;
+					if (fabs(excess) > CRIT_PREC)
+					{
+						printf("ERROR in MRdeficit calculaton in state_update.c\n");
+						errorCode = 1;
+					}
+				}
 			}
 		}
 
+		/*------------------------*/
+		/* II/1. woody */
+		/*------------------------*/
+	
+		if (MR_w)
+		{
+			/* 2.1. calculation the difference between NSC and diff (based on available amount) */
+			if (diffTOTAL_w > 0)
+			{
+				/* critical NSC value: NSC pool = fixed ratio of theroretical maximum of NSC value -> but not all is available */
+				NSC_crit  = (epc->prop_NSCcrit) * (SCw * epc->prop_NSCvsSC);
+				NSC_avail = NSCw - NSC_crit;
+
+				if (NSC_avail < 0) NSC_avail = 0;
+		
+				/* calculation of deficit regarding to structural biomass  */
+ 				if (diffTOTAL_w <= NSC_avail)
+				{
+					diffNSC = diffTOTAL_w;
+					diffSC  = 0;
+				}
+				else
+				{
+					diffNSC = NSC_avail;
+					diffSC  = diffTOTAL_w - NSC_avail;		
+				}
+
+				/* 2.2. calculation of flxues from nsc pools */
+				if (NSCw)
+				{
+					cf->livestemc_storage_to_MRdef	 = diffNSC * cs->livestemc_storage/NSCw;
+					cf->livecrootc_storage_to_MRdef = diffNSC * cs->livecrootc_storage/NSCw;
+					cf->deadstemc_storage_to_MRdef	 = diffNSC * cs->deadstemc_storage/NSCw;
+					cf->deadcrootc_storage_to_MRdef = diffNSC * cs->deadcrootc_storage/NSCw;
+
+					cf->livestemc_transfer_to_MRdef  = diffNSC * cs->livestemc_transfer/NSCw;
+					cf->livecrootc_transfer_to_MRdef = diffNSC * cs->livecrootc_transfer/NSCw;
+					cf->deadstemc_transfer_to_MRdef  = diffNSC * cs->deadstemc_transfer/NSCw;
+					cf->deadcrootc_transfer_to_MRdef = diffNSC * cs->deadcrootc_transfer/NSCw;			
+				}
+				else
+				{
+					if (diffNSC) 
+					{
+						printf("ERROR in MRdeficit calculaton in state_update.c\n");
+						errorCode = 1;
+					}
+				}
+
+				/* 1.5. if NSC is not enough -> transfer from actual pool */
+				if (diffSC > 0)
+				{
+					cf->livestemc_to_MRdef = diffSC * (cf->livestem_MR / MR_w); 	
+					if (cs->livestemc < cf->livestemc_to_MRdef)
+					{
+						cf->livestemc_to_MRdef = cs->livestemc;
+						excess += diffSC * (cf->livestem_MR / MR_w) - cf->livestemc_to_MRdef;
+					}
+
+					cf->livecrootc_to_MRdef = diffSC * (cf->livecroot_MR / MR_w);
+					if (cs->livecrootc < cf->livecrootc_to_MRdef)
+					{
+						cf->livecrootc_to_MRdef = cs->livecrootc;
+						excess += diffSC * (cf->livecroot_MR / MR_w) - cf->livecrootc_to_MRdef;
+					}
+
+					/* if maintresp of woody biomass can not be covered from non-woody biomass -> decreasing of maintanance flux */
+					if (excess)
+					{
+						cs->MRlimitSUM   += excess;
+						cf->livestem_MR  -= excess * cf->livestem_MR  / (MR_w);
+ 						cf->livecroot_MR -= excess * cf->livecroot_MR / (MR_w);
+						excess             = 0;
+						if (!ctrl->limitMR_flag) ctrl->limitMR_flag = 1;
+					}
+
+				}
+			}
+		}
+	}
+
+
+	if (ctrl->MRdeficit_flag != 3)
+	{
+		/* calculation of N-fluxes */
+		if (epc->leaf_cn)     
+		{
+			nf->leafn_storage_to_MRdef		  = cf->leafc_storage_to_MRdef / epc->leaf_cn;
+			nf->leafn_transfer_to_MRdef      = cf->leafc_transfer_to_MRdef / epc->leaf_cn;
+			nf->leafn_to_MRdef               = (cf->leafc_to_MRdef)  / epc->leaf_cn;
+		}
+		if (epc->froot_cn)    
+		{
+			nf->frootn_storage_to_MRdef	   = cf->frootc_storage_to_MRdef / epc->froot_cn;
+			nf->frootn_transfer_to_MRdef      = cf->frootc_transfer_to_MRdef / epc->froot_cn;
+			nf->frootn_to_MRdef               = cf->frootc_to_MRdef / epc->froot_cn;
+		}
+		if (epc->yield_cn)    
+		{
+			nf->yieldn_storage_to_MRdef		= cf->yieldc_storage_to_MRdef / epc->yield_cn;
+			nf->yieldn_transfer_to_MRdef		= cf->yieldc_transfer_to_MRdef / epc->yield_cn;
+			nf->yieldn_to_MRdef                = cf->yieldc_to_MRdef / epc->yield_cn;
+		}
+					
+		if (epc->softstem_cn) 
+		{
+			nf->softstemn_storage_to_MRdef      = cf->softstemc_storage_to_MRdef / epc->softstem_cn;
+			nf->softstemn_transfer_to_MRdef     = cf->softstemc_transfer_to_MRdef / epc->softstem_cn;
+			nf->softstemn_to_MRdef              = cf->softstemc_to_MRdef / epc->softstem_cn;
+		}
+
+				
+		if (epc->livewood_cn)
+		{
+			nf->livestemn_storage_to_MRdef   = cf->livestemc_storage_to_MRdef / epc->livewood_cn;
+			nf->livecrootn_storage_to_MRdef  = cf->livecrootc_storage_to_MRdef / epc->livewood_cn;
+			nf->livestemn_transfer_to_MRdef  = cf->livestemc_transfer_to_MRdef / epc->livewood_cn;
+			nf->livecrootn_transfer_to_MRdef = cf->livecrootc_transfer_to_MRdef / epc->livewood_cn;
+			nf->livestemn_to_MRdef           = cf->livestemc_to_MRdef / epc->livewood_cn; 
+			nf->livecrootn_to_MRdef          = cf->livecrootc_to_MRdef / epc->livewood_cn;		
+			nf->livestemn_to_MRdef           = cf->livestemc_to_MRdef / epc->livewood_cn;
+			nf->livecrootn_to_MRdef          = cf->livecrootc_to_MRdef / epc->livewood_cn;
+		}
+
+		if (epc->deadwood_cn) 
+		{
+			nf->deadstemn_storage_to_MRdef   = cf->deadstemc_storage_to_MRdef / epc->deadwood_cn;
+			nf->deadcrootn_storage_to_MRdef  = cf->deadcrootc_storage_to_MRdef / epc->deadwood_cn;
+			nf->deadstemn_transfer_to_MRdef  = cf->deadstemc_transfer_to_MRdef / epc->deadwood_cn;
+			nf->deadcrootn_transfer_to_MRdef = cf->deadcrootc_transfer_to_MRdef / epc->deadwood_cn;
+		}
+	
+		/* summarize fluxes */		
+		cf->NSCnw_to_MRdef = cf->leafc_storage_to_MRdef  + cf->frootc_storage_to_MRdef  + cf->yieldc_storage_to_MRdef  + cf->softstemc_storage_to_MRdef +
+						  cf->leafc_transfer_to_MRdef + cf->frootc_transfer_to_MRdef + cf->yieldc_transfer_to_MRdef + cf->softstemc_transfer_to_MRdef;
+
+		cf->NSCw_to_MRdef  = cf->livestemc_storage_to_MRdef  + cf->livecrootc_storage_to_MRdef  + cf->deadstemc_storage_to_MRdef  + cf->deadcrootc_storage_to_MRdef +
+						  cf->livestemc_transfer_to_MRdef + cf->livecrootc_transfer_to_MRdef + cf->deadstemc_transfer_to_MRdef + cf->deadcrootc_transfer_to_MRdef;
+	
+		cf->SCnw_to_MRdef  = cf->leafc_to_MRdef + cf->frootc_to_MRdef + cf->yieldc_to_MRdef + cf->softstemc_to_MRdef;
+
+		cf->SCw_to_MRdef   = cf->livestemc_to_MRdef + cf->livecrootc_to_MRdef;
+
+		nf->NSNnw_to_MRdef = nf->leafn_storage_to_MRdef  + nf->frootn_storage_to_MRdef  + nf->yieldn_storage_to_MRdef  + nf->softstemn_storage_to_MRdef +
+						  nf->leafn_transfer_to_MRdef + nf->frootn_transfer_to_MRdef + nf->yieldn_transfer_to_MRdef + nf->softstemn_transfer_to_MRdef;
+	
+		nf->NSNw_to_MRdef  = nf->livestemn_storage_to_MRdef  + nf->livecrootn_storage_to_MRdef  + nf->deadstemn_storage_to_MRdef  + nf->deadcrootn_storage_to_MRdef +
+						  nf->livestemn_transfer_to_MRdef + nf->livecrootn_transfer_to_MRdef + nf->deadstemn_transfer_to_MRdef + nf->deadcrootn_transfer_to_MRdef;
+			
+		nf->SNnw_to_MRdef  = nf->leafn_to_MRdef + nf->frootn_to_MRdef + nf->yieldn_to_MRdef + nf->softstemn_to_MRdef;	
+
+		nf->SNw_to_MRdef   = nf->livestemn_to_MRdef + nf->livecrootn_to_MRdef;
+
 	
 
+		/* state update of storage and transfer pools */
+		cs->leafc_storage					-= cf->leafc_storage_to_MRdef;
+		cs->frootc_storage					-= cf->frootc_storage_to_MRdef;
+		cs->yieldc_storage					-= cf->yieldc_storage_to_MRdef;
+		cs->softstemc_storage				-= cf->softstemc_storage_to_MRdef;
+		
+		cs->leafc_transfer					-= cf->leafc_transfer_to_MRdef;
+		cs->frootc_transfer					-= cf->frootc_transfer_to_MRdef;
+		cs->yieldc_transfer					-= cf->yieldc_transfer_to_MRdef;
+		cs->softstemc_transfer				-= cf->softstemc_transfer_to_MRdef;
+		
+		ns->leafn_storage					-= nf->leafn_storage_to_MRdef;
+		ns->frootn_storage					-= nf->frootn_storage_to_MRdef;
+		ns->yieldn_storage					-= nf->yieldn_storage_to_MRdef;
+		ns->softstemn_storage				-= nf->softstemn_storage_to_MRdef;
+		
+		ns->leafn_transfer					-= nf->leafn_transfer_to_MRdef;
+		ns->frootn_transfer					-= nf->frootn_transfer_to_MRdef;
+		ns->yieldn_transfer					-= nf->yieldn_transfer_to_MRdef;
+		ns->softstemn_transfer				-= nf->softstemn_transfer_to_MRdef;
+	
+		cs->livestemc_storage				-= cf->livestemc_storage_to_MRdef;
+		cs->livecrootc_storage				-= cf->livecrootc_storage_to_MRdef;
+		cs->deadstemc_storage				-= cf->deadstemc_storage_to_MRdef;
+		cs->deadcrootc_storage				-= cf->deadcrootc_storage_to_MRdef;
+
+		cs->livestemc_transfer				-= cf->livestemc_transfer_to_MRdef;
+		cs->livecrootc_transfer				-= cf->livecrootc_transfer_to_MRdef;
+		cs->deadstemc_transfer				-= cf->deadstemc_transfer_to_MRdef;
+		cs->deadcrootc_transfer				-= cf->deadcrootc_transfer_to_MRdef;
+			
+		ns->livestemn_storage				-= nf->livestemn_storage_to_MRdef;
+		ns->livecrootn_storage				-= nf->livecrootn_storage_to_MRdef;
+		ns->deadstemn_storage				-= nf->deadstemn_storage_to_MRdef;
+		ns->deadcrootn_storage				-= nf->deadcrootn_storage_to_MRdef;
+
+		ns->livestemn_transfer				-= nf->livestemn_transfer_to_MRdef;
+		ns->livecrootn_transfer				-= nf->livecrootn_transfer_to_MRdef;
+		ns->deadstemn_transfer				-= nf->deadstemn_transfer_to_MRdef;
+		ns->deadcrootn_transfer				-= nf->deadcrootn_transfer_to_MRdef;
+	
+	
+		/* state update of actual pools */
+		cs->leafc					-= cf->leafc_to_MRdef;
+		cs->frootc					-= cf->frootc_to_MRdef;
+		cs->yieldc					-= cf->yieldc_to_MRdef;
+		cs->softstemc				-= cf->softstemc_to_MRdef;
+
+		ns->leafn					-= nf->leafn_to_MRdef;
+		ns->frootn					-= nf->frootn_to_MRdef;
+		ns->yieldn					-= nf->yieldn_to_MRdef;
+		ns->softstemn				-= nf->softstemn_to_MRdef;
+			
+		cs->livestemc				-= cf->livestemc_to_MRdef;
+		cs->livecrootc				-= cf->livecrootc_to_MRdef;
+
+		ns->livestemn				-= nf->livestemn_to_MRdef;
+		ns->livecrootn				-= nf->livecrootn_to_MRdef;
+
+		ns->retransn                += nf->NSNnw_to_MRdef + nf->NSNw_to_MRdef + nf->SNnw_to_MRdef + nf->SNw_to_MRdef;
+				
 	}
 
-	/* state update of cpool */
-	cs->cpool			 -= (MR_nw - cf->NSCnw_to_MR - cf->SCnw_to_MR);
-	cs->cpool			 -= (MR_w  - cf->NSCw_to_MR  - cf->SCw_to_MR);
-	if (cs->cpool < 0 && fabs(cs->cpool) > CRIT_PREC)
+	MR_nw = cf->leaf_day_MR + cf->leaf_night_MR + cf->froot_MR + cf->yield_MR + cf->softstem_MR;
+	MR_w  = cf->livestem_MR + cf->livecroot_MR;
+	MR    = MR_nw + MR_w;
+
+	/* control */			
+	diff=(MR - (cs->cpool+cf->NSCnw_to_MRdef+cf->SCnw_to_MRdef+cf->NSCw_to_MRdef+cf->SCw_to_MRdef));
+	if (ctrl->MRdeficit_flag != 3 && diff > CRIT_PREC && diff+cs->cpool > CRIT_PREC)
 	{
-		cf->leaf_day_MR   += cs->cpool * cf->leaf_day_MR   / MR_nw;
- 		cf->leaf_night_MR += cs->cpool * cf->leaf_night_MR / MR_nw;
-		cf->froot_MR      += cs->cpool * cf->froot_MR / MR_nw;
-		cf->yield_MR      += cs->cpool * cf->yield_MR / MR_nw;
-		cf->softstem_MR   += cs->cpool * cf->softstem_MR / MR_nw;
-
-		cs->cpool = 0;
-		/* limitMR_flag: flag for WARNING writing in log file (only at first time) */
-		if (!ctrl->limitMR_flag) ctrl->limitMR_flag = 1;
+  		printf("ERROR in maintanance respiration deficit calculation in state_update.c\n");
+		errorCode=1;
 	}
+
+	/* state update of cpool and npool (the released N turns into retranslocated N pool) */
+	if (ns->npool) CpoolNpool_ratio = cs->cpool / ns->npool;
+	
+	cf->cpool_to_MRdef  = (MR - cf->NSCnw_to_MRdef - cf->SCnw_to_MRdef - cf->NSCw_to_MRdef - cf->SCw_to_MRdef);
+
+	
+	cs->cpool	   -= cf->cpool_to_MRdef;
+
+	if (CpoolNpool_ratio && ns->npool > 0)
+	{
+		npool_to_MRdef = cf->cpool_to_MRdef / CpoolNpool_ratio;
+		if (ns->npool < npool_to_MRdef) npool_to_MRdef = ns->npool;
+		ns->npool     -= npool_to_MRdef;
+		ns->retransn += npool_to_MRdef;
+	}
+
 		
-	/* 4. state update MR sink pools */
-		
+	/* state update MR sink pools */	
 	cs->MRleaf_snk			+= cf->leaf_day_MR;
 	cs->MRleaf_snk			+= cf->leaf_night_MR;
 	cs->MRfroot_snk			+= cf->froot_MR;
@@ -1430,20 +1971,18 @@ int nsc_maintresp(const epconst_struct* epc, control_struct *ctrl, epvar_struct*
 	cs->MRsoftstem_snk	    += cf->softstem_MR;
 	cs->MRlivestem_snk		+= cf->livestem_MR;
 	cs->MRlivecroot_snk		+= cf->livecroot_MR;
-	cs->MRdeficitNSC_snk    += cf->NSCnw_to_MR + cf->NSCw_to_MR;
-	cs->MRdeficitSC_snk     += cf->SCnw_to_MR + cf->SCw_to_MR;
-	
-		
 
+		
 	cs->NSCnw = cs->leafc_storage      +  cs->frootc_storage     + cs->yieldc_storage     + cs->softstemc_storage +
-		         cs->leafc_transfer     +  cs->frootc_transfer    + cs->yieldc_transfer    + cs->softstemc_transfer;
+					cs->leafc_transfer     +  cs->frootc_transfer    + cs->yieldc_transfer    + cs->softstemc_transfer;
 
 	cs->NSCw = cs->livestemc_storage  + cs->livecrootc_storage  + cs->deadstemc_storage  + cs->deadcrootc_storage +
-			    cs->livestemc_transfer + cs->livecrootc_transfer + cs->deadstemc_transfer + cs->deadcrootc_transfer;
+				cs->livestemc_transfer + cs->livecrootc_transfer + cs->deadstemc_transfer + cs->deadcrootc_transfer;
 
 	cs->SCnw = cs->leafc     +  cs->frootc    + cs->yieldc     + cs->softstemc;
 
 	cs->SCw = cs->livestemc  + cs->livecrootc  + cs->deadstemc  + cs->deadcrootc;
+
 
 	return (errorCode);
 }			

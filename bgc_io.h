@@ -1,7 +1,7 @@
 /*
 bgc_io.h
-header file to hold the structures used to communicate with bgc()
-also contains the function prototype for bgc()
+header file to hold the structures used to communicate with bgc.c
+also contains the function prototype for bgc.c
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
@@ -14,7 +14,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 */
 
 
-/* structure for passing input parameters to bgc() */
+/* structure for passing input parameters to bgc.c */
 typedef struct
 {
 	restart_data_struct restart_input;  /* input restart data */
@@ -29,7 +29,8 @@ typedef struct
 	siteconst_struct sitec;		/* site constants */
 	epconst_struct epc;			/* ecophysiological constants */
 	soilprop_struct sprop;      /* soil properties */
-	groundwater_struct GWS;		/* groundwater parameters */
+	soilInfo_struct soilInfo;      /* concentration of dissolved matter content of soil water */
+	groundwaterINIT_struct GWS;		/* groundwater initialization parameters */
 	planting_struct PLT;			/* parameters for planting */
 	thinning_struct THN;			/* parameters for thinning */
     mowing_struct MOW;				/* parameters for mowing */
@@ -40,11 +41,11 @@ typedef struct
 	irrigating_struct IRG;			/* parameters for irrigating */
 	mulching_struct MUL;			/* parameters for mulching */
 	CWDextract_struct CWE;			/* parameters for CWD extract */
-	flooding_struct FLD;            /* parameters for flooding */
+	flooding_struct FLS;            /* parameters for flooding */
 
 } bgcin_struct;
 
-/* structure for output handling from bgc() */
+/* structure for output handling from bgc.c */
 typedef struct
 {
 	restart_data_struct restart_output; /* output restart data */

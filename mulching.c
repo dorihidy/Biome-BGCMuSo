@@ -33,7 +33,7 @@ int mulching(control_struct* ctrl, const mulching_struct* MUL,  cstate_struct* c
 	year = ctrl->simstartyear + ctrl->simyr;
 	md = MUL->mgmdMUL-1;
 
-	/* 2. we assume that the transfer pools contain the palnt material of seeds. Therefore planting increase the transfer pools */ 
+
 	if (MUL->MUL_num && md >= 0)
 	{
 		if (year == MUL->MULyear_array[md] && ctrl->month == MUL->MULmonth_array[md] && ctrl->day == MUL->MULday_array[md]) 

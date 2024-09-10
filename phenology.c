@@ -22,7 +22,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int phenology(const epconst_struct* epc, const cstate_struct* cs, const nstate_struct* ns, 
+int phenology(const control_struct* ctrl, const epconst_struct* epc, const cstate_struct* cs, const nstate_struct* ns,
 	          phenology_struct* phen, metvar_struct* metv,epvar_struct* epv, cflux_struct* cf, nflux_struct* nf)
 
 {
@@ -99,7 +99,7 @@ int phenology(const epconst_struct* epc, const cstate_struct* cs, const nstate_s
 		if (!errorCode && leaf_litfall(epc,leaflitfallc,cf,nf))
 		{
 			printf("\n");
-			printf("ERROR in call to leaf_litfall() from phenology()\n");
+			printf("ERROR in call to leaf_litfall.c from phenology.c\n");
 			errorCode=1;
 		}
 		
@@ -110,7 +110,7 @@ int phenology(const epconst_struct* epc, const cstate_struct* cs, const nstate_s
 		if (!errorCode && froot_litfall(epc,frootlitfallc,cf,nf))
 		{
 			printf("\n");
-			printf("ERROR in call to froot_litfall() from phenology()\n");
+			printf("ERROR in call to froot_litfall.c from phenology.c\n");
 			errorCode=1;
 		}
 
@@ -120,7 +120,7 @@ int phenology(const epconst_struct* epc, const cstate_struct* cs, const nstate_s
 		if (!errorCode && yield_litfall(epc,yieldlitfallc,cf,nf))
 		{
 			printf("\n");
-			printf("ERROR in call to yield_litfall() from phenology()\n");
+			printf("ERROR in call to yield_litfall.c from phenology.c\n");
 			errorCode=1;
 		}
 		
@@ -164,7 +164,7 @@ int phenology(const epconst_struct* epc, const cstate_struct* cs, const nstate_s
 			if (!errorCode && softstem_litfall(epc,softstemlitfallc,cf,nf))
 			{
 				printf("\n");
-				printf("ERROR in call to softstem_litfall() from phenology()\n");
+				printf("ERROR in call to softstem_litfall.c from phenology.c\n");
 				errorCode=1;
 			}
 		}
@@ -177,11 +177,11 @@ int phenology(const epconst_struct* epc, const cstate_struct* cs, const nstate_s
 		/* transfer growth fluxes based on GDD or EPC parameter */
 		/* check for days left in transfer growth period */
 		
-		if (epc->transferGDD_flag)
+		if (ctrl->transferGDD_flag)
 		{
 			if (!errorCode && transfer_fromGDD(epc, cs, ns, phen, metv, epv, cf, nf))
 			{
-				printf("ERROR: transfer_fromGDD() for sitec_init \n");
+				printf("ERROR in transfer_fromGDD.c for phenology.c \n");
 				errorCode=1;
 			}	
 		}
@@ -263,7 +263,7 @@ int phenology(const epconst_struct* epc, const cstate_struct* cs, const nstate_s
 		ndays = phen->remdays_litfall;
 		if (ndays != 0)
 		{
-			if (ndays == -1.0)
+			if (ndays == 1.0)
 			{
 				/* SPECIAL DAY AFTER litterfall, special case to gaurantee that pools go to 0.0 */
 				leaflitfallc     = cs->leafc;
@@ -297,7 +297,7 @@ int phenology(const epconst_struct* epc, const cstate_struct* cs, const nstate_s
 			if (!errorCode && leaflitfallc && leaf_litfall(epc,leaflitfallc,cf,nf))
 			{
 				printf("\n");
-				printf("ERROR in call to leaf_litfall() from phenology()\n");
+				printf("ERROR in call to leaf_litfall.c from phenology.c\n");
 				errorCode=1;
 			}
 	
@@ -306,7 +306,7 @@ int phenology(const epconst_struct* epc, const cstate_struct* cs, const nstate_s
 			if (!errorCode && frootlitfallc && froot_litfall(epc,frootlitfallc,cf,nf))
 			{
 				printf("\n");
-				printf("ERROR in call to froot_litfall() from phenology()\n");
+				printf("ERROR in call to froot_litfall.c from phenology.c\n");
 				errorCode=1;
 			}
 
@@ -315,7 +315,7 @@ int phenology(const epconst_struct* epc, const cstate_struct* cs, const nstate_s
 			if (!errorCode && yieldlitfallc && yield_litfall(epc,yieldlitfallc,cf,nf))
 			{
 				printf("\n");
-				printf("ERROR in call to yield_litfall() from phenology()\n");
+				printf("ERROR in call to yield_litfall.c from phenology.c\n");
 				errorCode=1;
 			}
 
@@ -324,7 +324,7 @@ int phenology(const epconst_struct* epc, const cstate_struct* cs, const nstate_s
 			if (!errorCode && softstemlitfallc && softstem_litfall(epc,softstemlitfallc,cf,nf))
 			{
 				printf("\n");
-				printf("ERROR in call to softstem_litfall() from phenology()\n");
+				printf("ERROR in call to softstem_litfall.c from phenology.c\n");
 				errorCode=1;
 			}
 		} /* end if deciduous litterfall day */
@@ -519,7 +519,7 @@ int softstem_litfall(const epconst_struct* epc, double litfallc, cflux_struct* c
 
 
 int transfer_fromGDD(const epconst_struct* epc, const cstate_struct* cs, const nstate_struct* ns, 
-	                 phenology_struct *phen, metvar_struct *metv, epvar_struct* epv, cflux_struct* cf, nflux_struct* nf)
+	                 phenology_struct* phen, metvar_struct* metv, epvar_struct* epv, cflux_struct* cf, nflux_struct* nf)
 
 {
 	int errorCode=0;
@@ -551,7 +551,7 @@ int transfer_fromGDD(const epconst_struct* epc, const cstate_struct* cs, const n
 		if (epv->transfer_ratio < 0 || epv->transfer_ratio > 1)
 		{
 			printf("\n");
-			printf("ERROR in transfer_ratio calculation() in phenology()\n");
+			printf("ERROR in phenology.c: transfer_ratio is not valid\n");
 			errorCode=1;
 			
 		}

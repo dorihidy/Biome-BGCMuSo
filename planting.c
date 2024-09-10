@@ -80,11 +80,12 @@ int planting(control_struct* ctrl, const siteconst_struct* sitec, const planting
 				errorCode=1; 
 			} 
 
+
 			/* plant type determination based on EPC file header */
 			if (!errorCode && planttype_determination(ctrl, phen))
 			{
 				printf("\n");
-				printf("ERROR in planttype_determination() in planting.c\n");
+				printf("ERROR in planttype_determination.c for planting.c\n");
 				errorCode=1; 
 			} 
 

@@ -41,11 +41,6 @@ int mortality(const control_struct* ctrl, const siteconst_struct* sitec, const e
 	double propLAYER0, propLAYER1, propLAYER2;
 	
 
-	
-	/* estimating aboveground litter and cwdc*/
-	double cwdc_total1, cwdc_total2, litrc_total1, litrc_total2;
-	cwdc_total1=cwdc_total2=litrc_total1=litrc_total2=0;
-
 	/******************************************************************/
 	/* 0. if no changing data constant EPC parameter are used - ATTENTION: WPM = WPMyr / nDAYS_OF_YEAR */
 
@@ -221,11 +216,17 @@ int mortality(const control_struct* ctrl, const siteconst_struct* sitec, const e
 		cs->deadstemc	-= cf->m_deadstemc_to_cwdc;
 
 
-		/* new feature: litter turns into the first AND the second soil layer */
+		/* litter turns into the first three soil layers  (non-woody biomass: proportion to soil layer thickness, woody-biomass: higher propotion in layer2 */
 		propLAYER0 = sitec->soillayer_thickness[0]/sitec->soillayer_depth[2];
 		propLAYER1 = sitec->soillayer_thickness[1]/sitec->soillayer_depth[2];
 		propLAYER2 = sitec->soillayer_thickness[2]/sitec->soillayer_depth[2];
 
+		if (epc->woody)
+		{
+			propLAYER0 = 0.05;
+			propLAYER1 = 0.15;
+			propLAYER2 = 0.8;
+		}
 
 		cs->litr1c[0]   += (cf->m_leafc_to_litr1c     + cf->m_yieldc_to_litr1c    + cf->m_softstemc_to_litr1c) * propLAYER0;
 		cs->litr2c[0]   += (cf->m_leafc_to_litr2c     + cf->m_yieldc_to_litr2c    + cf->m_softstemc_to_litr2c) * propLAYER0;
@@ -422,12 +423,6 @@ int mortality(const control_struct* ctrl, const siteconst_struct* sitec, const e
 
 	if (epv->FM)
 	{
-		/* +: estimating aboveground cwdc: calculation of cwdc_total1 (before mortality decreased value) -> ratio */
-		for (layer = 0; layer < N_SOILLAYERS; layer++) 
-		{
-			cwdc_total1 += cs->cwdc[layer];
-			litrc_total1 += cs->litr1c[layer] + cs->litr2c[layer] + cs->litr3c[layer] + cs->litr4c[layer];
-		}
 		
 		/* 1. Daily fluxes due to mortality */
 
@@ -602,7 +597,7 @@ int mortality(const control_struct* ctrl, const siteconst_struct* sitec, const e
 
 	
 		/* 2. update state variables for fire fluxes */
-		/* this is the only place other than state_update() routines wherestate variables get changed.  Mortality is taken care of last and  given special treatment for state update so that it doesn't interfere
+		/* this is the only place other than state_update.c routines wherestate variables get changed.  Mortality is taken care of last and  given special treatment for state update so that it doesn't interfere
 		with the other fluxes that are based on proportions of state variables, especially the phenological fluxes */
 	
 		/* 2.1 ABOVEGROUND variables */	

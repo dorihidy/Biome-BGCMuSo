@@ -23,7 +23,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "pointbgc_func.h"
 #include "bgc_constants.h"
 
-int multilayer_tsoil(const epconst_struct* epc, const siteconst_struct* sitec, const soilprop_struct* sprop, const epvar_struct* epv, int yday, double snoww,
+int multilayer_tsoil(const control_struct* ctrl, const epconst_struct* epc, const siteconst_struct* sitec, const soilprop_struct* sprop, epvar_struct* epv, int yday, double snoww,
 					 metvar_struct* metv)
 
 {
@@ -34,7 +34,7 @@ int multilayer_tsoil(const epconst_struct* epc, const siteconst_struct* sitec, c
 	double effect_of_vegetation = 1;
 	double heatcoeff_snow = 0.1;
 	double heatcoeff_nosnow = 0.25;
-	double tsoil_top_change, heating_coefficient;
+	double heating_coefficient;
 
 
 	/* daily averaged air tempreture on the given day (calculated from Tmax and Tmin), temp.gradient and local temperatures */
@@ -58,24 +58,27 @@ int multilayer_tsoil(const epconst_struct* epc, const siteconst_struct* sitec, c
 		heating_coefficient = heatcoeff_nosnow;
 	
 	/* shading effect of vegetation (if soil temperature is lower than air temperature the effect is zero) */
-	if (metv->Tday > metv->tsoil_surface_pre && epv->proj_lai > 0) 
-		effect_of_vegetation = exp(-1 * epc->ext_coef * epv->proj_lai);
+	if (metv->Tday > metv->tsoil_surface_pre && epv->projLAI > 0) 
+		effect_of_vegetation = exp(-1 * epc->ext_coef * epv->projLAI);
 	else 
 		effect_of_vegetation = 1.0;
 
-	if (effect_of_vegetation < 0.5) effect_of_vegetation = 0.5;
+   if (effect_of_vegetation < 0.5) effect_of_vegetation = 0.5;
 
-		
 	/* empirical function for the effect of tair changing */
-	tsoil_top_change = (metv->Tday - metv->tsoil_surface_pre) * heating_coefficient * effect_of_vegetation;	
+	metv->tsoil_top_change = (metv->Tday - metv->tsoil_surface_pre) * heating_coefficient * effect_of_vegetation;
 
+	epv->ES = heating_coefficient;
+	epv->EV = effect_of_vegetation;
+	epv->Tday = metv->Tday;
+	epv->TSsurf_pre = metv->tsoil_surface_pre;
 
 	/* ************************************************- */
 	/* 2. TEMPERATURE OF DEEPER LAYER BASED ON TEMPERATURE GRADIENT BETWEEN SURFACE LAYER AND LOWERMOST LAYER (BELOW 3M) */
 
 	/* on the first day the temperature of the soil layers are calculated based on the temperature of top and bottom layer */
 
-	metv->tsoil_surface += tsoil_top_change;
+	metv->tsoil_surface += metv->tsoil_top_change;
 	
 	temp_diff_total = metv->annTavgRA - metv->tsoil_surface;
 	
@@ -83,7 +86,7 @@ int multilayer_tsoil(const epconst_struct* epc, const siteconst_struct* sitec, c
 	{
 		
 	//	temp_diff = temp_diff_total * (0.1526 * log(depth) + 0.703);	
-		temp_diff = temp_diff_total * (0.1448 * log(sitec->soillayer_midpoint[layer]) + 0.6667); 
+		temp_diff = temp_diff_total * (0.1448 * log(sitec->soillayer_midpoint[layer]) + 0.6667);
 		metv->tsoil[layer] = metv->tsoil_surface + temp_diff;	
 
 		STv1 = 1000 + 2500 * sprop->BD[layer]/((sprop->BD[layer] + 686 * exp(-5.63*sprop->BD[layer])));
@@ -100,7 +103,7 @@ int multilayer_tsoil(const epconst_struct* epc, const siteconst_struct* sitec, c
 	
 		tsoil = metv->annTavgRA + (metv->annTrangeRA/2 * cos(ALX + ZD) + Td)  * exp(ZD); // depth: m to cm 
 
-		if (epc->STCM_flag) 
+		if (ctrl->STCM_flag) 
 			metv->tsoil[layer] = tsoil;
 
 		if (layer < N_SOILLAYERS-1) tsoil_avg += metv->tsoil[layer] * (sitec->soillayer_thickness[layer] / sitec->soillayer_depth[N_SOILLAYERS-2]);

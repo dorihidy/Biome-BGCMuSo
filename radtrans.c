@@ -24,13 +24,13 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int radtrans(const control_struct* ctrl, const phenology_struct* phen, const cstate_struct* cs, const epconst_struct* epc, const siteconst_struct *sitec,
+int radtrans(const control_struct* ctrl, const phenology_struct* phen, const cstate_struct* cs, const epconst_struct* epc, const siteconst_struct* sitec,
 	         metvar_struct* metv, epvar_struct* epv)
 {
 
 	int errorCode=0;
 	int pp;
-	double proj_lai, leafcSUM, sla_avg;
+	double projLAI, leafcSUM, SLA_avg;
 	double albedo_par;
 	double sw,par;
 	double swabs, swtrans;
@@ -56,7 +56,7 @@ int radtrans(const control_struct* ctrl, const phenology_struct* phen, const cst
 	These conversions are approximated from the information given in Jones. */
 	
 	
-	if (epv->n_actphen > epc->n_emerg_phenophase && epv->n_actphen > 0)
+	if (epv->n_actphen >= epc->n_emerg_phenophase && epv->n_actphen > 0)
 	{	
 
 		/* Calculate the sum of leafC content */
@@ -67,69 +67,69 @@ int radtrans(const control_struct* ctrl, const phenology_struct* phen, const cst
 		}
 
 		/* Calculate whole-canopy projected and all-sided LAI */
-		sla_avg = 0; 
+		SLA_avg = 0; 
 		for (pp = 0; pp < epv->n_actphen; pp++)
 		{
-			if (cs->leafcSUM_phenphase[pp] > 0) sla_avg += epc->avg_proj_sla[pp] * cs->leafcSUM_phenphase[pp] / leafcSUM;
+			if (cs->leafcSUM_phenphase[pp] > 0) SLA_avg += epc->avg_proj_sla[pp] * cs->leafcSUM_phenphase[pp] / leafcSUM;
 		}
 
 		/* SLA calculation problem if leafc > 0, but no SLA - except of th first simulation day in case of evergreen biomes */
-		if (cs->leafc > 0 && sla_avg == 0)
+		if (cs->leafc > 0 && SLA_avg == 0)
 		{
-			if ((ctrl->simyr == 0 && ctrl->yday == 0) || (phen->offday - phen->onday == 364 && ctrl->yday == 0))
-				sla_avg = epc->avg_proj_sla[0];
+			if ((ctrl->firstsimday_flag) || (phen->offday - phen->onday == 364 && ctrl->yday == 0))
+				SLA_avg = epc->avg_proj_sla[0];
 			else
 			{
 				printf("\n");
-				printf("ERROR: Zero SLA value in radtrans.c\n");
+				printf("ERROR in radtrans.c: zero SLA value \n");
 				errorCode=1;
 			}
 		}
 				
-		epv->proj_lai = cs->leafc * sla_avg;
-		epv->all_lai = epv->proj_lai * epc->lai_ratio;
-		epv->sla_avg = sla_avg;
+		epv->projLAI = cs->leafc * SLA_avg;
+		epv->allLAI = epv->projLAI * epc->lai_ratio;
+		epv->SLA_avg = SLA_avg;
 
 		/* Calculate projected LAI for sunlit and shaded canopy portions */
-		epv->plaisun = 1.0 - exp(-epv->proj_lai);
-		epv->plaishade = epv->proj_lai - epv->plaisun;
+		epv->plaisun = 1.0 - exp(-epv->projLAI);
+		epv->plaishade = epv->projLAI - epv->plaisun;
 		if (epv->plaishade < 0.0)
 		{
 			printf("\n");
-			printf("ERROR: Negative plaishade\n");
+			printf("ERROR in radtrans.c: negative plaishade\n");
 			printf("LAI of shaded canopy = %lf\n",epv->plaishade);
 			errorCode=1;
 		}
 		
 		/* calculate the projected specific leaf area for sunlit and  shaded canopy fractions */
 		if (cs->leafc) 
-			epv->sun_proj_sla = (epv->plaisun + (epv->plaishade/epc->sla_ratio)) / cs->leafc;
+			epv->projSLA_sun = (epv->plaisun + (epv->plaishade/epc->sla_ratio)) / cs->leafc;
 		else
-			epv->sun_proj_sla = 0;
-		epv->shade_proj_sla = epv->sun_proj_sla * epc->sla_ratio;
+			epv->projSLA_sun = 0;
+		epv->projSLA_shade = epv->projSLA_sun * epc->sla_ratio;
 	}
 	else
 	{
-		epv->all_lai = 0.0;
-		epv->proj_lai = 0.0;
+		epv->allLAI = 0.0;
+		epv->projLAI = 0.0;
 		epv->plaisun = 0.0;
 		epv->plaishade = 0.0;
-		epv->sun_proj_sla = 0.0;
-		epv->shade_proj_sla = 0.0;
+		epv->projSLA_sun = 0.0;
+		epv->projSLA_shade = 0.0;
 	}
 	
 
 	k = epc->ext_coef;
-	proj_lai = epv->proj_lai;
+	projLAI = epv->projLAI;
 
 	/* calculate NDVI based on empirical estimation */
-	epv->NDVI = 0.01 * pow(proj_lai,3) - 0.12 *  pow(proj_lai,2) + 0.48 * proj_lai + 0.02;
+	epv->NDVI = 0.01 * pow(projLAI,3) - 0.12 *  pow(projLAI,2) + 0.48 * projLAI + 0.02;
 	
 	
 	
 	/* calculate LAI dependent albedo */
 	if (sitec->albedo_sw < crit_albedo)
-		epv->albedo_LAI = crit_albedo - (crit_albedo - sitec->albedo_sw)* exp(-0.75*proj_lai);
+		epv->albedo_LAI = crit_albedo - (crit_albedo - sitec->albedo_sw)* exp(-0.75*projLAI);
 	else
 		epv->albedo_LAI = sitec->albedo_sw;
 
@@ -137,14 +137,14 @@ int radtrans(const control_struct* ctrl, const phenology_struct* phen, const cst
 	k_sw = k;
 	sw = 0;
 	sw = metv->swavgfd * (1.0 - epv->albedo_LAI);
-	swabs = sw * (1.0 - exp(-k_sw*proj_lai));
+	swabs = sw * (1.0 - exp(-k_sw*projLAI));
 	swtrans = sw - swabs;
 	
 	/* 1.3 calculate PAR absorbed */
 	k_par = k * 1.0;
 	albedo_par = sitec->albedo_sw/3.0;
 	par = metv->par * (1.0 - albedo_par);
-	parabs = par * (1.0 - exp(-k_par*proj_lai));
+	parabs = par * (1.0 - exp(-k_par*projLAI));
 	
 	/* 1.4 calculate the total shortwave absorbed by the sunlit and shaded canopy fractions */
 
@@ -153,13 +153,13 @@ int radtrans(const control_struct* ctrl, const phenology_struct* phen, const cst
 	if (swabs_plaishade < 0.0)
 	{
 		printf("\n");
-		printf("ERROR: negative swabs_plaishade (%lf)\n",swabs_plaishade);
+		printf("ERROR in radtrans.c: negative swabs_plaishade (%lf)\n",swabs_plaishade);
 		errorCode=1;
 	}
 
 	/* 1.5 convert this to the shortwave absorbed per unit LAI in the sunlit and  shaded canopy fractions */
 	
-	if (proj_lai > 0.0)
+	if (projLAI > 0.0)
 	{
 		swabs_per_plaisun = swabs_plaisun / epv->plaisun;
 		swabs_per_plaishade = swabs_plaishade/epv->plaishade;
@@ -175,12 +175,12 @@ int radtrans(const control_struct* ctrl, const phenology_struct* phen, const cst
 	if (parabs_plaishade < 0.0)
 	{	
 		printf("\n");
-		printf("FATAL ERROR: negative parabs_plaishade (%lf)\n",parabs_plaishade);
+		printf("ERROR in radtrans.c: negative parabs_plaishade (%lf)\n",parabs_plaishade);
 		errorCode=1;
 	}
 
 	/* 1.7 convert this to the PAR absorbed per unit LAI in the sunlit and shaded canopy fractions */
-	if (proj_lai > 0.0)
+	if (projLAI > 0.0)
 	{
 		parabs_per_plaisun = parabs_plaisun/epv->plaisun;
 		parabs_per_plaishade = parabs_plaishade/epv->plaishade;
@@ -242,7 +242,7 @@ int radtrans(const control_struct* ctrl, const phenology_struct* phen, const cst
 	if (e_act < 0)
 	{
 		printf("\n");
-		printf("ERROR: actual vapor pressure is negative in radtrans.c \n");
+		printf("ERROR in radtrans.c: actual vapor pressure is negative\n");
 		errorCode=1;
 	}
 	
@@ -257,7 +257,7 @@ int radtrans(const control_struct* ctrl, const phenology_struct* phen, const cst
 
 	/* 2.6 convert this to the shortwave absorbed per unit LAI in the sunlit and  shaded canopy fractions  */
 	
-	if (proj_lai > 0.0 )
+	if (projLAI > 0.0 )
 	{
 		/* plai_crit: in order to avoid irrealistic per LAI values */
 		plai_crit = 0.1; 

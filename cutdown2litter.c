@@ -21,7 +21,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int cutdown2litter(const siteconst_struct *sitec, const epconst_struct* epc, const epvar_struct* epv, cstate_struct* cs, cflux_struct* cf,nstate_struct* ns, nflux_struct* nf)
+int cutdown2litter(const siteconst_struct* sitec, const epconst_struct* epc, const epvar_struct* epv, cstate_struct* cs, cflux_struct* cf,nstate_struct* ns, nflux_struct* nf)
 {
 	int errorCode=0;
 	int layer;
@@ -65,11 +65,17 @@ int cutdown2litter(const siteconst_struct *sitec, const epconst_struct* epc, con
 	
 	/* 2.1 aboveground biomass into the top soil layer */
 
-	/* new feature: litter turns into the first AND the second soil layer */
+	/* litter turns into the first three soil layers  (non-woody biomass: proportion to soil layer thickness, woody-biomass: higher propotion in layer2 */
 	propLAYER0 = sitec->soillayer_thickness[0]/sitec->soillayer_depth[2];
 	propLAYER1 = sitec->soillayer_thickness[1]/sitec->soillayer_depth[2];
 	propLAYER2 = sitec->soillayer_thickness[2]/sitec->soillayer_depth[2];
 
+	if (epc->woody)
+	{
+		propLAYER0 = 0.05;
+		propLAYER1 = 0.15;
+		propLAYER2 = 0.8;
+	}
 
 	cs->litr1c[0] += (cf->CTDBc_leaf_to_litr * epc->leaflitr_flab  + cf->CTDBc_yield_to_litr * epc->yieldlitr_flab  + 
 		              cf->CTDBc_softstem_to_litr * epc->softstemlitr_flab) * propLAYER0;

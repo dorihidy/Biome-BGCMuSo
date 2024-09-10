@@ -69,7 +69,7 @@ int mulching_init(file init, control_struct* ctrl, mulching_struct* MUL)
 	/* header reading */
 	if (!errorCode && scan_value(init, header, 's'))
 	{
-		printf("ERROR reading header, MULCHING_init()\n");
+		printf("ERROR reading header, MULCHING_init.c\n");
 		errorCode=1;
 	}
 	
@@ -77,7 +77,7 @@ int mulching_init(file init, control_struct* ctrl, mulching_struct* MUL)
 	/* keyword control */
 	if (!errorCode && scan_value(init, header, 's'))
 	{
-		printf("ERROR reading header, MULCHING_init()\n");
+		printf("ERROR reading header, MULCHING_init.c\n");
 		errorCode=1;
 	}
 	

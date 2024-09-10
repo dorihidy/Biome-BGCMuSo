@@ -1,6 +1,6 @@
 /*
 prephenology.c
-Initialize phenology arrays, called prior to annual loop in bgc()
+Initialize phenology arrays, called prior to annual loop in bgc.c
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
@@ -92,7 +92,7 @@ int prephenology(file logfile, const epconst_struct* epc, const metarr_struct* m
 		onday_arr = (int*) malloc((nyears+1) * sizeof(int));
 		if (!onday_arr)
 		{
-			printf("ERROR allocating for onday_arr, prephenology()\n");
+			printf("ERROR allocating for onday_arr, prephenology.c\n");
 			errorCode=1;
 		}
 	}
@@ -102,7 +102,7 @@ int prephenology(file logfile, const epconst_struct* epc, const metarr_struct* m
 		offday_arr = (int*) malloc((nyears+1) * sizeof(int));
 		if (!offday_arr)
 		{
-			printf("ERROR allocating for offday_arr, prephenology()\n");
+			printf("ERROR allocating for offday_arr, prephenology.c\n");
 			errorCode=1;
 		}
 	}
@@ -113,7 +113,7 @@ int prephenology(file logfile, const epconst_struct* epc, const metarr_struct* m
 		enddays = (int*) malloc(nMONTHS_OF_YEAR * sizeof(int));
 		if (!enddays)
 		{
-			printf("ERROR allocating for enddays in bgc.c()\n");
+			printf("ERROR allocating for enddays in bgc.c\n");
 			errorCode=2100;
 		}
 	}
@@ -123,7 +123,7 @@ int prephenology(file logfile, const epconst_struct* epc, const metarr_struct* m
 		mondays = (int*) malloc(nMONTHS_OF_YEAR * sizeof(int));
 		if (!mondays)
 		{
-			printf("ERROR allocating for enddays in bgc.c()\n");
+			printf("ERROR allocating for enddays in bgc.c\n");
 			errorCode=2100;
 		}
 	}
@@ -134,7 +134,7 @@ int prephenology(file logfile, const epconst_struct* epc, const metarr_struct* m
 	/* evergreen=1 --> evergreen type    evergreen=0 --> deciduous type */
 	/* south=1 --> southern hemisphere   south=0 --> northern hemisphere */
 
-	model = epc->phenology_flag;
+	model = ctrl->phenology_flag;
 	
 	woody = epc->woody;
 	evergreen = epc->evergreen;
@@ -172,7 +172,7 @@ int prephenology(file logfile, const epconst_struct* epc, const metarr_struct* m
 				PLTyear = PLT->PLTyear_array[countONOFFDAY];
 				if (!errorCode && leapControl(PLTyear, enddays, mondays, &leap))
 				{
-					printf("ERROR in call to leapControl() from prephenology_init.c\n");
+					printf("ERROR in call to leapControl.c from prephenology_init.c\n");
 					errorCode=1;
 				}
 				PLTyday = date_to_doy(mondays, PLT->PLTmonth_array[countONOFFDAY], PLT->PLTday_array[countONOFFDAY]);
@@ -181,7 +181,7 @@ int prephenology(file logfile, const epconst_struct* epc, const metarr_struct* m
 				HRVyear = HRV->HRVyear_array[countONOFFDAY];
 				if (!errorCode && leapControl(HRVyear, enddays, mondays, &leap))
 				{
-					printf("ERROR in call to leapControl() from prephenology_init.c\n");
+					printf("ERROR in call to leapControl.c from prephenology_init.c\n");
 					errorCode=1;
 				}
 				HRVyday = date_to_doy(mondays, HRV->HRVmonth_array[countONOFFDAY], HRV->HRVday_array[countONOFFDAY]);
@@ -290,9 +290,7 @@ int prephenology(file logfile, const epconst_struct* epc, const metarr_struct* m
 				/* tree onset equation from Mike White, Aug. 1997 */
 				onset_critsum = exp(4.795 + 0.129*mean_Tavg);
 				
-				/* now go through the phenological years and generate expansion
-				and litterfall arrays. Some complications for Southern
-				hemisphere sites... */
+				/* now go through the phenological years and generate expansionand litterfall arrays. Some complications for Southern hemisphere sites... */
 				/* calculate fall_Tavg, the mean Tavg from phenyday 244-304 */
 				fall_Tavg = 0.0;
 				fall_Tavg_count = 0;
@@ -331,9 +329,10 @@ int prephenology(file logfile, const epconst_struct* epc, const metarr_struct* m
 						/* tree offset test */
 						if (onset_day != -1 && offset_day == -1)
 						{
-							if ((pday>182) && 
-							(((phendayl<=criTdayl) && (phensoilt<=fall_Tavg)) ||
-							(phensoilt<=2.0))) offset_day = pday;
+							if ((pday > 182) && (((phendayl <= criTdayl) && (phensoilt <= fall_Tavg)) || (phensoilt <= 2.0)))
+							{
+								offset_day = pday;
+							}
 						}
 						
 					} /* end pday loop */
@@ -476,7 +475,7 @@ int prephenology(file logfile, const epconst_struct* epc, const metarr_struct* m
 						/* calculate three-day boxcar average of Tmin */
 						if (boxcar_smooth(grass_Tminyear, grass_3dayTmin, nDAYS_OF_YEAR,3,0))
 						{
-							printf("ERROR in prephenology() call to boxcar()\n");
+							printf("ERROR in prephenology.c call to boxcar.c\n");
 							errorCode=1;
 						}
 						

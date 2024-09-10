@@ -24,7 +24,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "pointbgc_func.h"
 #include "bgc_func.h"
 
-int sitec_init(file init, siteconst_struct* sitec, control_struct *ctrl)
+int sitec_init(file init, siteconst_struct* sitec, control_struct* ctrl)
 {
 	/* reads the site physical constants from *.init */ 
 
@@ -42,7 +42,7 @@ int sitec_init(file init, siteconst_struct* sitec, control_struct *ctrl)
 	/* first scan keyword to ensure proper *.init format */ 
 	if (!errorCode && scan_value(init, keyword, 's'))
 	{
-		printf("ERROR reading keyword, sitec_init()\n");
+		printf("ERROR reading keyword, sitec_init.c\n");
 		errorCode=207;
 	}
 	if (!errorCode && strcmp(keyword,key))
@@ -55,12 +55,12 @@ int sitec_init(file init, siteconst_struct* sitec, control_struct *ctrl)
 	/* other site data - elev, lat, alb */
 	if (!errorCode && scan_value(init, &sitec->elev, 'd'))
 	{
-		printf("ERROR reading elevation, sitec_init()\n");
+		printf("ERROR reading elevation, sitec_init.c\n");
 		errorCode=20701;
 	}
 	if (!errorCode && scan_value(init, &sitec->lat, 'd'))
 	{
-		printf("ERROR reading site latitude, sitec_init()\n");
+		printf("ERROR reading site latitude, sitec_init.c\n");
 		errorCode=20702;
 	}
 	/* In southen hemisphere: year from 1th of July - last simulation year is truncated year */
@@ -73,7 +73,7 @@ int sitec_init(file init, siteconst_struct* sitec, control_struct *ctrl)
 
 	if (!errorCode && scan_value(init, &sitec->albedo_sw, 'd'))
 	{
-		printf("ERROR reading shortwave albedo, sitec_init()\n");
+		printf("ERROR reading shortwave albedo, sitec_init.c\n");
 		errorCode=20703;
 	}
 	

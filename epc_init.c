@@ -83,7 +83,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		/* open simple EPC file  */
 		if (!errorCode && scan_open(init,&epc_file,'r',1)) 
 		{
-			printf("ERROR opening epconst file, epc_init()\n");
+			printf("ERROR opening epconst file, epc_init.c\n");
 			dofilecloseEPC = 0;
 			errorCode=20900;
 		}
@@ -94,7 +94,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		/* open simple EPC file */
 		if (!errorCode && file_open(&epc_file,'r',1)) 
 		{
-			printf("ERROR opening epconst file, epc_init()\n");
+			printf("ERROR opening epconst file, epc_init.c\n");
 			dofilecloseEPC = 0;
 			errorCode=20900;
 		}
@@ -104,7 +104,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* first scan epc keyword to ensure proper *.epc format */
 	if (!errorCode && scan_value(epc_file, ctrl->planttypeName, 's'))
 	{
-		printf("ERROR reading header (planttypeName), epc_init()\n");
+		printf("ERROR reading header (planttypeName), epc_init.c\n");
 		errorCode=209001;
 	}
 
@@ -113,13 +113,13 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* dividing line from file */ 
 	if (!errorCode && scan_value(epc_file, header, 's'))
 	{
-		printf("ERROR reading 1. dividing line, epc_init()\n");
+		printf("ERROR reading 1. dividing line, epc_init.c\n");
 		errorCode=209002;
 	}
 
 	if (!errorCode && scan_value(epc_file, header, 's'))
 	{
-		printf("ERROR reading 1. block title, epc_init()\n");
+		printf("ERROR reading 1. block title, epc_init.c\n");
 		errorCode=209003;
 	}
 	/****************************************************************************************************************/
@@ -127,19 +127,19 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/****************************************************************************************************************/
 	if (!errorCode && scan_value(epc_file, &epc->woody, 'i'))
 	{
-		printf("ERROR reading woody/non-woody flag, epc_init()\n");
+		printf("ERROR reading woody/non-woody flag, epc_init.c\n");
 		errorCode=209004;
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->evergreen, 'i'))
 	{
-		printf("ERROR reading evergreen/deciduous flag, epc_init()\n");
+		printf("ERROR reading evergreen/deciduous flag, epc_init.c\n");
 		errorCode=209005;
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->c3_flag, 'i'))
 	{
-		printf("ERROR reading C3/C4 flag, epc_init()\n");
+		printf("ERROR reading C3/C4 flag, epc_init.c\n");
 		errorCode=209006;
 	}
 
@@ -148,13 +148,13 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	
 	if (!errorCode && scan_value(epc_file, header, 's'))
 	{
-		printf("ERROR reading 2. dividing line, epc_init()\n");
+		printf("ERROR reading 2. dividing line, epc_init.c\n");
 		errorCode=209007;
 	}
 
 	if (!errorCode && scan_value(epc_file, header, 's'))
 	{
-		printf("ERROR reading 2. block title, epc_init()\n");
+		printf("ERROR reading 2. block title, epc_init.c\n");
 		errorCode=209008;
 	}
 
@@ -166,7 +166,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* using varying onday values (in transient or in normal run)*/
 	if (!errorCode && scan_value(epc_file, &epc->ondayUSER, 'i'))
 	{
-		printf("ERROR reading onday, epc_init()\n");
+		printf("ERROR reading onday, epc_init.c\n");
 		errorCode=209009;
 	}
 
@@ -188,7 +188,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 	if (ctrl->varSGS_flag == 1 && epc->ondayUSER ==  DATA_GAP)
 	{
-		printf("ERROR in using annual varying onday data, if user-defined bareground simulation is defined (onday=-9999), epc_init()\n");
+		printf("ERROR in using annual varying onday data, if user-defined bareground simulation is defined (onday=-9999), epc_init.c\n");
 		errorCode=2090091;
 	}
 
@@ -198,7 +198,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		epc->SGS_array = (double*) malloc(ctrl->simyears * sizeof(double));
 		if (!epc->SGS_array)
 		{
-			printf("ERROR allocating for annual SGS array, epc_init()\n");
+			printf("ERROR allocating for annual SGS array, epc_init.c\n");
 			errorCode=2090091;
 		}
 	
@@ -217,13 +217,13 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 				if (epc->SGS_array[ndata] < 0.0 && epc->SGS_array[ndata] != DATA_GAP)
 				{
-					printf("ERROR in using annual varying onday data, if user-defined bareground simulation is defined (offday=-9999), epc_init()\n");
+					printf("ERROR in using annual varying onday data, if user-defined bareground simulation is defined (offday=-9999), epc_init.c\n");
 					errorCode=2090091;
 				}
 
 				if (epc->SGS_array[ndata] > 364)
 				{
-					printf("ERROR in epc_init(): SGS must less than 365\n");
+					printf("ERROR in epc_init.c: SGS must less than 365\n");
 					errorCode=2090091;
 				}
 			
@@ -244,7 +244,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 	if (!errorCode && scan_value(epc_file, &epc->offdayUSER, 'i'))
 	{
-		printf("ERROR reading offday, epc_init()\n");
+		printf("ERROR reading offday, epc_init.c\n");
 		errorCode=209010;
 	}
 
@@ -267,7 +267,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 	if (ctrl->varEGS_flag == 1 && epc->offdayUSER ==  DATA_GAP)
 	{
-		printf("ERROR in using annual varying offday data, if user-defined bareground simulation is defined (offday=-9999), epc_init()\n");
+		printf("ERROR in using annual varying offday data, if user-defined bareground simulation is defined (offday=-9999), epc_init.c\n");
 		errorCode=2090101;
 	}
 
@@ -283,7 +283,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		epc->EGS_array = (double*) malloc(ctrl->simyears * sizeof(double));
 		if (!epc->EGS_array)
 		{
-			printf("ERROR allocating for annual EGS array, epc_init()\n");
+			printf("ERROR allocating for annual EGS array, epc_init.c\n");
 			errorCode=2090101;
 		}
 	
@@ -302,7 +302,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 				if (epc->EGS_array[ndata] < 0.0 && epc->EGS_array[ndata] != DATA_GAP)
 				{
-					printf("ERROR in epc_init(): EGS must be positive\n");
+					printf("ERROR in epc_init.c: EGS must be positive\n");
 					errorCode=2090101;
 					
 				}
@@ -323,7 +323,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* transfer growth and litterfall period */
 	if (!errorCode && scan_value(epc_file, &epc->transfer_pdays, 'd'))
 	{
-		printf("ERROR reading transfer_pdays, epc_init()\n");
+		printf("ERROR reading transfer_pdays, epc_init.c\n");
 		errorCode=209011;
 		
 	}
@@ -331,7 +331,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 	if (!errorCode && scan_value(epc_file, &epc->litfall_pdays, 'd'))
 	{
-		printf("ERROR reading litfall_pdays, epc_init()\n");
+		printf("ERROR reading litfall_pdays, epc_init.c\n");
 		errorCode=209012;
 		
 	}
@@ -340,7 +340,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* base temperature for calculation GDD / heatsum  */
 	if (!errorCode && scan_value(epc_file, &epc->base_temp, 'd'))
 	{
-		printf("ERROR reading base_temp parameter: epc_init()\n");
+		printf("ERROR reading base_temp parameter: epc_init.c\n");
 		errorCode=209013;
 		
 	}
@@ -349,21 +349,21 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* minimum/optimal/maximum temperature for growth displayed on current day (-9999: no T-dependence of allocation) */
 	if (!errorCode && scan_value(epc_file, &epc->pnow_minT, 'd'))
 	{
-		printf("ERROR reading pnow_minT parameter: epc_init()\n");
+		printf("ERROR reading pnow_minT parameter: epc_init.c\n");
 		errorCode=209014;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->pnow_opt1T, 'd'))
 	{
-		printf("ERROR reading pnow_opt1T parameter: epc_init()\n");
+		printf("ERROR reading pnow_opt1T parameter: epc_init.c\n");
 		errorCode=209015;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->pnow_opt2T, 'd'))
 	{
-		printf("ERROR reading pnow_opt1T parameter: epc_init()\n");
+		printf("ERROR reading pnow_opt1T parameter: epc_init.c\n");
 		errorCode=209016;
 		
 	}
@@ -371,7 +371,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* temperature for growth data with control */
 	if (!errorCode && scan_value(epc_file, &epc->pnow_maxT, 'd'))
 	{
-		printf("ERROR reading pnow_maxT parameter: epc_init()\n");
+		printf("ERROR reading pnow_maxT parameter: epc_init.c\n");
 		errorCode=209017;
 		
 	}
@@ -403,21 +403,21 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	
 	if (!errorCode && scan_value(epc_file, &epc->assim_minT, 'd'))
 	{
-		printf("ERROR reading assim_minT parameter: epc_init()\n");
+		printf("ERROR reading assim_minT parameter: epc_init.c\n");
 		errorCode=209018;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->assim_opt1T, 'd'))
 	{
-		printf("ERROR reading assim_opt1T parameter: epc_init()\n");
+		printf("ERROR reading assim_opt1T parameter: epc_init.c\n");
 		errorCode=209019;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->assim_opt2T, 'd'))
 	{
-		printf("ERROR reading assim_opt1T parameter: epc_init()\n");
+		printf("ERROR reading assim_opt1T parameter: epc_init.c\n");
 		errorCode=209020;
 		
 	}
@@ -425,7 +425,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* temperature data for C-assimilation with control */
 	if (!errorCode && scan_value(epc_file, &epc->assim_maxT, 'd'))
 	{
-		printf("ERROR reading assim_maxT parameter: epc_init()\n");
+		printf("ERROR reading assim_maxT parameter: epc_init.c\n");
 		errorCode=209021;
 		
 	}
@@ -455,7 +455,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 	if (!errorCode && scan_value(epc_file, &epc->PT_ETcritT, 'd'))
 	{
-		printf("ERROR reading ET_critT parameter: epc_init()\n");
+		printf("ERROR reading ET_critT parameter: epc_init.c\n");
 		errorCode=209022;
 		
 	}
@@ -465,7 +465,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/*  leaf turnover fraction with force leaf turnover fraction to 1.0 if deciduous */
 	if (!errorCode && scan_value(epc_file, &epc->nonwoody_turnover, 'd'))
 	{
-		printf("ERROR reading non-woody biomass turnover, epc_init()\n");
+		printf("ERROR reading non-woody biomass turnover, epc_init.c\n");
 		errorCode=209023;
 		
 	}
@@ -477,7 +477,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	
 	if (!errorCode && scan_value(epc_file, &epc->woody_turnover, 'd'))
 	{
-		printf("ERROR reading woody biomass turnover, epc_init()\n");
+		printf("ERROR reading woody biomass turnover, epc_init.c\n");
 		errorCode=209024;
 		
 	}
@@ -486,7 +486,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 	if (!errorCode && scan_value(epc_file, &epc->FMyr, 'd'))
 	{
-		printf("ERROR reading fire mortality, epc_init()\n");
+		printf("ERROR reading fire mortality, epc_init.c\n");
 		errorCode=209025;
 		
 	}
@@ -514,7 +514,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		epc->FMyr_array = (double*) malloc(ctrl->simyears * sizeof(double));
 		if (!epc->FMyr_array)
 		{
-			printf("ERROR allocating for annual FM array, epc_init()\n");
+			printf("ERROR allocating for annual FM array, epc_init.c\n");
 			errorCode=2090251;
 			
 		}
@@ -534,7 +534,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 				if (epc->FMyr_array[ndata] < 0.0 && epc->FMyr_array[ndata] != DATA_GAP)
 				{
-					printf("ERROR in epc_init(): FM must be positive\n");
+					printf("ERROR in epc_init.c: FM must be positive\n");
 					errorCode=2090251;
 					
 				}
@@ -556,7 +556,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 	if (!errorCode && scan_value(epc_file, &epc->WPMyr, 'd'))
 	{
-		printf("ERROR reading whole-plant mortality, epc_init()\n");
+		printf("ERROR reading whole-plant mortality, epc_init.c\n");
 		errorCode=209026;
 		
 	}
@@ -584,7 +584,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		epc->WPMyr_array = (double*) malloc(ctrl->simyears * sizeof(double));
 		if (!epc->WPMyr_array)
 		{
-			printf("ERROR allocating for annual WPM array, epc_init()\n");
+			printf("ERROR allocating for annual WPM array, epc_init.c\n");
 			errorCode=2090261;
 			
 		}
@@ -604,8 +604,8 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 				if (epc->WPMyr_array[ndata] < 0.0 && epc->WPMyr_array[ndata] != DATA_GAP)
 				{
-					printf("ERROR in epc_init(): WPM must be positive\n");
-					errorCode=209026;
+					printf("ERROR in epc_init.c: WPM must be positive\n");
+					errorCode=2090262;
 					
 				}
 			
@@ -626,7 +626,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* dead stem biomass combustion proportion */
 	if (!errorCode && scan_value(epc_file, &epc->dscp, 'd'))
 	{
-		printf("ERROR reading dead stem biomass combustion proportion, epc_init()\n");
+		printf("ERROR reading dead stem biomass combustion proportion, epc_init.c\n");
 		errorCode=209027;
 		
 	}
@@ -635,7 +635,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* dead stem biomass combustion proportion */
 	if (!errorCode && scan_value(epc_file, &epc->cwcp, 'd'))
 	{
-		printf("ERROR reading coarse woody biomass combustion proportion, epc_init()\n");
+		printf("ERROR reading coarse woody biomass combustion proportion, epc_init.c\n");
 		errorCode=209028;
 		
 	}
@@ -646,14 +646,14 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* leaf C:N > 0 */
 	if (!errorCode && scan_value(epc_file, &epc->leaf_cn, 'd'))
 	{
-		printf("ERROR reading average leaf C:N, epc_init()\n");
+		printf("ERROR reading average leaf C:N, epc_init.c\n");
 		errorCode=209029;
 		
 	}
 
 	if (!errorCode && epc->leaf_cn <= 0	)
 	{
-		printf("ERROR: leaf  C:N must be > 0\n");
+		printf("ERROR in epc_init.c:leaf  C:N must be > 0\n");
 		printf("change the values in EPC file\n");
 		errorCode=2090291;
 		
@@ -662,14 +662,14 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* leaflitter C:N > leaf C:N  */
 	if (!errorCode && scan_value(epc_file, &epc->leaflitr_cn, 'd'))
 	{
-		printf("ERROR reading leaf litter C:N, epc_init()\n");
+		printf("ERROR reading leaf litter C:N, epc_init.c\n");
 		errorCode=209030;
 		
 	}
 	
 	if (!errorCode && epc->leaflitr_cn < epc->leaf_cn)
 	{
-		printf("ERROR: leaf litter C:N must be >= leaf C:N\n");
+		printf("ERROR in epc_init.c:leaf litter C:N must be >= leaf C:N\n");
 		printf("change the values in EPC file\n");
 		errorCode=2090301;
 		
@@ -678,13 +678,13 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* froot C:N > leaf C:N  */
 	if (!errorCode && scan_value(epc_file, &epc->froot_cn, 'd'))
 	{
-		printf("ERROR reading initial fine root C:N, epc_init()\n");
+		printf("ERROR reading initial fine root C:N, epc_init.c\n");
 		errorCode=209031;
 		
 	}
 	if (!errorCode && epc->froot_cn < epc->leaf_cn)
 	{
-		printf("ERROR: fine root C:N must be >= leaf C:N\n");
+		printf("ERROR in epc_init.c:fine root C:N must be >= leaf C:N\n");
 		printf("change the values in EPC file\n");
 		errorCode=209031;
 		
@@ -693,13 +693,13 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* yield C:N > leaf C:N  */
 	if (!errorCode && scan_value(epc_file, &epc->yield_cn, 'd'))
 	{
-		printf("ERROR reading initial yield C:N, epc_init()\n");
+		printf("ERROR reading initial yield C:N, epc_init.c\n");
 		errorCode=209032;
 		
 	}
 	if (!errorCode && epc->yield_cn > 0 && epc->yield_cn < epc->leaf_cn)
 	{
-		printf("ERROR: yield C:N must be >= leaf C:N\n");
+		printf("ERROR in epc_init.c:yield C:N must be >= leaf C:N\n");
 		printf("change the values in EPC file\n");
 		errorCode=2090321;
 		
@@ -707,13 +707,13 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 	if (!errorCode && scan_value(epc_file, &epc->softstem_cn, 'd'))
 	{
-		printf("ERROR reading initial softstem C:N, epc_init()\n");
+		printf("ERROR reading initial softstem C:N, epc_init.c\n");
 		errorCode=209033;
 		
 	}
 	if (!errorCode && epc->softstem_cn > 0 && epc->softstem_cn < epc->leaf_cn)
 	{
-		printf("ERROR: softstem C:N must be >= leaf C:N\n");
+		printf("ERROR in epc_init.c:softstem C:N must be >= leaf C:N\n");
 		printf("change the values in EPC file\n");
 		errorCode=2090331;
 		
@@ -723,13 +723,13 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* livewood C:N setting for woody biomes */
 	if (!errorCode && scan_value(epc_file, &epc->livewood_cn, 'd'))
 	{
-		printf("ERROR reading initial livewood C:N, epc_init()\n");
+		printf("ERROR reading initial livewood C:N, epc_init.c\n");
 		errorCode=209034;
 		
 	}
 	if (!errorCode && epc->woody && epc->livewood_cn == 0)
 	{
-		printf("ERROR: livewood C:N must be > 0 in woody simulation \n");
+		printf("ERROR in epc_init.c:livewood C:N must be > 0 in woody simulation \n");
 		printf("change the values in EPC file\n");
 		errorCode=2090341;
 		
@@ -738,13 +738,13 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* deadwood C:N > livewood C:N */
 	if (!errorCode && scan_value(epc_file, &epc->deadwood_cn, 'd'))
 	{
-		printf("ERROR reading initial deadwood C:N, epc_init()\n");
+		printf("ERROR reading initial deadwood C:N, epc_init.c\n");
 		errorCode=2090351;
 		
 	}
 	if (!errorCode && epc->deadwood_cn < epc->livewood_cn)
 	{
-		printf("ERROR: deadwood C:N must be >= livewood C:N\n");
+		printf("ERROR in epc_init.c:deadwood C:N must be >= livewood C:N\n");
 		printf("change the values in EPC file\n");
 		errorCode=2090351;
 		
@@ -755,49 +755,49 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* C:DM ratios */
 	if (!errorCode && scan_value(epc_file, &epc->leafC_DM, 'd'))
 	{
-		printf("ERROR reading dry matter carbon content of leaves, epc_init()\n");
+		printf("ERROR reading dry matter carbon content of leaves, epc_init.c\n");
 		errorCode=209036;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->leaflitrC_DM, 'd'))
 	{
-		printf("ERROR reading dry matter carbon content of leaf litter, epc_init()\n");
+		printf("ERROR reading dry matter carbon content of leaf litter, epc_init.c\n");
 		errorCode=209037;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->frootC_DM, 'd'))
 	{
-		printf("ERROR reading dry matter carbon content of fine root, epc_init()\n");
+		printf("ERROR reading dry matter carbon content of fine root, epc_init.c\n");
 		errorCode=209038;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->yield_DM, 'd'))
 	{
-		printf("ERROR reading dry matter carbon content of yield, epc_init()\n");
+		printf("ERROR reading dry matter carbon content of yield, epc_init.c\n");
 		errorCode=209039;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->softstemC_DM, 'd'))
 	{
-		printf("ERROR reading dry matter carbon content of softstem, epc_init()\n");
+		printf("ERROR reading dry matter carbon content of softstem, epc_init.c\n");
 		errorCode=209040;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->livewoodC_DM, 'd'))
 	{
-		printf("ERROR reading dry matter carbon content of live wood, epc_init()\n");
+		printf("ERROR reading dry matter carbon content of live wood, epc_init.c\n");
 		errorCode=209041;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->deadwoodC_DM, 'd'))
 	{
-		printf("ERROR reading dry matter carbon content of dead wood, epc_init()\n");
+		printf("ERROR reading dry matter carbon content of dead wood, epc_init.c\n");
 		errorCode=209042;
 		
 	}
@@ -807,7 +807,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* LEAF LITTER PROPORTION */
 	if (!errorCode && scan_value(epc_file, &t1, 'd'))
 	{
-		printf("ERROR reading leaf litter labile proportion, epc_init()\n");
+		printf("ERROR reading leaf litter labile proportion, epc_init.c\n");
 		errorCode=209043;
 		
 	}
@@ -816,7 +816,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 	if (!errorCode && scan_value(epc_file, &t2, 'd'))
 	{
-		printf("ERROR reading leaf litter cellulose proportion, epc_init()\n");
+		printf("ERROR reading leaf litter cellulose proportion, epc_init.c\n");
 		errorCode=209044;
 		
 	}
@@ -862,7 +862,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* FROOT LITTER PROPORTION */
 	if (!errorCode && scan_value(epc_file, &t1, 'd'))
 	{
-		printf("ERROR reading froot litter labile proportion, epc_init()\n");
+		printf("ERROR reading froot litter labile proportion, epc_init.c\n");
 		errorCode=209045;
 		
 	}
@@ -870,7 +870,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	epc->frootlitr_flab = t1;
 	if (!errorCode && scan_value(epc_file, &t2, 'd'))
 	{
-		printf("ERROR reading froot litter cellulose proportion, epc_init()\n");
+		printf("ERROR reading froot litter cellulose proportion, epc_init.c\n");
 		errorCode=209046;
 		
 	}
@@ -919,7 +919,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 	if (!errorCode && scan_value(epc_file, &t1, 'd'))
 	{
-		printf("ERROR reading yield litter labile proportion, epc_init()\n");
+		printf("ERROR reading yield litter labile proportion, epc_init.c\n");
 		errorCode=209047;
 		
 	}
@@ -927,7 +927,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	epc->yieldlitr_flab = t1;
 	if (!errorCode && scan_value(epc_file, &t2, 'd'))
 	{
-		printf("ERROR reading yield litter cellulose proportion, epc_init()\n");
+		printf("ERROR reading yield litter cellulose proportion, epc_init.c\n");
 		errorCode=209048;
 		
 	}
@@ -975,7 +975,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	
 	if (!errorCode && scan_value(epc_file, &t1, 'd'))
 	{
-		printf("ERROR reading soft stem litter labile proportion, epc_init()\n");
+		printf("ERROR reading soft stem litter labile proportion, epc_init.c\n");
 		errorCode=209049;
 		
 	}
@@ -984,7 +984,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 	if (!errorCode && scan_value(epc_file, &t2, 'd'))
 	{
-		printf("ERROR reading soft stem  litter cellulose proportion, epc_init()\n");
+		printf("ERROR reading soft stem  litter cellulose proportion, epc_init.c\n");
 		errorCode=209050;
 		
 	}
@@ -1032,7 +1032,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 	if (!errorCode && scan_value(epc_file, &t1, 'd'))
 	{
-		printf("ERROR reading dead wood %% cellulose, epc_init()\n");
+		printf("ERROR reading dead wood %% cellulose, epc_init.c\n");
 		errorCode=209051;
 		
 	}
@@ -1055,7 +1055,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 	if (!errorCode && epc->woody && epc->deadwood_flig == 0)
 	{
-		printf("ERROR: dead wood cellulose proportion must be > 0 in woody simulation \n");
+		printf("ERROR in epc_init.c:dead wood cellulose proportion must be > 0 in woody simulation \n");
 		printf("change the values in EPC file\n");
 		errorCode=2090511;
 		
@@ -1088,63 +1088,63 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 	if (!errorCode && scan_value(epc_file, &epc->int_coef, 'd'))
 	{
-		printf("ERROR reading canopy water int coef, epc_init()\n");
+		printf("ERROR reading canopy water int coef, epc_init.c\n");
 		errorCode=209052;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->ext_coef, 'd'))
 	{
-		printf("ERROR reading canopy light ext.coef, epc_init()\n");
+		printf("ERROR reading canopy light ext.coef, epc_init.c\n");
 		errorCode=209053;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->potRUE, 'd'))
 	{
-		printf("ERROR reading potential radiation use efficiency, epc_init()\n");
+		printf("ERROR reading potential radiation use efficiency, epc_init.c\n");
 		errorCode=209054;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->rad_param1, 'd'))
 	{
-		printf("ERROR reading radiation parameter1, epc_init()\n");
+		printf("ERROR reading radiation parameter1, epc_init.c\n");
 		errorCode=209055;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->rad_param2, 'd'))
 	{
-		printf("ERROR reading radiation parameter2, epc_init()\n");
+		printf("ERROR reading radiation parameter2, epc_init.c\n");
 		errorCode=209056;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->lai_ratio, 'd'))
 	{
-		printf("ERROR reading all to projected LAI ratio, epc_init()\n");
+		printf("ERROR reading all to projected LAI ratio, epc_init.c\n");
 		errorCode=209057;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->sla_ratio, 'd'))
 	{
-		printf("ERROR reading shaded to sunlit SLA ratio, epc_init()\n");
+		printf("ERROR reading shaded to sunlit SLA ratio, epc_init.c\n");
 		errorCode=209058;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->flnr, 'd'))
 	{
-		printf("ERROR reading Rubisco N fraction, epc_init()\n");
+		printf("ERROR reading Rubisco N fraction, epc_init.c\n");
 		errorCode=209059;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->flnp, 'd'))
 	{
-		printf("ERROR reading PeP N fraction, epc_init()\n");
+		printf("ERROR reading PeP N fraction, epc_init.c\n");
 		errorCode=209060;
 		
 	}
@@ -1154,7 +1154,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 	if (!errorCode && scan_value(epc_file, &epc->gl_sMAX, 'd'))
 	{
-		printf("ERROR reading gl_sMAX, epc_init()\n");
+		printf("ERROR reading gl_sMAX, epc_init.c\n");
 		errorCode=209061;
 		
 	}
@@ -1181,7 +1181,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		epc->MSC_array = (double*) malloc(ctrl->simyears * sizeof(double));
 		if (!epc->MSC_array)
 		{
-			printf("ERROR allocating for annual MSC array, epc_init()\n");
+			printf("ERROR allocating for annual MSC array, epc_init.c\n");
 			errorCode=2090611;
 			
 		}
@@ -1201,7 +1201,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 				if (epc->MSC_array[ndata] < 0.0 && epc->MSC_array[ndata] != DATA_GAP)
 				{
-					printf("ERROR in epc_init(): MSC must be positive\n");
+					printf("ERROR in epc_init.c: MSC must be positive\n");
 					errorCode=2090611;
 					
 				}
@@ -1222,14 +1222,14 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* ------------------------------------------------------ */
 	if (!errorCode && scan_value(epc_file, &epc->gl_c, 'd'))
 	{
-		printf("ERROR reading gl_c, epc_init()\n");
+		printf("ERROR reading gl_c, epc_init.c\n");
 		errorCode=209062;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->gl_bl, 'd'))
 	{
-		printf("ERROR reading gl_bl, epc_init()\n");
+		printf("ERROR reading gl_bl, epc_init.c\n");
 		errorCode=209063;
 		
 	}
@@ -1268,70 +1268,70 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* CONTROL to avoid negative data */
  	if (!errorCode && epc->rootzoneDepth_max <= 0)
 	{
-		printf("ERROR in epc data in EPC file: negative or zero rootzone_depth, epc_init()\n");
+		printf("ERROR in epc data in EPC file: negative or zero rootzone_depth, epc_init.c\n");
 		errorCode=209067;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->rootdistrib_param, 'd'))
 	{
-		printf("ERROR reading rootdistrib_param: epc_init()\n");
+		printf("ERROR reading rootdistrib_param: epc_init.c\n");
 		errorCode=209068;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->rootlength_par1, 'd'))
 	{
-		printf("ERROR reading rootlength_par1: epc_init()\n");
+		printf("ERROR reading rootlength_par1: epc_init.c\n");
 		errorCode=209069;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->rootlength_par2, 'd'))
 	{
-		printf("ERROR reading rootlength_par2: epc_init()\n");
+		printf("ERROR reading rootlength_par2: epc_init.c\n");
 		errorCode=209070;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->rootweight2length, 'd'))
 	{
-		printf("ERROR reading rootweight2length: epc_init()\n");
+		printf("ERROR reading rootweight2length: epc_init.c\n");
 		errorCode=209071;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->GR_ratio, 'd'))
 	{
-		printf("ERROR reading growth resp.ratio: epc_init()\n");
+		printf("ERROR reading growth resp.ratio: epc_init.c\n");
 		errorCode=209072;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->MRperN, 'd'))
 	{
-		printf("ERROR reading MRperN: epc_init()\n");
+		printf("ERROR reading MRperN: epc_init.c\n");
 		errorCode=209073;
 		
 	}
 
-	if (!errorCode && scan_value(epc_file, &epc->NSC_SC_prop, 'd'))
+	if (!errorCode && scan_value(epc_file, &epc->prop_NSCvsSC, 'd'))
 	{
-		printf("ERROR reading NSC_SC_prop: epc_init()\n");
+		printf("ERROR reading prop_NSCvsSC: epc_init.c\n");
 		errorCode=209074;
 		
 	}
 
-	if (!errorCode && scan_value(epc_file, &epc->NSC_avail_prop, 'd'))
+	if (!errorCode && scan_value(epc_file, &epc->prop_NSCcrit, 'd'))
 	{
-		printf("ERROR reading NSC_avail_prop: epc_init()\n");
+		printf("ERROR reading prop_NSCcrit: epc_init.c\n");
 		errorCode=209075;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->nfix, 'd'))
 	{
-		printf("ERROR reading N fixation, epc_init()\n");
+		printf("ERROR reading N fixation, epc_init.c\n");
 		errorCode=209076;
 		
 	}
@@ -1339,7 +1339,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* CONTROL to avoid irrealistic temperature data */
 	if (!errorCode && scan_value(epc_file, &epc->tau, 'd'))
 	{
-		printf("ERROR reading tau (time delay photosynthesis acclim.), epc_init()\n");
+		printf("ERROR reading tau (time delay photosynthesis acclim.), epc_init.c\n");
 		errorCode=209077;
 		
 	}
@@ -1356,14 +1356,14 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* dividing line from file */ 
 	if (!errorCode && scan_value(epc_file, header, 's'))
 	{
-		printf("ERROR reading 3. dividing line, epc_init()\n");
+		printf("ERROR reading 3. dividing line, epc_init.c\n");
 		errorCode=209078;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, header, 's'))
 	{
-		printf("ERROR reading 3. block title, epc_init()\n");
+		printf("ERROR reading 3. block title, epc_init.c\n");
 		errorCode=209079;
 		
 	}
@@ -1391,7 +1391,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* critical relative VWC (prop. to FC) in germination */
 	if (!errorCode && scan_value(epc_file, &epc->grmn_paramVWC, 'd'))
 	{
-		printf("ERROR reading critical VWC ratio in germination, epc_init()\n");
+		printf("ERROR reading critical VWC ratio in germination, epc_init.c\n");
 		errorCode=209082;
 		
 	}
@@ -1407,7 +1407,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* critical photoslow daylength */
 	if (!errorCode && scan_value(epc_file, &epc->phpsl_parDL, 'd'))
 	{
-		printf("ERROR reading critical photoslow daylength, epc_init()\n");
+		printf("ERROR reading critical photoslow daylength, epc_init.c\n");
 		errorCode=209084;
 		
 	}
@@ -1415,7 +1415,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* slope of relative photoslow development rate */
 	if (!errorCode && scan_value(epc_file, &epc->phpsl_parDR, 'd'))
 	{
-		printf("ERROR reading slope of relative photoslow development rate, epc_init()\n");
+		printf("ERROR reading slope of relative photoslow development rate, epc_init.c\n");
 		errorCode=209085;
 		
 	}
@@ -1431,27 +1431,27 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* critical vernalization temperature data */
 	if (!errorCode && scan_value(epc_file, &epc->vern_parT1, 'd'))
 	{
-		printf("ERROR reading critical vernalization temperature 1, epc_init()\n");
+		printf("ERROR reading critical vernalization temperature 1, epc_init.c\n");
 		errorCode=209087;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->vern_parT2, 'd'))
 	{
-		printf("ERROR reading critical vernalization temperature 2, epc_init()\n");
+		printf("ERROR reading critical vernalization temperature 2, epc_init.c\n");
 		errorCode=209088;
 		
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->vern_parT3, 'd'))
 	{
-		printf("ERROR reading critical vernalization temperature 3, epc_init()\n");
+		printf("ERROR reading critical vernalization temperature 3, epc_init.c\n");
 		errorCode=209089;
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->vern_parT4, 'd'))
 	{
-		printf("ERROR reading critical vernalization temperature 4, epc_init()\n");
+		printf("ERROR reading critical vernalization temperature 4, epc_init.c\n");
 		errorCode=209090;
 	}
 	
@@ -1469,14 +1469,14 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* slope of relative vernalization development rate  */
 	if (!errorCode && scan_value(epc_file, &epc->vern_parDR1, 'd'))
 	{
-		printf("ERROR reading slope of relative vernalization development rate, epc_init()\n");
+		printf("ERROR reading slope of relative vernalization development rate, epc_init.c\n");
 		errorCode=209091;
 	}
 
 	/* required vernalization days (in vernalization development rate  */
 	if (!errorCode && scan_value(epc_file, &epc->vern_parDR2, 'd'))
 	{
-		printf("ERROR reading required vernalization days (in vernalization development rate, epc_init()\n");
+		printf("ERROR reading required vernalization days (in vernalization development rate, epc_init.c\n");
 		errorCode=209092;
 	}
 
@@ -1490,27 +1490,27 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* critical flowering heat stress temperatures */
 	if (!errorCode && scan_value(epc_file, &epc->flowHS_parT1, 'd'))
 	{
-		printf("ERROR reading critical flowering heat stress temperature 1, epc_init()\n");
+		printf("ERROR reading critical flowering heat stress temperature 1, epc_init.c\n");
 		errorCode=209094;
 	}
 	
 	/* flowering heat stress temperature parameter with control */
 	if (!errorCode && scan_value(epc_file, &epc->flowHS_parT2, 'd'))
 	{
-		printf("ERROR reading critical flowering heat stress temperature 2, epc_init()\n");
+		printf("ERROR reading critical flowering heat stress temperature 2, epc_init.c\n");
 		errorCode=209095;
 	}
 	if (epc->flowHS_parT1 > epc->flowHS_parT2) 
 	{
-			printf("ERROR in flowering heat stress temperature data in EPC file\n");
-			printf("Correct temperature data: flowHS_parT1 <= flowHS_parT2 \n");
-			errorCode=2090951;
+		printf("ERROR in flowering heat stress temperature data in EPC file\n");
+		printf("Correct temperature data: flowHS_parT1 <= flowHS_parT2 \n");
+		errorCode=2090951;
 	}
 
 	/* mortality parameter of flowering heat stress */
 	if (!errorCode && scan_value(epc_file, &epc->flowHS_parMORT, 'd'))
 	{
-		printf("ERROR reading mortality parameter of flowering heat stress, epc_init()\n");
+		printf("ERROR reading mortality parameter of flowering heat stress, epc_init.c\n");
 		errorCode=209096;
 	}
 
@@ -1518,13 +1518,13 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* dividing line from file */ 
 	if (!errorCode && scan_value(epc_file, header, 's'))
 	{
-		printf("ERROR reading 4. dividing line, epc_init()\n");
+		printf("ERROR reading 4. dividing line, epc_init.c\n");
 		errorCode=209097;
 	}
 
 	if (!errorCode && scan_value(epc_file, header, 's'))
 	{
-		printf("ERROR reading 4. block titke, epc_init()\n");
+		printf("ERROR reading 4. block titke, epc_init.c\n");
 		errorCode=209098;
 	}
 
@@ -1532,65 +1532,72 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* STRESS AND SENESCENCE PARAMETERS */
 	/*********************************************************************************************************************/
 
-	if (!errorCode && scan_value(epc_file, &epc->VWCratio_SScrit1, 'd'))
+	if (!errorCode && scan_value(epc_file, &epc->VWCratio_WScrit1, 'd'))
 	{
-		printf("ERROR reading VWCratio_SScrit1, epc_init()\n");
+		printf("ERROR reading VWCratio_WScrit1, epc_init.c\n");
 		errorCode=209099;
 	}
 	
-	if (!errorCode && scan_value(epc_file, &epc->VWCratio_SScrit2, 'd'))
+	if (!errorCode && scan_value(epc_file, &epc->VWCratio_WScrit2, 'd'))
 	{
-		printf("ERROR reading VWCratio_SScrit2, epc_init()\n");
+		printf("ERROR reading VWCratio_WScrit2, epc_init.c\n");
 		errorCode=209100;
 	}
 
-	
-	if (!errorCode && scan_value(epc_file, &epc->m_fullstress2, 'd'))
+	if (!errorCode && scan_value(epc_file, &epc->nday_fullWS, 'd'))
 	{
-		printf("ERROR reading m_fullstress2, epc_init()\n");
-		errorCode=209101;
+		printf("ERROR reading nday_fullWS: epc_init.c\n");
+		errorCode = 209101;
 	}
 
+	/* control: nday_fullWS must greater than 1 -> number of days */
+	if (!errorCode && epc->nday_fullWS < 1)
+	{
+		printf("ERROR in critical value of total water stress length parameter in EPC file\n");
+		printf("Correct parameter value: must greater than 1 \n");
+		errorCode = 2091011;
+	}
 	if (!errorCode && scan_value(epc_file, &epc->vpd_open, 'd')) 
 	{
-		printf("ERROR reading vpd_max, epc_init()\n");
+		printf("ERROR reading vpd_max, epc_init.c\n");
 		errorCode=209102;
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->vpd_close, 'd'))
 	{
-		printf("ERROR reading vpd_min, epc_init()\n");
+		printf("ERROR reading vpd_min, epc_init.c\n");
 		errorCode=209103;
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->maxSNSCmort_leaf, 'd'))
 	{
-		printf("ERROR reading maximal senescence mortality parameter of leaf: epc_init()\n");
+		printf("ERROR reading maximal senescence mortality parameter of leaf: epc_init.c\n");
 		errorCode=209104;
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->maxSNSCmort_other, 'd'))
 	{
-		printf("ERROR reading maximal senescence mortality of softstem and froot: epc_init()\n");
+		printf("ERROR reading maximal senescence mortality of softstem and froot: epc_init.c\n");
 		errorCode=209105;
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->m_nscSNSCmort, 'd'))
 	{
-		printf("ERROR reading multiplier of senescence mortality calculation of non-stuctured biomass: epc_init()\n");
+		printf("ERROR reading multiplier of senescence mortality calculation of non-stuctured biomass: epc_init.c\n");
 		errorCode=209106;
 	}
 
+
 	if (!errorCode && scan_value(epc_file, &epc->SNSC_extremT1, 'd'))
 	{
-		printf("ERROR reading lower limit extreme high temperature effect on senesncene mortality: epc_init()\n");
+		printf("ERROR reading lower limit extreme high temperature effect on senesncene mortality: epc_init.c\n");
 		errorCode=209107;
 	}
 
 	/* flowering heat stress temperature parameter with control */
 	if (!errorCode && scan_value(epc_file, &epc->SNSC_extremT2, 'd'))
 	{
-		printf("ERROR reading lower limit extreme high temperature effect on senesncene mortality: epc_init()\n");
+		printf("ERROR reading lower limit extreme high temperature effect on senesncene mortality: epc_init.c\n");
 		errorCode=209108;
 	}
 	if (!errorCode && epc->SNSC_extremT1 >= epc->SNSC_extremT2) 
@@ -1602,31 +1609,31 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 	if (!errorCode && scan_value(epc_file, &epc->mort_SNSC_to_litter, 'd'))
 	{
-		printf("ERROR reading turnover rate of wilted standing biomass to litter parameter: epc_init()\n");
+		printf("ERROR reading turnover rate of wilted standing biomass to litter parameter: epc_init.c\n");
 		errorCode=209109;
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->mort_CnW_to_litter, 'd'))
 	{
-		printf("ERROR reading turnover rate of cut-down non-woody biomass to litter parameter: epc_init()\n");
+		printf("ERROR reading turnover rate of cut-down non-woody biomass to litter parameter: epc_init.c\n");
 		errorCode=209110;
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->mort_CW_to_litter, 'd'))
 	{
-		printf("ERROR reading turnover rate of cut-down woody biomass to litter parameter: epc_init()\n");
+		printf("ERROR reading turnover rate of cut-down woody biomass to litter parameter: epc_init.c\n");
 		errorCode=209111;
 	}
 
-	if (!errorCode && scan_value(epc_file, &epc->SWCstressLENGTH_crit, 'd'))
+	if (!errorCode && scan_value(epc_file, &epc->WSlenght_crit, 'd'))
 	{
-		printf("ERROR reading SWCstressLENGTH_crit: epc_init()\n");
+		printf("ERROR reading WSlenght_crit: epc_init.c\n");
 		errorCode=209112;
 	}
 
 	if (!errorCode && scan_value(epc_file, &epc->photoSTRESSeffect, 'd'))
 	{
-		printf("ERROR reading photoSTRESSeffect: epc_init()\n");
+		printf("ERROR reading photoSTRESSeffect: epc_init.c\n");
 		errorCode=209113;
 	}
 
@@ -1634,13 +1641,13 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* dividing line from file */ 
 	if (!errorCode && scan_value(epc_file, header, 's'))
 	{
-		printf("ERROR reading 5. dividing line, epc_init()\n");
+		printf("ERROR reading 5. dividing line, epc_init.c\n");
 		errorCode=209114;
 	}
 
 	if (!errorCode && scan_value(epc_file, header, 's'))
 	{
-		printf("ERROR reading 5. block title, epc_init()\n");
+		printf("ERROR reading 5. block title, epc_init.c\n");
 		errorCode=209115;
 	}
 
@@ -1651,21 +1658,21 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* snowcover_limit for calculation heatsum */
 	if (!errorCode && scan_value(epc_file, &epc->snowcover_limit, 'd'))
 	{
-		printf("ERROR reading snowcover_limit parameter: epc_init()\n");
+		printf("ERROR reading snowcover_limit parameter: epc_init.c\n");
 		errorCode=209116;
 	}
 
 	/* heatsum_limit for calculation heatsum index */
 	if (!errorCode && scan_value(epc_file, &epc->heatsum_limit1, 'd'))
 	{
-		printf("ERROR reading heatsum_limit1 parameter: epc_init()\n");
+		printf("ERROR reading heatsum_limit1 parameter: epc_init.c\n");
 		errorCode=209117;
 	}
 
 	/* heatsum_limit2 for calculation heatsum index with control */
 	if (!errorCode && scan_value(epc_file, &epc->heatsum_limit2, 'd'))
 	{
-		printf("ERROR reading heatsum_limit2 parameter: epc_init()\n");
+		printf("ERROR reading heatsum_limit2 parameter: epc_init.c\n");
 		errorCode=209118;
 	}
 
@@ -1679,14 +1686,14 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* Tmin_limit1 for calculation Tmin index */
 	if (!errorCode && scan_value(epc_file, &epc->Tmin_limit1, 'd'))
 	{
-		printf("ERROR reading Tmin_limit1 parameter: epc_init()\n");
+		printf("ERROR reading Tmin_limit1 parameter: epc_init.c\n");
 		errorCode=209119;
 	}
 
 	/* Tmin_limit1 for calculation Tmin index */
 	if (!errorCode && scan_value(epc_file, &epc->Tmin_limit2, 'd'))
 	{
-		printf("ERROR reading Tmin_limit2 parameter: epc_init()\n");
+		printf("ERROR reading Tmin_limit2 parameter: epc_init.c\n");
 		errorCode=209120;
 	}
 
@@ -1700,13 +1707,13 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* vpd_limit for calculation vpd index */
 	if (!errorCode && scan_value(epc_file, &epc->vpd_limit1, 'd'))
 	{
-		printf("ERROR reading vpd_limit1 parameter: epc_init()\n");
+		printf("ERROR reading vpd_limit1 parameter: epc_init.c\n");
 		errorCode=209121;
 	}
 	
 	if (!errorCode && scan_value(epc_file, &epc->vpd_limit2, 'd'))
 	{
-		printf("ERROR reading vpd_limit2 parameter: epc_init()\n");
+		printf("ERROR reading vpd_limit2 parameter: epc_init.c\n");
 		errorCode=209122;
 	}
 	
@@ -1720,28 +1727,28 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* dayl_limit for calculation dayl index */
 	if (!errorCode && scan_value(epc_file, &epc->dayl_limit1, 'd'))
 	{
-		printf("ERROR reading dayl_limit1 parameter: epc_init()\n");
+		printf("ERROR reading dayl_limit1 parameter: epc_init.c\n");
 		errorCode=209123;
 	}
 	
 
 	if (!errorCode && scan_value(epc_file, &epc->dayl_limit2, 'd'))
 	{
-		printf("ERROR reading dayl_limit2 parameter: epc_init()\n");
-		errorCode=209123;
+		printf("ERROR reading dayl_limit2 parameter: epc_init.c\n");
+		errorCode=209124;
 	}
 
 	if (!errorCode && epc->dayl_limit1 > epc->dayl_limit2) 
 	{
 		printf("ERROR in vpd_limit data in EPC file\n");
 		printf("Correct data: limit1 > limit2 \n");
-		errorCode=209124;
+		errorCode=2091241;
 	}
 
 	/* n_moving_avg for calculation moving average from indexes */
 	if (!errorCode && scan_value(epc_file, &epc->n_moving_avg, 'i'))
 	{
-		printf("ERROR reading n_moving_avg parameter: epc_init()\n");
+		printf("ERROR reading n_moving_avg parameter: epc_init.c\n");
 		errorCode=209125;
 	}
 	if (!errorCode && (epc->n_moving_avg < 2))
@@ -1754,14 +1761,14 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* epc_limit for calculation yday of start growing season  */
 	if (!errorCode && scan_value(epc_file, &epc->GSI_limit_SGS, 'd'))
 	{
-		printf("ERROR reading epc_limit_SGS parameter: epc_init()\n");
+		printf("ERROR reading epc_limit_SGS parameter: epc_init.c\n");
 		errorCode=209126;
 	}
 
 	/* epc_limit for calculation yday of end growing season  */
 	if (!errorCode && scan_value(epc_file, &epc->GSI_limit_EGS, 'd'))
 	{
-		printf("ERROR reading epc_limit_EGS parameter: epc_init()\n");
+		printf("ERROR reading epc_limit_EGS parameter: epc_init.c\n");
 		errorCode=209127;
 	}
 
@@ -1769,13 +1776,13 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 	/* dividing line from file */ 
 	if (!errorCode && scan_value(epc_file, header, 's'))
 	{
-		printf("ERROR reading 6. dividing line from, epc_init()\n");
+		printf("ERROR reading 6. dividing line from, epc_init.c\n");
 		errorCode=209128;
 	}
 
 	if (!errorCode && scan_value(epc_file, header, 's'))
 	{
-		printf("ERROR reading header, epc_init()\n");
+		printf("ERROR reading header, epc_init.c\n");
 		errorCode=209129;
 	}
 
@@ -1795,7 +1802,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		if (phenphase==N_PHENPHASES-1) scanflag=1;
 		if (!errorCode && scan_array(epc_file, &(epc->phenophase_length[phenphase]), 'd', scanflag, 1))
 		{
-			printf("ERROR reading phenophase_length in phenophase %i, epc_init()\n", phenphase+1);
+			printf("ERROR reading phenophase_length in phenophase %i, epc_init.c\n", phenphase+1);
 			errorCode=209131;
 		}
 	}
@@ -1806,7 +1813,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		if (phenphase==N_PHENPHASES-1) scanflag=1;
 		if (!errorCode && scan_array(epc_file, &(epc->alloc_leafc[phenphase]), 'd', scanflag, 1))
 		{
-			printf("ERROR reading alloc_leafc in phenophase %i, epc_init()\n", phenphase+1);
+			printf("ERROR reading alloc_leafc in phenophase %i, epc_init.c\n", phenphase+1);
 			errorCode=209132;
 		}
 	}
@@ -1817,7 +1824,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		if (phenphase==N_PHENPHASES-1) scanflag=1;
 		if (!errorCode && scan_array(epc_file, &(epc->alloc_frootc[phenphase]), 'd', scanflag, 1))
 		{
-			printf("ERROR reading alloc_frootc in phenophase %i, epc_init()\n", phenphase+1);
+			printf("ERROR reading alloc_frootc in phenophase %i, epc_init.c\n", phenphase+1);
 			errorCode=209133;
 		}
 	}
@@ -1828,7 +1835,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		if (phenphase==N_PHENPHASES-1) scanflag=1;
 		if (!errorCode && scan_array(epc_file, &(epc->alloc_yield[phenphase]), 'd', scanflag, 1))
 		{
-			printf("ERROR reading alloc_yield in phenophase %i, epc_init()\n", phenphase+1);
+			printf("ERROR reading alloc_yield in phenophase %i, epc_init.c\n", phenphase+1);
 			errorCode=209134;
 		}
 	}
@@ -1839,7 +1846,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		if (phenphase==N_PHENPHASES-1) scanflag=1;
 		if (!errorCode && scan_array(epc_file, &(epc->alloc_softstemc[phenphase]), 'd', scanflag, 1))
 		{
-			printf("ERROR reading alloc_softstemc in phenophase %i, epc_init()\n", phenphase+1);
+			printf("ERROR reading alloc_softstemc in phenophase %i, epc_init.c\n", phenphase+1);
 			errorCode=209135;
 		}
 	}
@@ -1850,7 +1857,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		if (phenphase==N_PHENPHASES-1) scanflag=1;
 		if (!errorCode && scan_array(epc_file, &(epc->alloc_livestemc[phenphase]), 'd', scanflag, 1))
 		{
-			printf("ERROR reading alloc_woodystemc_live in phenophase %i, epc_init()\n", phenphase+1);
+			printf("ERROR reading alloc_woodystemc_live in phenophase %i, epc_init.c\n", phenphase+1);
 			errorCode=209136;
 		}
 	}
@@ -1861,7 +1868,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		if (phenphase==N_PHENPHASES-1) scanflag=1;
 		if (!errorCode && scan_array(epc_file, &(epc->alloc_deadstemc[phenphase]), 'd', scanflag, 1))
 		{
-			printf("ERROR reading alloc_woodystemc_dead in phenophase %i, epc_init()\n", phenphase+1);
+			printf("ERROR reading alloc_woodystemc_dead in phenophase %i, epc_init.c\n", phenphase+1);
 			errorCode=209137;
 		}
 	}
@@ -1872,7 +1879,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		if (phenphase==N_PHENPHASES-1) scanflag=1;
 		if (!errorCode && scan_array(epc_file, &(epc->alloc_livecrootc[phenphase]), 'd', scanflag, 1))
 		{
-			printf("ERROR reading alloc_crootc_live in phenophase %i, epc_init()\n", phenphase+1);
+			printf("ERROR reading alloc_crootc_live in phenophase %i, epc_init.c\n", phenphase+1);
 			errorCode=209138;
 		}
 	}
@@ -1883,7 +1890,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		if (phenphase==N_PHENPHASES-1) scanflag=1;
 		if (!errorCode && scan_array(epc_file, &(epc->alloc_deadcrootc[phenphase]), 'd', scanflag, 1))
 		{
-			printf("ERROR reading alloc_crootc_dead in phenophase %i, epc_init()\n", phenphase+1);
+			printf("ERROR reading alloc_crootc_dead in phenophase %i, epc_init.c\n", phenphase+1);
 			errorCode=209139;
 		}
 	}
@@ -1933,7 +1940,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 			}
 			else
 			{
-				printf("ERROR in allocation parameters in phenophase %i, epc_init()\n", phenphase+1);
+				printf("ERROR in allocation parameters in phenophase %i, epc_init.c\n", phenphase+1);
 				printf("Allocation parameters must sum to 1.0 in every phenophase. Check EPC file and try again.\n");
 				errorCode=2091391;
 			}
@@ -1944,7 +1951,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		if (!errorCode && (phenphase == 0)
 			   && (epc->alloc_leafc[phenphase] == 0 || epc->alloc_frootc[phenphase] == 0))
 		{
-			printf("ERROR in allocation parameters in phenophase %i, epc_init()\n", phenphase+1);
+			printf("ERROR in allocation parameters in phenophase %i, epc_init.c\n", phenphase+1);
 			printf("In the first phenophase leaf and froot allocation parameter setting is necessary. Check EPC file and try again.\n");
 			errorCode=2091321;
 		}
@@ -1952,18 +1959,18 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		/* control: woody biomes - no softstem */
 		if (!errorCode && epc->woody && epc->alloc_softstemc[phenphase] > 0)
 		{
-			printf("ERROR in allocation parameters in phenophase %i, epc_init()\n", phenphase+1);
+			printf("ERROR in allocation parameters in phenophase %i, epc_init.c\n", phenphase+1);
 			printf("No softstem allocation in case of woody biomass. Check EPC file and try again.\n");
-			errorCode=2091351;
+			errorCode=2091361;
 		}
 
 		/* control: non-woody biomes - no woody allocation */
 		if (!errorCode && !epc->woody && 
 		   (epc->alloc_livecrootc[phenphase] > 0 || epc->alloc_livestemc[phenphase] > 0 || epc->alloc_deadcrootc[phenphase] > 0 || epc->alloc_deadstemc[phenphase] > 0))
 		{
-			printf("ERROR in allocation parameters in phenophase %i, epc_init()\n", phenphase+1);
+			printf("ERROR in allocation parameters in phenophase %i, epc_init.c\n", phenphase+1);
 			printf("No woody allocation in case of non-woody biomass. Check EPC file and try again.\n");
-			errorCode=2091371;
+			errorCode=2091381;
 		}
 
 	}
@@ -1974,13 +1981,13 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		if (phenphase==N_PHENPHASES-1) scanflag=1;
 		if (!errorCode && scan_array(epc_file, &(epc->avg_proj_sla[phenphase]), 'd', scanflag, 1))
 		{
-			printf("ERROR reading avg_proj_sla in phenophase %i, epc_init()\n", phenphase+1);
+			printf("ERROR reading avg_proj_sla in phenophase %i, epc_init.c\n", phenphase+1);
 			errorCode=209140;
 		}
 
 		if (!errorCode && epc->avg_proj_sla[phenphase] < 0)
 		{
-			printf("ERROR in specific leaf area in phenophase %i, epc_init()\n", phenphase+1);
+			printf("ERROR in specific leaf area in phenophase %i, epc_init.c\n", phenphase+1);
 			printf("Specific leaf area must be positive in every phenophase. Check EPC file and try again.\n");
 			errorCode=2091401;
 		
@@ -1988,7 +1995,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 
 		if (!errorCode && epc->avg_proj_sla[phenphase] == 0 && epc->alloc_leafc[phenphase] > 0)
 		{
-			printf("ERROR in specific leaf area in phenophase %i, epc_init()\n", phenphase+1);
+			printf("ERROR in specific leaf area in phenophase %i, epc_init.c\n", phenphase+1);
 			printf("Specific leaf area must greater than to 0.0 in case of leaf allocation. Check EPC file and try again.\n");
 			errorCode=2091401;
 		
@@ -2001,7 +2008,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		if (phenphase==N_PHENPHASES-1) scanflag=1;
 		if (!errorCode && scan_array(epc_file, &(epc->curgrowth_prop[phenphase]), 'd', scanflag, 1))
 		{
-			printf("ERROR reading curgrowth_prop in phenophase %i, epc_init()\n", phenphase+1);
+			printf("ERROR reading curgrowth_prop in phenophase %i, epc_init.c\n", phenphase+1);
 			errorCode=209141;
 		}
 	}
@@ -2012,7 +2019,7 @@ int epc_init(file init, epconst_struct* epc, control_struct* ctrl, int EPCfromIN
 		if (phenphase==N_PHENPHASES-1) scanflag=1;
 		if (!errorCode && scan_array(epc_file, &(epc->max_plantlifetime[phenphase]), 'd', scanflag, 1))
 		{
-			printf("ERROR reading max_plantlifetime in phenophase %i, epc_init()\n", phenphase+1);
+			printf("ERROR reading max_plantlifetime in phenophase %i, epc_init.c\n", phenphase+1);
 			errorCode=209142;
 		}
 

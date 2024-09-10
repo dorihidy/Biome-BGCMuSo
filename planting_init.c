@@ -23,7 +23,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_constants.h"
 
 
-int planting_init(file init, control_struct* ctrl, planting_struct* PLT, epconst_struct* epc)
+int planting_init(file init, control_struct* ctrl, planting_struct* PLT)
 {
 	
 	char header[STRINGSIZE];
@@ -69,7 +69,7 @@ int planting_init(file init, control_struct* ctrl, planting_struct* PLT, epconst
 	/* header reading */
 	if (!errorCode && scan_value(init, header, 's'))
 	{
-		printf("ERROR reading header, planting_init()\n");
+		printf("ERROR reading header, planting_init.c\n");
 		errorCode=1;
 	}
 	
@@ -77,7 +77,7 @@ int planting_init(file init, control_struct* ctrl, planting_struct* PLT, epconst
 	/* keyword control */
 	if (!errorCode && scan_value(init, header, 's'))
 	{
-		printf("ERROR reading header, planting_init()\n");
+		printf("ERROR reading header, planting_init.c\n");
 		errorCode=1;
 	}
 	
@@ -212,12 +212,6 @@ int planting_init(file init, control_struct* ctrl, planting_struct* PLT, epconst
 	}
 
 
-	/* conrtol */
-	if (!errorCode && PLT->PLT_num && epc->n_germ_phenophase == 0)
-	{
-		printf("ERROR in phenophase parametrization: if PLANTING is defined -> n_germ_phenophase must be specified in EPC file\n");
-		errorCode=1;
-	}
 
 	
 	PLT->mgmdPLT = 0;

@@ -27,23 +27,24 @@ which gave an error.
 
 
 
-int simctrl_init(file init, epconst_struct* epc, control_struct* ctrl, planting_struct* PLT)
+int simctrl_init(file init, control_struct* ctrl, epconst_struct* epc, soilprop_struct* sprop, planting_struct* PLT)
 {
 	int errorCode=0;
+	int layer;
 	char key[] = "SIMULATION_CONTROL";
 	char keyword[STRINGSIZE];
-
+	double hydrCONDUCTsat_cmday;
 
 	
 	/********************************************************************
 	**                                                                 **
 	** Begin reading initialization file block starting with keyword:  **
-	** SOI_FILE                                                      ** 
+	** SIMULATION_CONTROL                                                      ** 
 	**                                                                 **
 	********************************************************************/
 	
 	
-	/* scan for the SOIL file keyword, exit if not next */
+	/* scan for the SOI file keyword, exit if not next */
 	if (!errorCode && scan_value(init, keyword, 's'))
 	{
 		printf("ERROR reading keyword for control data\n");
@@ -56,146 +57,165 @@ int simctrl_init(file init, epconst_struct* epc, control_struct* ctrl, planting_
 	}
 
 
-	if (!errorCode && scan_value(init, &epc->phenology_flag, 'i'))
+	if (!errorCode && scan_value(init, &ctrl->phenology_flag, 'i'))
 	{
-		printf("ERROR reading phenology flag, epc_init()\n");
+		printf("ERROR reading phenology flag, simctrl_init.c\n");
 		errorCode=21101;
 	}
 
 	/* get flag of GSI flag */
-	if (!errorCode && scan_value(init, &epc->GSI_flag, 'i'))
+	if (!errorCode && scan_value(init, &ctrl->GSI_flag, 'i'))
 	{
-		printf("ERROR reading flag indicating usage of GSI file: epc_init()\n");
+		printf("ERROR reading flag indicating usage of GSI file: simctrl_init.c\n");
 		errorCode=21102;
 	}
 	
-	if (!errorCode && scan_value(init, &epc->transferGDD_flag, 'i'))
+	if (!errorCode && scan_value(init, &ctrl->transferGDD_flag, 'i'))
 	{
-		printf("ERROR reading transferGDD_flag, epc_init()\n");
+		printf("ERROR reading transferGDD_flag, simctrl_init.c\n");
 		errorCode=21103;
 	}
 
 	/* control of phenophase number */
 	if (!errorCode)
 	{
-		if (epc->transferGDD_flag && epc->n_emerg_phenophase < 1)
+		if (ctrl->transferGDD_flag && epc->n_emerg_phenophase < 1)
 		{
-			printf("ERROR in phenophase parametrization: if transferGDD_flag = 1 -> n_emerg_phenophase must be specified in EPC file()\n");
+			printf("ERROR in phenophase parametrization: if transferGDD_flag = 1 -> n_emerg_phenophase must be specified in EPC file.c\n");
 			errorCode=2110301;
 		}
 	}
 
 	/* temperature dependent q10 value */
-	if (!errorCode && scan_value(init, &epc->q10depend_flag, 'i'))
+	if (!errorCode && scan_value(init, &ctrl->q10depend_flag, 'i'))
 	{
-		printf("ERROR reading q10depend_flag, epc_init()\n");
+		printf("ERROR reading q10depend_flag, simctrl_init.c\n");
 		errorCode=21104;
 	}
 	
 	/* acclimation */
-	if (!errorCode && scan_value(init, &epc->phtsyn_acclim_flag, 'i'))
+	if (!errorCode && scan_value(init, &ctrl->phtsyn_acclim_flag, 'i'))
 	{
-		printf("ERROR reading acclimation flag of photosynthesis, epc_init()\n");
+		printf("ERROR reading acclimation flag of photosynthesis, simctrl_init.c\n");
 		errorCode=21105;
 	}
-	if (!errorCode && scan_value(init, &epc->resp_acclim_flag, 'i'))
+	if (!errorCode && scan_value(init, &ctrl->resp_acclim_flag, 'i'))
 	{
-		printf("ERROR reading acclimation flag of respiration, epc_init()\n");
+		printf("ERROR reading acclimation flag of respiration, simctrl_init.c\n");
 		errorCode=21106;
 	}
 	
 	/* get flag of CO2 conductance reduction */
-	if (!errorCode && scan_value(init, &epc->CO2conduct_flag, 'i'))
+	if (!errorCode && scan_value(init, &ctrl->CO2conduct_flag, 'i'))
 	{
-		printf("ERROR reading CO2conduct_flag, epc_init()\n");
+		printf("ERROR reading CO2conduct_flag, simctrl_init.c\n");
 		errorCode=21107;
 	}
 
 	/* soil temperature calculation flag */
-	if (!errorCode && scan_value(init, &epc->STCM_flag, 'i'))
+	if (!errorCode && scan_value(init, &ctrl->STCM_flag, 'i'))
 	{
-		printf("ERROR reading soil temperature calculation flag: epc_init()\n");
+		printf("ERROR reading soil temperature calculation flag: simctrl_init.c\n");
 		errorCode=21108;
 	}
 	
-	/* soil water calculation flag */
-	if (!errorCode && scan_value(init, &epc->SHCM_flag, 'i'))
-	{
-		printf("ERROR reading soil hydrological calculation method flag: epc_init()\n");
-		errorCode=21109;
-	}
-
-	/*  discretitaion level of VWC calculation simulation */
-	if (!errorCode && scan_value(init, &epc->discretlevel_Richards, 'i'))
-	{
-		printf("ERROR reading discretitaion level of VWC calculation: epc_init.c\n");
-		errorCode=21110;
-	}
-
-	/* control of discretlevel_Richards */
-	if (!errorCode && (epc->SHCM_flag == 0 || epc->SHCM_flag == 2)  && epc->discretlevel_Richards > 0)
-	{
-		if (ctrl->onscreen) printf("WARNING: discretization level of soil hydr.calc. is used only with Richards-method, epc_init()\n");
-	}
-
-
+	
 	/*  photosynthesis calculation method flag */
-	if (!errorCode && scan_value(init, &epc->photosynt_flag, 'i'))
+	if (!errorCode && scan_value(init, &ctrl->photosynt_flag, 'i'))
 	{
-		printf("ERROR reading photosynthesis calculation method flag: epc_init.c\n");
-		errorCode=21111;
+		printf("ERROR reading photosynthesis calculation method flag: simctrl_init.c\n");
+		errorCode=21109;
 	}
 
 
 	/*  evapotranspiration calculation method flag */
-	if (!errorCode && scan_value(init, &epc->ET_flag, 'i'))
+	if (!errorCode && scan_value(init, &ctrl->ET_flag, 'i'))
 	{
-		printf("ERROR reading evapotranspiration calculation method flag: epc_init.c\n");
-		errorCode=21112;
+		printf("ERROR reading evapotranspiration calculation method flag: simctrl_init.c\n");
+		errorCode=21110;
 	}
 
-	if (epc->ET_flag && epc->PT_ETcritT == DATA_GAP)
+	if (ctrl->ET_flag && epc->PT_ETcritT == DATA_GAP)
 	{
-		printf("ERROR in evaporatranspiration calculation: if ET_flag = 1 -> PT_ETcritT must be specified in EPC file()\n");
-		errorCode=2111201;
+		printf("ERROR in evaporatranspiration calculation: if ET_flag = 1 -> PT_ETcritT must be specified in EPC file.c\n");
+		errorCode=2111001;
 	}
 
 	/*  radiation calculation method flag */
-	if (!errorCode && scan_value(init, &epc->radiation_flag, 'i'))
+	if (!errorCode && scan_value(init, &ctrl->radiation_flag, 'i'))
 	{
-		printf("ERROR reading radiation calculation method flag: epc_init.c\n");
+		printf("ERROR reading radiation calculation method flag: simctrl_init.c\n");
+		errorCode=21111;
+	}
+
+	/*  soilstress calculation method flag */
+	if (!errorCode && scan_value(init, &ctrl->soilstress_flag, 'i'))
+	{
+		printf("ERROR reading soilstress calculation method flag: simctrl_init.c\n");
+		errorCode=21112;
+	}
+
+	/*  interception calculation method flag */
+	if (!errorCode && scan_value(init, &ctrl->interception_flag, 'i'))
+	{
+		printf("ERROR reading interception calculation method flag: simctrl_init.c\n");
 		errorCode=21113;
 	}
 
-	/*  soilstress calculation method flag */
-	if (!errorCode && scan_value(init, &epc->soilstress_flag, 'i'))
+	/*  MR-deficit calculation method flag */
+	if (!errorCode && scan_value(init, &ctrl->MRdeficit_flag, 'i'))
 	{
-		printf("ERROR reading soilstress calculation method flag: epc_init.c\n");
+		printf("ERROR reading MR-deficit calculation method flag: simctrl_init.c\n");
 		errorCode=21114;
 	}
 
-	/*  soilstress calculation method flag */
-	if (!errorCode && scan_value(init, &epc->interception_flag, 'i'))
+	/* soil water calculation flag */
+	if (!errorCode && scan_value(init, &ctrl->Ksat_flag, 'i'))
 	{
-		printf("ERROR reading interception calculation method flag: epc_init.c\n");
-		errorCode=21115;
+		printf("ERROR reading Ksat estimation method flag: simctrl_init.c\n");
+		errorCode = 21115;
 	}
 
 
 	/* control: in case of planting/harvesting, model-defined phenology is not possible: first day - planting day, last day - harvesting day */
-	if (epc->phenology_flag == 1 && PLT->PLT_num) 
+	if (ctrl->phenology_flag == 1 && PLT->PLT_num) 
 	{
 		ctrl->prephen1_flag = 1;
-		epc->phenology_flag = 0;
+		ctrl->phenology_flag = 0;
 	}
 
 	/* control: in case of user-defined phenology, GSI-method is not possible */
-	if (epc->phenology_flag == 0 && epc->GSI_flag) 
+	if (ctrl->phenology_flag == 0 && ctrl->GSI_flag) 
 	{
 		ctrl->prephen2_flag = 1;
-		epc->GSI_flag = 0;
+		ctrl->GSI_flag = 0;
 	}
 	
+	/* if measured data is availabe (in cm/day) */
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
+	{
+		if (sprop->hydrCONTUCTsatMES_cmPERday[layer] == (double)DATA_GAP)
+		{
+			if (ctrl->Ksat_flag == 1)
+				sprop->hydrCONDUCTsat[layer] = 7.05556 * 1e-6 * pow(10, (-0.6 + 0.0126 * sprop->sand[layer] - 0.0064 * sprop->clay[layer]));
+			else
+				sprop->hydrCONDUCTsat[layer] = (50 * exp(-0.075 * sprop->clay[layer]) + 200 * exp(-0.075 * (100 - sprop->sand[layer]))) / 100 / nSEC_IN_DAY;
+		}
+		else
+			sprop->hydrCONDUCTsat[layer] = sprop->hydrCONTUCTsatMES_cmPERday[layer] / (m_to_cm * nSEC_IN_DAY);
+
+		sprop->hydrDIFFUSsat[layer] = (sprop->soilB[layer] * sprop->hydrCONDUCTsat[layer] * (-100 * sprop->PSIsat[layer])) / sprop->VWCsat[layer];
+		sprop->hydrCONDUCTfc[layer] = sprop->hydrCONDUCTsat[layer] * pow(sprop->VWCfc[layer] / sprop->VWCsat[layer], 2 * sprop->soilB[layer] + 3);
+		sprop->hydrDIFFUSfc[layer] = (((sprop->soilB[layer] * sprop->hydrCONDUCTsat[layer] * (-100 * sprop->PSIsat[layer]))) / sprop->VWCsat[layer])
+			* pow(sprop->VWCfc[layer] / sprop->VWCsat[layer], sprop->soilB[layer] + 2);
+
+		hydrCONDUCTsat_cmday = sprop->hydrCONDUCTsat[layer] * m_to_cm * nSEC_IN_DAY; // saturated hydraulic conductivity (cm/day = m/s * 100 * sec/day)
+		if (sprop->drainCoeff_mes[layer] != DATA_GAP)
+			sprop->drainCoeff[layer] = sprop->drainCoeff_mes[layer];
+		else
+			sprop->drainCoeff[layer] = 0.1122 * pow(hydrCONDUCTsat_cmday, 0.339);
+
+	}
 
 
 

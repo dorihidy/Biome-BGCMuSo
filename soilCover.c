@@ -27,11 +27,11 @@ int soilCover(siteconst_struct* sitec, soilprop_struct* sprop, metvar_struct* me
 
 	/* soilCovering parameters */
 	int layer_SCeff, layer, errorCode;
-	double soilw_SUM, tsoil_SUM, soilCover;	 
+	double soilw_SUM, tsoilSUM, soilCover;	 
 
 
 	errorCode=0;
-	tsoil_SUM=soilw_SUM=0;	 
+	tsoilSUM=soilw_SUM=0;	 
 	
 
 	layer_SCeff = ( int) sprop->pLAY_soilCover;
@@ -45,15 +45,15 @@ int soilCover(siteconst_struct* sitec, soilprop_struct* sprop, metvar_struct* me
 
 	if (soilCover > sprop->pCRIT_soilCover)
 	{
-		for (layer = 1; layer<layer_SCeff; layer++)
+ 		for (layer = 0; layer<layer_SCeff; layer++)
 		{
-			tsoil_SUM += metv->tsoil[layer] * sitec->soillayer_thickness[layer] / (sitec->soillayer_depth[layer_SCeff-1]-sitec->soillayer_thickness[0]);
+			tsoilSUM += metv->tsoil[layer] * sitec->soillayer_thickness[layer] / (sitec->soillayer_depth[layer_SCeff-1]);
 		}
 
 
 		for (layer = 0; layer<layer_SCeff; layer++)
 		{
-			metv->tsoil[layer] = tsoil_SUM;
+			metv->tsoil[layer] = tsoilSUM;
 		}
 
 

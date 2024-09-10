@@ -46,7 +46,7 @@ int multilayer_rootDepth(const epconst_struct* epc, const soilprop_struct* sprop
 	if (!errorCode && calc_nrootlayers(0, maxRD, frootc, sitec, epv))
 	{
 		printf("\n");
-		printf("ERROR: calc_nrootlayers() for multilayer_rootDepth.c\n");
+		printf("ERROR in calc_nrootlayers.c for multilayer_rootDepth.c\n");
 		errorCode=1;
 	}
 
@@ -83,7 +83,7 @@ int multilayer_rootDepth(const epconst_struct* epc, const soilprop_struct* sprop
 	if (!errorCode && calc_nrootlayers(1, maxRD, frootc, sitec, epv))
 	{
 		printf("\n");
-		printf("ERROR: calc_nrootlayers() for multilayer_rootDepth.c\n");
+		printf("ERROR in calc_nrootlayers.c for multilayer_rootDepth.c\n");
 		errorCode=1;
 	}
 	
@@ -96,8 +96,12 @@ int multilayer_rootDepth(const epconst_struct* epc, const soilprop_struct* sprop
 		/* live root distribution for soil water calculation */
 		if (layer < epv->n_rootlayers && layer >= epv->germ_layer)
 		{
-			epv->rootlengthProp[layer]   = epc->rootdistrib_param * (sitec->soillayer_thickness[layer] / epv->rootlength) * 
- 												  exp(-epc->rootdistrib_param * (sitec->soillayer_midpoint[layer] / epv->rootlength));
+			if (epv->n_rootlayers > 1)
+				epv->rootlengthProp[layer] = epc->rootdistrib_param * (sitec->soillayer_thickness[layer] / epv->rootlength) *
+				exp(-epc->rootdistrib_param * (sitec->soillayer_midpoint[layer] / epv->rootlength));
+			else
+				epv->rootlengthProp[layer] = 1;
+
 			RLprop_sum1 += epv->rootlengthProp[layer];
 
 		}
@@ -111,7 +115,7 @@ int multilayer_rootDepth(const epconst_struct* epc, const soilprop_struct* sprop
 				epv->rootlengthLandD_prop[layer] = sitec->soillayer_thickness[layer] / maxRD;
 			else
 			{
-				if (layer == epv->n_maxrootlayers-1) 
+				if (layer == epv->n_maxrootlayers-1 && layer > 1) 
 					epv->rootlengthLandD_prop[layer] = (maxRD-sitec->soillayer_depth[layer-1]) / maxRD;
 				else
 					epv->rootlengthLandD_prop[layer] = 0;
@@ -150,7 +154,7 @@ int multilayer_rootDepth(const epconst_struct* epc, const soilprop_struct* sprop
 			RLprop_sum2                 += epv->rootlengthProp[layer];
 		}
 
-		if (fabs(1. - RLprop_sum2) > 1e-8)
+		if (fabs(1. - RLprop_sum2) > CRIT_PREC)
 		{
 			printf("\n");
 			printf("ERROR in multilayer_rootDepth: sum of soillayer_RZportion is not equal to 1.0\n");
@@ -158,10 +162,6 @@ int multilayer_rootDepth(const epconst_struct* epc, const soilprop_struct* sprop
 		}
 	}
 	
-
-	
-
-
 
 	/* ***************************************************************************************************** */	
 	/* 5. calculation of plant height (based on 4M)*/

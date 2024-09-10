@@ -22,7 +22,7 @@ Missoula, MT 59812
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int canopy_et(const epconst_struct* epc, const metvar_struct* metv, epvar_struct* epv, wflux_struct* wf)
+int canopy_et(const control_struct* ctrl, const metvar_struct* metv, epvar_struct* epv, wflux_struct* wf)
 {
 	int errorCode=0;
 	double e, cwe, t, TRP, TRPsun, TRPshade, TRP_pot, TRPsun_pot, TRPshade_pot,e_dayl,t_dayl,diff;
@@ -51,7 +51,7 @@ int canopy_et(const epconst_struct* epc, const metvar_struct* metv, epvar_struct
 		pmet_in.rh = 1.0/epv->gc_sh;
 
 		/* choose radiation calculation method */
-		if (epc->radiation_flag == 0)
+		if (ctrl->radiation_flag == 0)
 			pmet_in.irad = metv->swabs;
 		else
 			pmet_in.irad = metv->RADnet;
@@ -59,7 +59,7 @@ int canopy_et(const epconst_struct* epc, const metvar_struct* metv, epvar_struct
 		/* call penman-monteith function, returns e in kg/m2/s */
 		if (penmon(&pmet_in, 0, &e))
 		{
-			printf("ERROR: penmon() for canopy EVP in canopy_et.c\n");
+			printf("ERROR in penmon.c for canopy EVP in canopy_et.c\n");
 			errorCode=1;
 		}
 		
@@ -87,7 +87,7 @@ int canopy_et(const epconst_struct* epc, const metvar_struct* metv, epvar_struct
 			pmet_in.rh = 1.0/epv->gl_sh;
 
 			/* choose radiation calculation method */
-			if (epc->radiation_flag == 0)
+			if (ctrl->radiation_flag == 0)
 				pmet_in.irad = metv->swabs_per_plaisun;
 			else
 				pmet_in.irad = metv->RADnet_per_plaisun;
@@ -95,7 +95,7 @@ int canopy_et(const epconst_struct* epc, const metvar_struct* metv, epvar_struct
 			/* call Penman-Monthieth function */
 			if (penmon(&pmet_in, 0, &t))
 			{
-				printf("ERROR: penmon() for adjusted transpiration in canopy_et.c\n");
+				printf("ERROR in penmon.c for adjusted transpiration in canopy_et.c\n");
 				errorCode=1;
 			}
 			TRPsun = t * t_dayl * epv->plaisun;
@@ -105,7 +105,7 @@ int canopy_et(const epconst_struct* epc, const metvar_struct* metv, epvar_struct
 			pmet_in.rh = 1.0/epv->gl_sh;
 			
 			/* choose radiation calculation method */
-			if (epc->radiation_flag == 0)
+			if (ctrl->radiation_flag == 0)
 				pmet_in.irad = metv->swabs_per_plaishade;
 			else
 				pmet_in.irad = metv->RADnet_per_plaishade;
@@ -113,7 +113,7 @@ int canopy_et(const epconst_struct* epc, const metvar_struct* metv, epvar_struct
 			/* call Penman-Monthieth function */
 			if (penmon(&pmet_in, 0, &t))
 			{
-				printf("ERROR: penmon() for adjusted transpiration in canopy_et.c\n");
+				printf("ERROR in penmon.c for adjusted transpiration in canopy_et.c\n");
 				errorCode=1;
 			}
 			TRPshade = t * t_dayl * epv->plaishade;
@@ -126,7 +126,7 @@ int canopy_et(const epconst_struct* epc, const metvar_struct* metv, epvar_struct
 			pmet_in.rh = 1.0/epv->gl_sh;
 
 			/* choose radiation calculation method */
-			if (epc->radiation_flag == 0)
+			if (ctrl->radiation_flag == 0)
 				pmet_in.irad = metv->swabs_per_plaisun;
 			else
 				pmet_in.irad = metv->RADnet_per_plaisun;
@@ -134,7 +134,7 @@ int canopy_et(const epconst_struct* epc, const metvar_struct* metv, epvar_struct
 			/* call Penman-Monthieth function */
 			if (penmon(&pmet_in, 0, &t))
 			{
-				printf("ERROR: penmon() for adjusted transpiration in canopy_et.c\n");
+				printf("ERROR in penmon.c for adjusted transpiration in canopy_et.c\n");
 				errorCode=1;
 			}
 			TRPsun_pot = t * t_dayl * epv->plaisun;
@@ -144,7 +144,7 @@ int canopy_et(const epconst_struct* epc, const metvar_struct* metv, epvar_struct
 			pmet_in.rh = 1.0/epv->gl_sh;
 			
 			/* choose radiation calculation method */
-			if (epc->radiation_flag == 0)
+			if (ctrl->radiation_flag == 0)
 				pmet_in.irad = metv->swabs_per_plaishade;
 			else
 				pmet_in.irad = metv->RADnet_per_plaishade;
@@ -152,18 +152,18 @@ int canopy_et(const epconst_struct* epc, const metvar_struct* metv, epvar_struct
 			/* call Penman-Monthieth function */
 			if (penmon(&pmet_in, 0, &t))
 			{
-				printf("ERROR: penmon() for adjusted transpiration in canopy_et.c\n");
+				printf("ERROR in penmon.c for adjusted transpiration in canopy_et.c\n");
 				errorCode=1;
 			}
 			TRPshade_pot = t * t_dayl * epv->plaishade;
 			TRP_pot = TRPsun_pot + TRPshade_pot;
 		}
-		wf->canopywEVP = cwe;
+		wf->EVPcanopyw = cwe;
 	}    /* end if canopy_water */
 	
 	else /* no canopy water, transpiration with unadjusted daylength */
 	{
-		wf->canopywEVP = 0;
+		wf->EVPcanopyw = 0;
 
 		/**********ACTUAL******************/
 		/* first for sunlit canopy fraction */
@@ -171,7 +171,7 @@ int canopy_et(const epconst_struct* epc, const metvar_struct* metv, epvar_struct
 		pmet_in.rh = 1.0/epv->gl_sh;
 	
 		/* choose radiation calculation method */
-		if (epc->radiation_flag == 0)
+		if (ctrl->radiation_flag == 0)
 			pmet_in.irad = metv->swabs_per_plaisun;
 		else
 			pmet_in.irad = metv->RADnet_per_plaisun;
@@ -180,7 +180,7 @@ int canopy_et(const epconst_struct* epc, const metvar_struct* metv, epvar_struct
 		/* call Penman-Monthieth function */
 		if (penmon(&pmet_in, 0, &t))
 		{
-			printf("ERROR: penmon() for adjusted transpiration in canopy_et.c\n");
+			printf("ERROR in penmon.c for adjusted transpiration in canopy_et.c\n");
 			errorCode=1;
 		}
 		
@@ -191,7 +191,7 @@ int canopy_et(const epconst_struct* epc, const metvar_struct* metv, epvar_struct
 		pmet_in.rh = 1.0/epv->gl_sh;
 		
 		/* choose radiation calculation method */
-		if (epc->radiation_flag == 0)
+		if (ctrl->radiation_flag == 0)
 			pmet_in.irad = metv->swabs_per_plaishade;
 		else
 			pmet_in.irad = metv->RADnet_per_plaishade;
@@ -200,7 +200,7 @@ int canopy_et(const epconst_struct* epc, const metvar_struct* metv, epvar_struct
 		/* call Penman-Monthieth function */
 		if (penmon(&pmet_in, 0, &t))
 		{
-			printf("ERROR: penmon() for adjusted transpiration in canopy_et.c\n");
+			printf("ERROR in penmon.c for adjusted transpiration in canopy_et.c\n");
 			errorCode=1;
 		}
 		TRPshade = t * metv->dayl * epv->plaishade;
@@ -212,7 +212,7 @@ int canopy_et(const epconst_struct* epc, const metvar_struct* metv, epvar_struct
 		pmet_in.rh = 1.0/epv->gl_sh;
 	
 		/* choose radiation calculation method */
-		if (epc->radiation_flag == 0)
+		if (ctrl->radiation_flag == 0)
 			pmet_in.irad = metv->swabs_per_plaisun;
 		else
 			pmet_in.irad = metv->RADnet_per_plaisun;
@@ -221,7 +221,7 @@ int canopy_et(const epconst_struct* epc, const metvar_struct* metv, epvar_struct
 		/* call Penman-Monthieth function */
 		if (penmon(&pmet_in, 0, &t))
 		{
-			printf("ERROR: penmon() for adjusted transpiration in canopy_et.c\n");
+			printf("ERROR in penmon.c for adjusted transpiration in canopy_et.c\n");
 			errorCode=1;
 		}
 		
@@ -232,7 +232,7 @@ int canopy_et(const epconst_struct* epc, const metvar_struct* metv, epvar_struct
 		pmet_in.rh = 1.0/epv->gl_sh;
 		
 		/* choose radiation calculation method */
-		if (epc->radiation_flag == 0)
+		if (ctrl->radiation_flag == 0)
 			pmet_in.irad = metv->swabs_per_plaishade;
 		else
 			pmet_in.irad = metv->RADnet_per_plaishade;
@@ -241,28 +241,28 @@ int canopy_et(const epconst_struct* epc, const metvar_struct* metv, epvar_struct
 		/* call Penman-Monthieth function */
 		if (penmon(&pmet_in, 0, &t))
 		{
-			printf("ERROR: penmon() for adjusted transpiration in canopy_et.c\n");
+			printf("ERROR in penmon.c for adjusted transpiration in canopy_et.c\n");
 			errorCode=1;
 		}
 		TRPshade_pot = t * metv->dayl * epv->plaishade;
 		TRP_pot = TRPsun_pot + TRPshade_pot;
 	}
-	wf->soilwTRP_POT        = TRP_pot;
+	wf->potTRPsoilw        = TRP_pot;
 
 	/*---------------------------------------------------------------*/
 	/* 5. Energy limit  */
 	/*---------------------------------------------------------------*/
-	diff = wf->canopywEVP + wf->soilwTRP_POT - wf->potETcanopy;
+	diff = wf->EVPcanopyw + wf->potTRPsoilw - wf->potETcanopy;
 	if (diff > CRIT_PRECwater)
 	{
-		if (wf->canopywEVP  > wf->potETcanopy)
+		if (wf->EVPcanopyw  > wf->potETcanopy)
 		{
-			wf->canopywEVP   = wf->potETcanopy;
-			wf->soilwTRP_POT = 0;
+			wf->EVPcanopyw   = wf->potETcanopy;
+			wf->potTRPsoilw = 0;
 		}
 		else
 		{
-			wf->soilwTRP_POT -= diff;
+			wf->potTRPsoilw -= diff;
 		}
 	}
 
