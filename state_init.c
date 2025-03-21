@@ -22,15 +22,13 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "pointbgc_struct.h"
 #include "pointbgc_func.h"
 
-int wstate_init(file init, const siteconst_struct* sitec, const soilprop_struct* sprop, wstate_struct* ws)
+int wstate_init(file init, control_struct* ctrl, const siteconst_struct* sitec, const soilprop_struct* sprop, wstate_struct* ws)
 {
 	int errorCode=0;
 	int layer;
 	char key[] = "W_STATE";
 	char keyword[STRINGSIZE];
-	double prop_fc = 0;
 
-	
 	
 	/* read water state variable initialization values from *.init */
 	if (!errorCode && scan_value(init, keyword, 's'))
@@ -49,14 +47,14 @@ int wstate_init(file init, const siteconst_struct* sitec, const soilprop_struct*
 		printf("ERROR reading snowpack, wstate_init.c\n");
 		errorCode=21201;
 	}
-	if (!errorCode && scan_value(init, &prop_fc, 'd'))
+	if (!errorCode && scan_value(init, &ctrl->wstate_propFC, 'd'))
 	{
 		printf("ERROR reading initial soilwater (FCprop), wstate_init.c\n");
 		errorCode=21202;
 	}
 	
 	/* check that prop_fc is an acceptable proportion  */
-	if (!errorCode && (prop_fc < 0.0))
+	if (!errorCode && (ctrl->wstate_propFC < 0.0))
 	{
 		printf("ERROR in state_init.c: initial soil water proportion must be >= 0.0 and <= 1.0\n");
 		errorCode=2120201;
@@ -67,14 +65,14 @@ int wstate_init(file init, const siteconst_struct* sitec, const soilprop_struct*
 		field capacity volumetric water content, depth, and density of water */
 		for (layer = 0; layer < N_SOILLAYERS; layer ++)
 		{
-			if (prop_fc > sprop->VWCsat[layer]/sprop->VWCfc[layer])
+			if (ctrl->wstate_propFC > sprop->VWCsat[layer]/sprop->VWCfc[layer])
 			{
 				printf("ERROR in state_init.c: initial soil water proportion must less than saturation proportion: %lf\n", sprop->VWCsat[layer]/sprop->VWCfc[layer]);
 				errorCode=21202;
 			}
 			else
 			{
-				ws->soilw[layer] = prop_fc * sprop->VWCfc[layer] * sitec->soillayer_thickness[layer] * water_density;
+				ws->soilw[layer] = ctrl->wstate_propFC * sprop->VWCfc[layer] * sitec->soillayer_thickness[layer] * water_density;
 				ws->soilw_SUM += ws->soilw[layer];
 			}
 				
@@ -174,8 +172,8 @@ int cnstate_init(file init, const epconst_struct* epc, const soilprop_struct* sp
     /* to avoid dividing by 0: if no deadwood, cwdn is zero. */
 	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
-		if (!errorCode && epc->deadwood_cn > 0.0) 
-			ns->cwdn[layer] = cs->cwdc[layer]/epc->deadwood_cn;
+		if (!errorCode && epc->deadwood_cn > 0.0)
+			ns->cwdn[layer] = 0;
 		else
 			ns->cwdn[layer] = 0;
 	}
@@ -320,7 +318,7 @@ int cnstate_init(file init, const epconst_struct* epc, const soilprop_struct* sp
 			errorCode=21317;
 		}
 	}
-	//balus
+
 	scanflag=0; 
 	for (layer=0; layer<N_SOILLAYERS; layer++)
 	{

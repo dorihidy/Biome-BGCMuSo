@@ -29,11 +29,11 @@ int flooding_init(flooding_struct* FLS, control_struct* ctrl)
 	file FL_file;	
 	char header[STRINGSIZE];
 
-	int dataread, leap;
+	int dataread, leap, n_FLparam;
 	int ndata = 0;
 
 	int p1,p2,p3,p4,p5,p6, maxFLnum, nmgm;
-	double p7,p8,p9,p10;
+	double p7, p8, p9, p10, p11, p12, p13, p14, p15, p16,p17;
 	char tempvar;
 
 	int* FLstart_year_array;			
@@ -45,7 +45,14 @@ int flooding_init(flooding_struct* FLS, control_struct* ctrl)
 	double* FLheight_array;
 	double* FL_NH4ppm_array;
 	double* FL_NO3ppm_array;
-	double* FL_DOCppm_array;
+	double* FL_DON1ppm_array;
+	double* FL_DON2ppm_array;
+	double* FL_DON3ppm_array;
+	double* FL_DON4ppm_array;
+	double* FL_DOC1ppm_array;
+	double* FL_DOC2ppm_array;
+	double* FL_DOC3ppm_array;
+	double* FL_DOC4ppm_array;
 
 
 	int* mondays=0;
@@ -70,7 +77,7 @@ int flooding_init(flooding_struct* FLS, control_struct* ctrl)
 		}
 		else                     /* spinup and transient run */        
 		{ 	
-			strcpy(FL_file.name, "flooding_spinup.txt");
+			strcpy(FL_file.name, "flooding_transient.txt");
 			if (!file_open(&FL_file,'j',1)) FLS->FLnum = 1;	
 		}
 	}
@@ -115,14 +122,30 @@ int flooding_init(flooding_struct* FLS, control_struct* ctrl)
         FLheight_array      = (double*) malloc(maxFLnum*sizeof(double)); 
 		FL_NH4ppm_array     = (double*) malloc(maxFLnum * sizeof(double));
 		FL_NO3ppm_array     = (double*) malloc(maxFLnum * sizeof(double));
-		FL_DOCppm_array     = (double*) malloc(maxFLnum * sizeof(double));
+		FL_DON1ppm_array = (double*)malloc(maxFLnum * sizeof(double));
+		FL_DON2ppm_array = (double*)malloc(maxFLnum * sizeof(double));
+		FL_DON3ppm_array = (double*)malloc(maxFLnum * sizeof(double));
+		FL_DON4ppm_array = (double*)malloc(maxFLnum * sizeof(double));
+		FL_DOC1ppm_array = (double*)malloc(maxFLnum * sizeof(double));
+		FL_DOC2ppm_array = (double*)malloc(maxFLnum * sizeof(double));
+		FL_DOC3ppm_array = (double*)malloc(maxFLnum * sizeof(double));
+		FL_DOC4ppm_array = (double*)malloc(maxFLnum * sizeof(double));
+
 
 		
 		ndata=0;
 		while (!errorCode && !(dataread = scan_array (FL_file, &p1, 'i', 0, 0)))
 		{
-			dataread = fscanf(FL_file.ptr, "%c %d %c %d %d %c %d %c %d %lf %lf %lf %lf[^\n]", &tempvar, &p2, &tempvar, &p3, &p4, &tempvar, &p5, &tempvar, &p6, &p7, &p8, &p9, &p10);
+			n_FLparam = 20;
+
+			dataread = fscanf(FL_file.ptr, "%c %d %c %d %d %c %d %c %d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf[^\n]", &tempvar,&p2,&tempvar,&p3,&p4,&tempvar,&p5,&tempvar,&p6,&p7,&p8,&p9,&p10,&p11,&p12,&p13,&p14,&p15,&p16,&p17);
 				
+			if (dataread != n_FLparam)
+			{
+				printf("ERROR reading FLOODING data from flooding file  file\n");
+				errorCode = 1;
+			}
+
 			if (p1 >= ctrl->simstartyear && p1 < ctrl->simstartyear + ctrl->simyears)
 			{
 				FLstart_year_array[ndata]     = p1;
@@ -134,7 +157,14 @@ int flooding_init(flooding_struct* FLS, control_struct* ctrl)
 				FLheight_array[ndata]         = p7;
 				FL_NH4ppm_array[ndata]        = p8;
 				FL_NO3ppm_array[ndata]        = p9;
-				FL_DOCppm_array[ndata]        = p10;
+				FL_DON1ppm_array[ndata] = p10;
+				FL_DON2ppm_array[ndata] = p11;
+				FL_DON3ppm_array[ndata] = p12;
+				FL_DON4ppm_array[ndata] = p13;
+				FL_DOC1ppm_array[ndata] = p14;
+				FL_DOC2ppm_array[ndata] = p15;
+				FL_DOC3ppm_array[ndata] = p16;
+				FL_DOC4ppm_array[ndata] = p17;
 
 				if (!errorCode && leapControl(FLstart_year_array[ndata], enddays, mondays, &leap))
 				{
@@ -177,7 +207,14 @@ int flooding_init(flooding_struct* FLS, control_struct* ctrl)
 		FLS->FLheight_array          = (double*) malloc(FLS->FLnum*sizeof(double)); 
 		FLS->FL_NH4ppm_array         = (double*) malloc(FLS->FLnum * sizeof(double));
 		FLS->FL_NO3ppm_array         = (double*) malloc(FLS->FLnum * sizeof(double));
-		FLS->FL_DOCppm_array         = (double*) malloc(FLS->FLnum * sizeof(double));
+		FLS->FL_DON1ppm_array = (double*)malloc(FLS->FLnum * sizeof(double));
+		FLS->FL_DON2ppm_array = (double*)malloc(FLS->FLnum * sizeof(double));
+		FLS->FL_DON3ppm_array = (double*)malloc(FLS->FLnum * sizeof(double));
+		FLS->FL_DON4ppm_array = (double*)malloc(FLS->FLnum * sizeof(double));
+		FLS->FL_DOC1ppm_array = (double*)malloc(FLS->FLnum * sizeof(double));
+		FLS->FL_DOC2ppm_array = (double*)malloc(FLS->FLnum * sizeof(double));
+		FLS->FL_DOC3ppm_array = (double*)malloc(FLS->FLnum * sizeof(double));
+		FLS->FL_DOC4ppm_array = (double*)malloc(FLS->FLnum * sizeof(double));
 
 		for (nmgm = 0; nmgm < FLS->FLnum; nmgm++)
 		{
@@ -192,7 +229,14 @@ int flooding_init(flooding_struct* FLS, control_struct* ctrl)
 			FLS->FLheight_array[nmgm]        = FLheight_array[nmgm];
 			FLS->FL_NH4ppm_array[nmgm]       = FL_NH4ppm_array[nmgm];
 			FLS->FL_NO3ppm_array[nmgm]       = FL_NO3ppm_array[nmgm];
-			FLS->FL_DOCppm_array[nmgm]       = FL_DOCppm_array[nmgm];
+			FLS->FL_DON1ppm_array[nmgm] = FL_DON1ppm_array[nmgm];
+			FLS->FL_DON2ppm_array[nmgm] = FL_DON2ppm_array[nmgm];
+			FLS->FL_DON3ppm_array[nmgm] = FL_DON3ppm_array[nmgm];
+			FLS->FL_DON4ppm_array[nmgm] = FL_DON4ppm_array[nmgm];
+			FLS->FL_DOC1ppm_array[nmgm] = FL_DOC1ppm_array[nmgm];
+			FLS->FL_DOC2ppm_array[nmgm] = FL_DOC2ppm_array[nmgm];
+			FLS->FL_DOC3ppm_array[nmgm] = FL_DOC3ppm_array[nmgm];
+			FLS->FL_DOC4ppm_array[nmgm] = FL_DOC4ppm_array[nmgm];
 		}
 
 		if (nmgm > maxFLnum)
@@ -212,7 +256,14 @@ int flooding_init(flooding_struct* FLS, control_struct* ctrl)
         free(FLheight_array);	
 		free(FL_NH4ppm_array);
 		free(FL_NO3ppm_array);
-		free(FL_DOCppm_array);
+		free(FL_DON1ppm_array);
+		free(FL_DON2ppm_array);
+		free(FL_DON3ppm_array);
+		free(FL_DON4ppm_array);
+		free(FL_DOC1ppm_array);
+		free(FL_DOC2ppm_array);
+		free(FL_DOC3ppm_array);
+		free(FL_DOC4ppm_array);
 
 		fclose(FL_file.ptr);
 	}	

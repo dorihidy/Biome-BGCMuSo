@@ -43,7 +43,8 @@ Iribane, J.V., and W.L. Godson, 1981. Atmospheric Thermodynamics. 2nd
 are set to 0.0 to control rounding and overflow errors */
 #define CRIT_PREC 1e-12
 #define CRIT_PREC_RIG 1e-14
-#define CRIT_PRECwater 1e-8
+#define CRIT_PREC_superRIG 1e-20
+#define CRIT_PREC_lenient 1e-9
 
 /* spinup control */
 /* maximum allowable trend in slow soil carbon at steady-state (kgC/m2/yr) 0.005 */
@@ -56,6 +57,8 @@ are set to 0.0 to control rounding and overflow errors */
 /* contants for multilayer soil model calculation */
 #define m_to_cm             100.
 #define mm_to_cm            0.1
+#define m_to_mm             1000.
+#define kg_to_g             1000.
 #define HC_water			4200000.	/* (J/m3/K) heat capacity of water */
 #define HC_soil				1260000.	/* (J/m3/K) heat capacity of soil */
 #define HC_air				1004.		/* (J/m3/K) heat capacity of air */
@@ -80,7 +83,8 @@ are set to 0.0 to control rounding and overflow errors */
 #define m2_to_ha            10000
 #define kg_to_t             0.001
 #define g_per_cm3_to_kg_per_m3	1000
-#define multi_ppm               100000
+#define multi_ppm               1000000
+#define dzCRIT                  0.01
 
 /* constant for net radiation calculation */
 #define PI                  3.14159265358979323846
@@ -92,7 +96,7 @@ are set to 0.0 to control rounding and overflow errors */
 #define STRINGSIZE          200
 
 /* NO3 mobilen proportion */
-#define NO3_mobilen_prop    1
+#define NO3_mobilen_prop    1.0
 
 /* limit of LAI below potential ET is limited */
 #define LAIlimit_potET      4
@@ -107,7 +111,14 @@ are set to 0.0 to control rounding and overflow errors */
 #define WinGW 100000
 #define GW_NH4ppm 0.2
 #define GW_NO3ppm 10
-#define GW_DOCppm 2
+#define GW_DOC1ppm 2
+#define GW_DOC2ppm 2
+#define GW_DOC3ppm 2
+#define GW_DOC4ppm 2
+#define GW_DON1ppm 2
+#define GW_DON2ppm 2
+#define GW_DON3ppm 2
+#define GW_DON4ppm 2
 
 /* greenhouse gas potential */
 #define GWP_N2O 273

@@ -21,12 +21,11 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int cutdown2litter(const siteconst_struct* sitec, const epconst_struct* epc, const epvar_struct* epv, cstate_struct* cs, cflux_struct* cf,nstate_struct* ns, nflux_struct* nf)
+int cutdown2litter(const soilprop_struct* sprop, const epconst_struct* epc, const epvar_struct* epv, cstate_struct* cs, cflux_struct* cf,nstate_struct* ns, nflux_struct* nf)
 {
 	int errorCode=0;
 	int layer;
 	double mort_nW, mort_W;
-	double propLAYER0, propLAYER1, propLAYER2;
 
 	mort_nW = epc->mort_CnW_to_litter;
 	mort_W  = epc->mort_CW_to_litter;
@@ -66,77 +65,30 @@ int cutdown2litter(const siteconst_struct* sitec, const epconst_struct* epc, con
 	/* 2.1 aboveground biomass into the top soil layer */
 
 	/* litter turns into the first three soil layers  (non-woody biomass: proportion to soil layer thickness, woody-biomass: higher propotion in layer2 */
-	propLAYER0 = sitec->soillayer_thickness[0]/sitec->soillayer_depth[2];
-	propLAYER1 = sitec->soillayer_thickness[1]/sitec->soillayer_depth[2];
-	propLAYER2 = sitec->soillayer_thickness[2]/sitec->soillayer_depth[2];
 
-	if (epc->woody)
+	for (layer =0; layer < N_SOILLAYERS; layer++)
 	{
-		propLAYER0 = 0.05;
-		propLAYER1 = 0.15;
-		propLAYER2 = 0.8;
+		cs->litr1c[layer] += (cf->CTDBc_leaf_to_litr * epc->leaflitr_flab  + cf->CTDBc_yield_to_litr * epc->yieldlitr_flab  + 
+						  cf->CTDBc_softstem_to_litr * epc->softstemlitr_flab) * sprop->PROPlayerDC[layer];
+		cs->litr2c[layer] += (cf->CTDBc_leaf_to_litr * epc->leaflitr_fucel + cf->CTDBc_yield_to_litr * epc->yieldlitr_fucel + 
+						  cf->CTDBc_softstem_to_litr * epc->softstemlitr_fucel) * sprop->PROPlayerDC[layer];
+		cs->litr3c[layer] += (cf->CTDBc_leaf_to_litr * epc->leaflitr_fscel + cf->CTDBc_yield_to_litr * epc->yieldlitr_fscel + 
+						  cf->CTDBc_softstem_to_litr * epc->softstemlitr_fscel) * sprop->PROPlayerDC[layer];
+		cs->litr4c[layer] += (cf->CTDBc_leaf_to_litr * epc->leaflitr_flig  + cf->CTDBc_yield_to_litr * epc->yieldlitr_flig  + 
+						  cf->CTDBc_softstem_to_litr * epc->softstemlitr_flig) * sprop->PROPlayerDC[layer];
+		cs->cwdc[layer]   += (cf->CTDBc_cstem_to_cwd) * sprop->PROPlayerDC[layer];
+
+		ns->litr1n[layer] += (nf->CTDBn_leaf_to_litr * epc->leaflitr_flab  + nf->CTDBn_yield_to_litr * epc->yieldlitr_flab  + 
+						  nf->CTDBn_softstem_to_litr * epc->softstemlitr_flab) * sprop->PROPlayerDC[layer];
+		ns->litr2n[layer] += (nf->CTDBn_leaf_to_litr * epc->leaflitr_fucel + nf->CTDBn_yield_to_litr * epc->yieldlitr_fucel + 
+						  nf->CTDBn_softstem_to_litr * epc->softstemlitr_fucel) * sprop->PROPlayerDC[layer];
+		ns->litr3n[layer] += (nf->CTDBn_leaf_to_litr * epc->leaflitr_fscel + nf->CTDBn_yield_to_litr * epc->yieldlitr_fscel + 
+						  nf->CTDBn_softstem_to_litr * epc->softstemlitr_fscel) * sprop->PROPlayerDC[layer];
+		ns->litr4n[layer] += (nf->CTDBn_leaf_to_litr * epc->leaflitr_flig  + nf->CTDBn_yield_to_litr * epc->yieldlitr_flig  + 
+						  nf->CTDBn_softstem_to_litr * epc->softstemlitr_flig) * sprop->PROPlayerDC[layer];
+		ns->cwdn[layer]   += (nf->CTDBn_cstem_to_cwd) * sprop->PROPlayerDC[layer];
 	}
 
-	cs->litr1c[0] += (cf->CTDBc_leaf_to_litr * epc->leaflitr_flab  + cf->CTDBc_yield_to_litr * epc->yieldlitr_flab  + 
-		              cf->CTDBc_softstem_to_litr * epc->softstemlitr_flab) * propLAYER0;
-	cs->litr2c[0] += (cf->CTDBc_leaf_to_litr * epc->leaflitr_fucel + cf->CTDBc_yield_to_litr * epc->yieldlitr_fucel + 
-		              cf->CTDBc_softstem_to_litr * epc->softstemlitr_fucel) * propLAYER0;
-	cs->litr3c[0] += (cf->CTDBc_leaf_to_litr * epc->leaflitr_fscel + cf->CTDBc_yield_to_litr * epc->yieldlitr_fscel + 
-		              cf->CTDBc_softstem_to_litr * epc->softstemlitr_fscel) * propLAYER0;
-	cs->litr4c[0] += (cf->CTDBc_leaf_to_litr * epc->leaflitr_flig  + cf->CTDBc_yield_to_litr * epc->yieldlitr_flig  + 
-		              cf->CTDBc_softstem_to_litr * epc->softstemlitr_flig) * propLAYER0;
-	cs->cwdc[0]   += (cf->CTDBc_cstem_to_cwd) * propLAYER0;
-
-	ns->litr1n[0] += (nf->CTDBn_leaf_to_litr * epc->leaflitr_flab  + nf->CTDBn_yield_to_litr * epc->yieldlitr_flab  + 
-		              nf->CTDBn_softstem_to_litr * epc->softstemlitr_flab) * propLAYER0;
-	ns->litr2n[0] += (nf->CTDBn_leaf_to_litr * epc->leaflitr_fucel + nf->CTDBn_yield_to_litr * epc->yieldlitr_fucel + 
-		              nf->CTDBn_softstem_to_litr * epc->softstemlitr_fucel) * propLAYER0;
-	ns->litr3n[0] += (nf->CTDBn_leaf_to_litr * epc->leaflitr_fscel + nf->CTDBn_yield_to_litr * epc->yieldlitr_fscel + 
-		              nf->CTDBn_softstem_to_litr * epc->softstemlitr_fscel) * propLAYER0;
-	ns->litr4n[0] += (nf->CTDBn_leaf_to_litr * epc->leaflitr_flig  + nf->CTDBn_yield_to_litr * epc->yieldlitr_flig  + 
-		              nf->CTDBn_softstem_to_litr * epc->softstemlitr_flig) * propLAYER0;
-	ns->cwdn[0]   += (nf->CTDBn_cstem_to_cwd) * propLAYER0;
-
-
-	cs->litr1c[1] += (cf->CTDBc_leaf_to_litr * epc->leaflitr_flab  + cf->CTDBc_yield_to_litr * epc->yieldlitr_flab  + 
-		              cf->CTDBc_softstem_to_litr * epc->softstemlitr_flab) * propLAYER1;
-	cs->litr2c[1] += (cf->CTDBc_leaf_to_litr * epc->leaflitr_fucel + cf->CTDBc_yield_to_litr * epc->yieldlitr_fucel + 
-		              cf->CTDBc_softstem_to_litr * epc->softstemlitr_fucel) * propLAYER1;
-	cs->litr3c[1] += (cf->CTDBc_leaf_to_litr * epc->leaflitr_fscel + cf->CTDBc_yield_to_litr * epc->yieldlitr_fscel + 
-		              cf->CTDBc_softstem_to_litr * epc->softstemlitr_fscel) * propLAYER1;
-	cs->litr4c[1] += (cf->CTDBc_leaf_to_litr * epc->leaflitr_flig  + cf->CTDBc_yield_to_litr * epc->yieldlitr_flig  + 
-		              cf->CTDBc_softstem_to_litr * epc->softstemlitr_flig) * propLAYER1;
-	cs->cwdc[1]   += (cf->CTDBc_cstem_to_cwd) * propLAYER1;
-
-	ns->litr1n[1] += (nf->CTDBn_leaf_to_litr * epc->leaflitr_flab  + nf->CTDBn_yield_to_litr * epc->yieldlitr_flab  + 
-		              nf->CTDBn_softstem_to_litr * epc->softstemlitr_flab) * propLAYER1;
-	ns->litr2n[1] += (nf->CTDBn_leaf_to_litr * epc->leaflitr_fucel + nf->CTDBn_yield_to_litr * epc->yieldlitr_fucel + 
-		              nf->CTDBn_softstem_to_litr * epc->softstemlitr_fucel) * propLAYER1;
-	ns->litr3n[1] += (nf->CTDBn_leaf_to_litr * epc->leaflitr_fscel + nf->CTDBn_yield_to_litr * epc->yieldlitr_fscel + 
-		              nf->CTDBn_softstem_to_litr * epc->softstemlitr_fscel) * propLAYER1;
-	ns->litr4n[1] += (nf->CTDBn_leaf_to_litr * epc->leaflitr_flig  + nf->CTDBn_yield_to_litr * epc->yieldlitr_flig  + 
-		              nf->CTDBn_softstem_to_litr * epc->softstemlitr_flig) * propLAYER1;
-	ns->cwdn[1]   += (nf->CTDBn_cstem_to_cwd) * propLAYER1;
-	
-	cs->litr1c[2] += (cf->CTDBc_leaf_to_litr * epc->leaflitr_flab  + cf->CTDBc_yield_to_litr * epc->yieldlitr_flab  + 
-		              cf->CTDBc_softstem_to_litr * epc->softstemlitr_flab) * propLAYER2;
-	cs->litr2c[2] += (cf->CTDBc_leaf_to_litr * epc->leaflitr_fucel + cf->CTDBc_yield_to_litr * epc->yieldlitr_fucel + 
-		              cf->CTDBc_softstem_to_litr * epc->softstemlitr_fucel) * propLAYER2;
-	cs->litr3c[2] += (cf->CTDBc_leaf_to_litr * epc->leaflitr_fscel + cf->CTDBc_yield_to_litr * epc->yieldlitr_fscel + 
-		              cf->CTDBc_softstem_to_litr * epc->softstemlitr_fscel) * propLAYER2;
-	cs->litr4c[2] += (cf->CTDBc_leaf_to_litr * epc->leaflitr_flig  + cf->CTDBc_yield_to_litr * epc->yieldlitr_flig  + 
-		              cf->CTDBc_softstem_to_litr * epc->softstemlitr_flig) * propLAYER2;
-	cs->cwdc[2]   += (cf->CTDBc_cstem_to_cwd) * propLAYER2;
-
-	ns->litr1n[2] += (nf->CTDBn_leaf_to_litr * epc->leaflitr_flab  + nf->CTDBn_yield_to_litr * epc->yieldlitr_flab  + 
-		              nf->CTDBn_softstem_to_litr * epc->softstemlitr_flab) * propLAYER2;
-	ns->litr2n[2] += (nf->CTDBn_leaf_to_litr * epc->leaflitr_fucel + nf->CTDBn_yield_to_litr * epc->yieldlitr_fucel + 
-		              nf->CTDBn_softstem_to_litr * epc->softstemlitr_fucel) * propLAYER2;
-	ns->litr3n[2] += (nf->CTDBn_leaf_to_litr * epc->leaflitr_fscel + nf->CTDBn_yield_to_litr * epc->yieldlitr_fscel + 
-		              nf->CTDBn_softstem_to_litr * epc->softstemlitr_fscel) * propLAYER2;
-	ns->litr4n[2] += (nf->CTDBn_leaf_to_litr * epc->leaflitr_flig  + nf->CTDBn_yield_to_litr * epc->yieldlitr_flig  + 
-		              nf->CTDBn_softstem_to_litr * epc->softstemlitr_flig) * propLAYER2;
-	ns->cwdn[2]   += (nf->CTDBn_cstem_to_cwd) * propLAYER2;
 
 	/* 2.2 	belowground biomass divided between soil layers based on their root content */ 
 	if (epv->rootDepth > CRIT_PREC)

@@ -61,11 +61,14 @@ int multilayer_hydrolparams(siteconst_struct* sitec, soilprop_struct* sprop, wst
 
 	double VWCsat_RZ, VWCfc_RZ, VWCwp_RZ, VWChw_RZ, soilwAVAIL_RZ;
 	double VWC_avg, VWC_RZmax, relVWCsat_fc_RZmax, relVWCfc_wp_RZmax, VWC_RZ, PSI_RZ, soilw_RZ, weight, weight_SUM, ratio;
+
 	VWC_RZ = VWC_RZmax = VWCsat_RZ = VWCfc_RZ = VWCwp_RZ = VWChw_RZ = relVWCsat_fc_RZmax = relVWCfc_wp_RZmax = 0.0;
 	VWC_avg = VWC_RZ = PSI_RZ = soilw_RZ = weight = weight_SUM = ratio = soilwAVAIL_RZ = 0;
 
+
+
 	/* ***************************************************************************************************** */
-	/* calculating VWC PSI and hydr. cond. to every layer */
+	/* calculating VWC, PSI and hydr. cond. to every layer */
 
 
 	for (layer=0; layer < N_SOILLAYERS; layer++)
@@ -81,19 +84,21 @@ int multilayer_hydrolparams(siteconst_struct* sitec, soilprop_struct* sprop, wst
 		
 	
 		/* pF from PSI: cm from MPa */
-		epv->pF[layer] =log10(fabs(10000*epv->PSI[layer] ));
+		epv->pF[layer] =log10(fabs(10000*epv->PSI[layer]));
+
 
 		VWC_avg += epv->VWC[layer] * (sitec->soillayer_thickness[layer] / sitec->soillayer_depth[N_SOILLAYERS - 1]);
 	
-
 	
 		epv->hydrCONDUCTact[layer]  = sprop->hydrCONDUCTsat[layer] * pow(epv->VWC[layer] / sprop->VWCsat[layer], 2 * sprop->soilB[layer] + 3);
 		epv->hydrDIFFUSact[layer]   = (((sprop->soilB[layer] * sprop->hydrCONDUCTsat[layer] * (-100 * sprop->PSIsat[layer]))) / sprop->VWCsat[layer])
 			                           * pow(epv->VWC[layer] / sprop->VWCsat[layer], sprop->soilB[layer] + 2);
 
+		/*----------------------------------------------*/
 		/* relative soil water content (FC-WP) */
-		if (sprop->VWCfc_base[layer] - sprop->VWCwp[layer] > CRIT_PRECwater)
-			epv->relVWCfc_wp[layer] = (epv->VWC[layer] - sprop->VWCwp[layer]) / (sprop->VWCfc_base[layer] - sprop->VWCwp[layer]);
+
+		if (sprop->VWCfc[layer] - sprop->VWCwp[layer] > CRIT_PREC_lenient)
+			epv->relVWCfc_wp[layer] = (epv->VWC[layer] - sprop->VWCwp[layer]) / (sprop->VWCfc[layer] - sprop->VWCwp[layer]);
 		else
 		{
 			if (!errorCode)
@@ -102,11 +107,11 @@ int multilayer_hydrolparams(siteconst_struct* sitec, soilprop_struct* sprop, wst
 				errorCode = 1;
 			}
 		}
-		if (fabs(epv->relVWCfc_wp[layer]) < CRIT_PRECwater) epv->relVWCfc_wp[layer] = 0;
+		if (fabs(epv->relVWCfc_wp[layer]) < CRIT_PREC_lenient) epv->relVWCfc_wp[layer] = 0;
 
 		/* relative soil water content (SAT-FC) */
-		if (sprop->VWCsat[layer] - sprop->VWCfc_base[layer] > CRIT_PRECwater)
-			epv->relVWCsat_fc[layer] = (epv->VWC[layer] - sprop->VWCfc_base[layer]) / (sprop->VWCsat[layer]  - sprop->VWCfc_base[layer]);
+		if (sprop->VWCsat[layer] - sprop->VWCfc[layer] > CRIT_PREC_lenient)
+			epv->relVWCsat_fc[layer] = (epv->VWC[layer] - sprop->VWCfc[layer]) / (sprop->VWCsat[layer]  - sprop->VWCfc[layer]);
 		else
 		{
 			if (!errorCode)
@@ -115,10 +120,10 @@ int multilayer_hydrolparams(siteconst_struct* sitec, soilprop_struct* sprop, wst
 				errorCode = 1;
 			}
 		}
-		if (fabs(epv->relVWCsat_fc[layer]) < CRIT_PRECwater) epv->relVWCsat_fc[layer] = 0;
+		if (fabs(epv->relVWCsat_fc[layer]) < CRIT_PREC_lenient) epv->relVWCsat_fc[layer] = 0;
 
 	
-
+		/*----------------------------------------------*/
 		/* calculation of rootzone variables - weight of the last layer depends on the depth of the root */
 		if (epv->n_maxrootlayers && layer < epv->n_maxrootlayers)
 		{
@@ -152,6 +157,7 @@ int multilayer_hydrolparams(siteconst_struct* sitec, soilprop_struct* sprop, wst
 			soilw_RZ = 0;
 			soilwAVAIL_RZ = 0;
 		}
+
 
 
 	}

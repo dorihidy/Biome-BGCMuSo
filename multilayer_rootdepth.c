@@ -40,19 +40,10 @@ int multilayer_rootDepth(const epconst_struct* epc, const soilprop_struct* sprop
 
 	frootc = cs->frootc;
 
-	/* ***************************************************************************************************** */	
-	/* 1. Calculating the number of the soil layers in which root can be found. It determines the rootzone depth (only on first day) */
-	
-	if (!errorCode && calc_nrootlayers(0, maxRD, frootc, sitec, epv))
-	{
-		printf("\n");
-		printf("ERROR in calc_nrootlayers.c for multilayer_rootDepth.c\n");
-		errorCode=1;
-	}
 
 
 	/* ***************************************************************************************************** */	
-	/* 2. Calculating rooting depth in case of non-wwody ecosystems (based on Campbell and Diaz, 1988) 
+	/* 1. Calculating rooting depth in case of non-wwody ecosystems (based on Campbell and Diaz, 1988) 
 	      actual rooting depth determines the rootzone depth (epv->n_rootlayers) */
 	
 
@@ -77,6 +68,12 @@ int multilayer_rootDepth(const epconst_struct* epc, const soilprop_struct* sprop
 	else
 		epv->rootlength = epv->rootDepth;
 
+	if (epv->rootlength > 0 && epv->rootlength < 0.01)
+	{
+		epv->rootlength = 0.01;
+		epv->rootDepth = epv->germDepth + epv->rootlength;
+	}
+
 	/* ***************************************************************************************************** */	
 	/* 3. Calculating the number of the soil layers in which root can be found. It determines the rootzone depth (epv->n_rootlayers) */
 	
@@ -97,8 +94,7 @@ int multilayer_rootDepth(const epconst_struct* epc, const soilprop_struct* sprop
 		if (layer < epv->n_rootlayers && layer >= epv->germ_layer)
 		{
 			if (epv->n_rootlayers > 1)
-				epv->rootlengthProp[layer] = epc->rootdistrib_param * (sitec->soillayer_thickness[layer] / epv->rootlength) *
-				exp(-epc->rootdistrib_param * (sitec->soillayer_midpoint[layer] / epv->rootlength));
+				epv->rootlengthProp[layer] = epc->rootdistrib_param * (sitec->soillayer_thickness[layer] / epv->rootlength) * exp(-epc->rootdistrib_param * (sitec->soillayer_midpoint[layer] / epv->rootlength));
 			else
 				epv->rootlengthProp[layer] = 1;
 

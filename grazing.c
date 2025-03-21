@@ -24,7 +24,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "pointbgc_func.h"
 #include "bgc_constants.h"
 
-int grazing(control_struct* ctrl, const epconst_struct* epc, const siteconst_struct* sitec, grazing_struct* GRZ, epvar_struct* epv,
+int grazing(control_struct* ctrl, const epconst_struct* epc, const soilprop_struct* sprop, grazing_struct* GRZ, epvar_struct* epv,
 			cstate_struct* cs, nstate_struct* ns, wstate_struct* ws, cflux_struct* cf, nflux_struct* nf, wflux_struct* wf, int* mondays)
 {
 
@@ -44,12 +44,11 @@ int grazing(control_struct* ctrl, const epconst_struct* epc, const siteconst_str
 	double Cplus_from_excrement = 0;		/* daily carbon plus from excrement */
 	double Nplus_from_excrement = 0;        /* daily nitrogen plus from excrement */
 
-	double propLAYER0, propLAYER1, propLAYER2;
 	
 	int GRZyday_start, GRZyday_end;
 	
 	int errorCode=0;
-	int md, year;
+	int md, year, layer;
 
 	/* fraction of total annual nitrogen excretion for pasture management system*/
 	double MS_N2O = 0.015;
@@ -74,7 +73,7 @@ int grazing(control_struct* ctrl, const epconst_struct* epc, const siteconst_str
 		
 			GRZ->trampleff_act  = GRZ->trampling_effect[md];
 			DMintake            = GRZ->DMintake_array[md];						 /*  unit: kgDM/LSU (DM:dry matter)*/
-			stocking_rate       = GRZ->stocking_rate_array[md]/10000;			/*  unit: LSU/ha -> new unit: LSU/m2 */
+			stocking_rate       = GRZ->stocking_rate_array[md]/ m2_to_ha;			/*  unit: LSU/ha -> new unit: LSU/m2 */
 			weight_LSU			= GRZ->weight_LSU[md];
 
 			DMintake2excr       = GRZ->DMintake2excr_array[md] / 100.;	     /* from proporiton(%) to ratio(number) */
@@ -85,11 +84,11 @@ int grazing(control_struct* ctrl, const epconst_struct* epc, const siteconst_str
 
 			Nexrate   = GRZ->Nexrate[md];
 			EFman_N2O = GRZ->EFman_N2O[md];
-			EFman_CH4 = GRZ->EFman_CH4[md]/nDAYS_OF_YEAR;;
-			EFfer_CH4 = GRZ->EFfer_CH4[md]/nDAYS_OF_YEAR;;
+			EFman_CH4 = GRZ->EFman_CH4[md]/nDAYS_OF_YEAR;
+			EFfer_CH4 = GRZ->EFfer_CH4[md]/nDAYS_OF_YEAR;
 
 		
-			if (epv->projLAI)
+			if (epv->projLAI > 1)
 			{
 				/* daily total ingested carbon per m2 from daily ingested drymatter and carbon content of drymatter and stocking rate
 								[kgC/m2 = kgDM/LSU * (kgC/kgDM) * (LSU/m2)] */	
@@ -280,40 +279,21 @@ int grazing(control_struct* ctrl, const epconst_struct* epc, const siteconst_str
 		/* 4. aboveground biomass into top soil layers */
 
 		/* new feature: litter turns into the first AND the second soil layer */
-		propLAYER0 = sitec->soillayer_thickness[0]/sitec->soillayer_depth[2];
-		propLAYER1 = sitec->soillayer_thickness[1]/sitec->soillayer_depth[2];
-		propLAYER2 = sitec->soillayer_thickness[2]/sitec->soillayer_depth[2];
 
-		cs->litr1c[0] += cf->GRZ_to_litr1c * propLAYER0;
-		cs->litr2c[0] += cf->GRZ_to_litr2c * propLAYER0;
-		cs->litr3c[0] += cf->GRZ_to_litr3c * propLAYER0;
-		cs->litr4c[0] += cf->GRZ_to_litr4c * propLAYER0;
+		for (layer = 0; layer < N_SOILLAYERS; layer++)
+		{
+			cs->litr1c[layer] += cf->GRZ_to_litr1c * sprop->PROPlayerDC[layer];
+			cs->litr2c[layer] += cf->GRZ_to_litr2c * sprop->PROPlayerDC[layer];
+			cs->litr3c[layer] += cf->GRZ_to_litr3c * sprop->PROPlayerDC[layer];
+			cs->litr4c[layer] += cf->GRZ_to_litr4c * sprop->PROPlayerDC[layer];
 
-		ns->litr1n[0] += nf->GRZ_to_litr1n * propLAYER0;
-		ns->litr2n[0] += nf->GRZ_to_litr2n * propLAYER0;
-		ns->litr3n[0] += nf->GRZ_to_litr3n * propLAYER0;
-		ns->litr4n[0] += nf->GRZ_to_litr4n * propLAYER0;
+			ns->litr1n[layer] += nf->GRZ_to_litr1n * sprop->PROPlayerDC[layer];
+			ns->litr2n[layer] += nf->GRZ_to_litr2n * sprop->PROPlayerDC[layer];
+			ns->litr3n[layer] += nf->GRZ_to_litr3n * sprop->PROPlayerDC[layer];
+			ns->litr4n[layer] += nf->GRZ_to_litr4n * sprop->PROPlayerDC[layer];
+		}
 
-		cs->litr1c[1] += cf->GRZ_to_litr1c * propLAYER1;
-		cs->litr2c[1] += cf->GRZ_to_litr2c * propLAYER1;
-		cs->litr3c[1] += cf->GRZ_to_litr3c * propLAYER1;
-		cs->litr4c[1] += cf->GRZ_to_litr4c * propLAYER1;
-
-		ns->litr1n[1] += nf->GRZ_to_litr1n * propLAYER1;
-		ns->litr2n[1] += nf->GRZ_to_litr2n * propLAYER1;
-		ns->litr3n[1] += nf->GRZ_to_litr3n * propLAYER1;
-		ns->litr4n[1] += nf->GRZ_to_litr4n * propLAYER1;
-
-		cs->litr1c[2] += cf->GRZ_to_litr1c * propLAYER2;
-		cs->litr2c[2] += cf->GRZ_to_litr2c * propLAYER2;
-		cs->litr3c[2] += cf->GRZ_to_litr3c * propLAYER2;
-		cs->litr4c[2] += cf->GRZ_to_litr4c * propLAYER2;
-
-		ns->litr1n[2] += nf->GRZ_to_litr1n * propLAYER2;
-		ns->litr2n[2] += nf->GRZ_to_litr2n * propLAYER2;
-		ns->litr3n[2] += nf->GRZ_to_litr3n * propLAYER2;
-		ns->litr4n[2] += nf->GRZ_to_litr4n * propLAYER2;
-
+	
 	
 		cs->GRZsrc_C += cf->GRZ_to_litr1c + cf->GRZ_to_litr2c + cf->GRZ_to_litr3c + cf->GRZ_to_litr4c;
 		ns->GRZsrc_N += nf->GRZ_to_litr1n + nf->GRZ_to_litr2n + nf->GRZ_to_litr3n + nf->GRZ_to_litr4n;

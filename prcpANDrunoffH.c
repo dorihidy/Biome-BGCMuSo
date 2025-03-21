@@ -47,12 +47,13 @@ int prcpANDrunoffH(const control_struct* ctrl, const wstate_struct* ws, const me
 	if (ctrl->interception_flag == 1)
 		max_int = epc->int_coef * prcp                   * epv->allLAI;
 	else
-		max_int = epc->int_coef * (1-exp(-0.1*(prcp+1))) * epv->projLAI;
+		max_int = epc->int_coef * (1-exp(-0.1*(prcp+1))) * (epv->projLAI + epv->projLAI_STDB);
 
 	
 	/* 2. rain vs. snow, and canopy interception */
 	if (metv->Tavg > 0.0 && ws->snoww == 0)             /* rain */
 	{
+
 		if (prcp <= max_int)          /* all intercepted */
 		{
 			wf->prcp_to_canopyw = prcp; 
@@ -65,7 +66,7 @@ int prcpANDrunoffH(const control_struct* ctrl, const wstate_struct* ws, const me
 		}
 		
 		/* 3. throughfall to soil water and Hortonian runoff */
-		/* when the precipitation at the surface exceeds the max. infiltration rate, the excess water is put into surface runoff (Balsamo et al. 20008; Eq.(7)) */
+		/* when the precipitation at the surface exceeds the max. infiltration rate, the excess water is put into surface runoff (Balsamo et al. 2008; Eq.(7)) */
 		if (sprop->RCN > 0 && ws->snoww == 0 && ws->pondw == 0)
 		{
 			coeff_soiltype  = 254*(100 / sprop->RCN - 1);
@@ -91,6 +92,7 @@ int prcpANDrunoffH(const control_struct* ctrl, const wstate_struct* ws, const me
 	{
 		wf->prcp_to_snoww = prcp;     /* no interception */
 	}
+
 	
 	return(errorCode);
 }

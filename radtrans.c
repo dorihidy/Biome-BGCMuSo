@@ -30,7 +30,7 @@ int radtrans(const control_struct* ctrl, const phenology_struct* phen, const cst
 
 	int errorCode=0;
 	int pp;
-	double projLAI, leafcSUM, SLA_avg;
+	double leafcSUM, SLA_avg;
 	double albedo_par;
 	double sw,par;
 	double swabs, swtrans;
@@ -87,6 +87,7 @@ int radtrans(const control_struct* ctrl, const phenology_struct* phen, const cst
 		}
 				
 		epv->projLAI = cs->leafc * SLA_avg;
+		epv->projLAI_STDB = cs->STDBc_leaf * SLA_avg;
 		epv->allLAI = epv->projLAI * epc->lai_ratio;
 		epv->SLA_avg = SLA_avg;
 
@@ -112,6 +113,7 @@ int radtrans(const control_struct* ctrl, const phenology_struct* phen, const cst
 	{
 		epv->allLAI = 0.0;
 		epv->projLAI = 0.0;
+		epv->projLAI_STDB = 0.0;
 		epv->plaisun = 0.0;
 		epv->plaishade = 0.0;
 		epv->projSLA_sun = 0.0;
@@ -120,16 +122,15 @@ int radtrans(const control_struct* ctrl, const phenology_struct* phen, const cst
 	
 
 	k = epc->ext_coef;
-	projLAI = epv->projLAI;
 
 	/* calculate NDVI based on empirical estimation */
-	epv->NDVI = 0.01 * pow(projLAI,3) - 0.12 *  pow(projLAI,2) + 0.48 * projLAI + 0.02;
+	epv->NDVI = 0.01 * pow(epv->projLAI,3) - 0.12 *  pow(epv->projLAI,2) + 0.48 * epv->projLAI + 0.02;
 	
 	
 	
 	/* calculate LAI dependent albedo */
 	if (sitec->albedo_sw < crit_albedo)
-		epv->albedo_LAI = crit_albedo - (crit_albedo - sitec->albedo_sw)* exp(-0.75*projLAI);
+		epv->albedo_LAI = crit_albedo - (crit_albedo - sitec->albedo_sw)* exp(-0.75*epv->projLAI);
 	else
 		epv->albedo_LAI = sitec->albedo_sw;
 
@@ -137,14 +138,14 @@ int radtrans(const control_struct* ctrl, const phenology_struct* phen, const cst
 	k_sw = k;
 	sw = 0;
 	sw = metv->swavgfd * (1.0 - epv->albedo_LAI);
-	swabs = sw * (1.0 - exp(-k_sw*projLAI));
+	swabs = sw * (1.0 - exp(-k_sw * (epv->projLAI+ epv->projLAI_STDB)));
 	swtrans = sw - swabs;
 	
 	/* 1.3 calculate PAR absorbed */
 	k_par = k * 1.0;
 	albedo_par = sitec->albedo_sw/3.0;
 	par = metv->par * (1.0 - albedo_par);
-	parabs = par * (1.0 - exp(-k_par*projLAI));
+	parabs = par * (1.0 - exp(-k_par * (epv->projLAI + epv->projLAI_STDB)));
 	
 	/* 1.4 calculate the total shortwave absorbed by the sunlit and shaded canopy fractions */
 
@@ -159,7 +160,7 @@ int radtrans(const control_struct* ctrl, const phenology_struct* phen, const cst
 
 	/* 1.5 convert this to the shortwave absorbed per unit LAI in the sunlit and  shaded canopy fractions */
 	
-	if (projLAI > 0.0)
+	if (epv->projLAI > 0.0)
 	{
 		swabs_per_plaisun = swabs_plaisun / epv->plaisun;
 		swabs_per_plaishade = swabs_plaishade/epv->plaishade;
@@ -180,7 +181,7 @@ int radtrans(const control_struct* ctrl, const phenology_struct* phen, const cst
 	}
 
 	/* 1.7 convert this to the PAR absorbed per unit LAI in the sunlit and shaded canopy fractions */
-	if (projLAI > 0.0)
+	if (epv->projLAI > 0.0)
 	{
 		parabs_per_plaisun = parabs_plaisun/epv->plaisun;
 		parabs_per_plaishade = parabs_plaishade/epv->plaishade;
@@ -257,7 +258,7 @@ int radtrans(const control_struct* ctrl, const phenology_struct* phen, const cst
 
 	/* 2.6 convert this to the shortwave absorbed per unit LAI in the sunlit and  shaded canopy fractions  */
 	
-	if (projLAI > 0.0 )
+	if (epv->projLAI > 0.0 )
 	{
 		/* plai_crit: in order to avoid irrealistic per LAI values */
 		plai_crit = 0.1; 

@@ -26,6 +26,7 @@ int daymet(const control_struct* ctrl,const metarr_struct* metarr, const epconst
 	/* generates daily meteorological variables from the metarray struct */
 	double Tmax,Tmin,Tavg,TavgRA11,TavgRA30,TavgRA10,Tday,tdiff, tsoil_top;
 	int errorCode=0;
+	static double tACCLIM_pre;
 
 
 	/* convert prcp from cm --> kg/m2 */
@@ -55,15 +56,16 @@ int daymet(const control_struct* ctrl,const metarr_struct* metarr, const epconst
 	if (!ctrl->metday)
 	{
 		metv->tACCLIM            = metv->Tday;
-		metv->tACCLIMpre         = metv->Tday;
+		tACCLIM_pre = metv->Tday;
 	}
 	else
 	{
 		if (epc->tau)
-			metv->tACCLIM = metv->tACCLIMpre + ((metv->Tday - metv->tACCLIMpre) / epc->tau);
+			metv->tACCLIM = tACCLIM_pre + ((metv->Tday - tACCLIM_pre) / epc->tau);
 		else
 			metv->tACCLIM = metv->Tday; 
-		metv->tACCLIMpre = metv->tACCLIM;
+		
+		tACCLIM_pre = metv->tACCLIM;
 	
 	}
 
@@ -91,8 +93,6 @@ int daymet(const control_struct* ctrl,const metarr_struct* metarr, const epconst
 		}
 
 		metv->tsoil_surface     = tsoil_top;
-
-		metv->tsoil_surface_pre = tsoil_top;
 	}
 
 	/* 3 m below the ground surface (last layer) is specified by the annual mean surface air temperature */

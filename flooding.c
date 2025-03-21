@@ -30,8 +30,7 @@ int flooding(control_struct* ctrl, const siteconst_struct* sitec, const flooding
 	int errorCode=0;
 	int md, year, layer, dm;
 	double FL_to_soilw;
-	double conc1[N_DISSOLVMATER], material_fromFL[N_DISSOLVMATER];
-	double soilN, soilC, FL_DOMconc;
+	double material_fromFL[N_DISSOLVMATER];
 	int FLyday_start, FLyday_end;
 
 	FL_to_soilw = 0;
@@ -45,56 +44,19 @@ int flooding(control_struct* ctrl, const siteconst_struct* sitec, const flooding
 		FLyday_start = date_to_doy(mondays, FLS->FLstart_month_array[md], FLS->FLstart_day_array[md]);
 		FLyday_end   = date_to_doy(mondays, FLS->FLend_month_array[md], FLS->FLend_day_array[md]);
 
+	
 		if (year == FLS->FLstart_year_array[md] && ctrl->yday >= FLyday_start && ctrl->yday <= FLyday_end) 
 		{	
 			sprop->FLD = FLS->FLheight_array[md];
 
-			if (FLS->FL_NH4ppm_array[md] != DATA_GAP)
-			{ 
-				ctrl->FLconcFROMfile_flag = 1;
-				
-
-				/* flooding data */
-				if (FLS->FL_NH4ppm_array[md] != -1)
-				{
-					/* NH4, NO3 and DOM */
-					soilInfo->conc_FL[0] = FLS->FL_NH4ppm_array[md] * 1e-6;
-					soilInfo->conc_FL[1] = FLS->FL_NO3ppm_array[md] * 1e-6;
-					FL_DOMconc = FLS->FL_DOCppm_array[md] * 1e-6;
-
-
-					soilC = cs->soil1c_total + cs->soil2c_total + cs->soil3c_total + cs->soil4c_total;
-					soilN = ns->soil1n_total + ns->soil2n_total + ns->soil3n_total + ns->soil4n_total;
-
-					if (soilC && soilN)
-					{
-						soilInfo->conc_FL[2] = FL_DOMconc * (ns->soil1n_total / soilN);
-						soilInfo->conc_FL[3] = FL_DOMconc * (ns->soil2n_total / soilN);
-						soilInfo->conc_FL[4] = FL_DOMconc * (ns->soil3n_total / soilN);
-						soilInfo->conc_FL[5] = FL_DOMconc * (ns->soil4n_total / soilN);
-						soilInfo->conc_FL[6] = FL_DOMconc * (cs->soil1c_total / soilC);
-						soilInfo->conc_FL[7] = FL_DOMconc * (cs->soil2c_total / soilC);
-						soilInfo->conc_FL[8] = FL_DOMconc * (cs->soil3c_total / soilC);
-						soilInfo->conc_FL[9] = FL_DOMconc * (cs->soil4c_total / soilC);
-					}
-					else
-					{
-						for (dm = N_DISSOLVinorgN; dm < N_DISSOLVMATER; dm++) soilInfo->conc_FL[dm] = 0;
-					}
-				}
-			}
-			else
+			/* concentration of GW - from file or from contant value of MuSo */
+			if (!errorCode && flooding_concentration(md, FLS, soilInfo, ws, cs, ns))
 			{
-				ctrl->FLconcFROMfile_flag = 0;
-				
-				/* call soil concentration calculation routine to calculate the concetration of soil (content2pool_flag=0: NH4, NO3 -> content). */
-				if (!errorCode && calc_soilconc(-1, 0, sprop, ws, cs, ns, soilInfo))
-				{
-					printf("ERROR in calc_soilconc.c for flooding.c\n");
-					errorCode = 1;
-				}
+				printf("\n");
+				printf("ERROR in flooding_concentration.c for flooding.c\n");
+				errorCode = 1;
 			}
-				
+	
 
 			/* we assume, flooding wet the 0-10 cm soil layers */
 			for (layer = 0; layer < 2; layer++)
@@ -104,20 +66,10 @@ int flooding(control_struct* ctrl, const siteconst_struct* sitec, const flooding
 					FL_to_soilw = (sprop->VWCsat[layer] - epv->VWC[layer]) * sitec->soillayer_thickness[layer] * water_density;
 
 
-					/* calculation ratio for save concentrations in the upper layer */
-					if (ctrl->FLconcFROMfile_flag)
-					{
-						for (dm = 0; dm < N_DISSOLVMATER; dm++) conc1[dm] = soilInfo->conc_FL[dm];
-					}
-					else
-					{ 
-						for (dm = 0; dm < N_DISSOLVMATER; dm++) conc1[dm] = soilInfo->conc_soil[dm][layer];
-					}
-
 					/* calculation nutrients entering with flooding water */
 					for (dm = 0; dm < N_DISSOLVMATER; dm++)
 					{
-						material_fromFL[dm]              = conc1[dm] * FL_to_soilw;
+						material_fromFL[dm]              = soilInfo->FLconc[dm] * FL_to_soilw;
 						soilInfo->content_soil[dm][layer] += material_fromFL[dm];
 					}
 				
@@ -125,7 +77,7 @@ int flooding(control_struct* ctrl, const siteconst_struct* sitec, const flooding
 					ws->soilw[layer] += FL_to_soilw;
 					epv->VWC[layer]   = ws->soilw[layer] / (sitec->soillayer_thickness[layer] * water_density);
 
-					if (sprop->VWCsat[layer] - epv->VWC[layer] > CRIT_PRECwater)
+					if (sprop->VWCsat[layer] - epv->VWC[layer] > CRIT_PREC_lenient)
 					{
 						printf("\n");
 						printf("ERROR in water saturation calculation in flooding.c\n");
@@ -133,9 +85,9 @@ int flooding(control_struct* ctrl, const siteconst_struct* sitec, const flooding
 					}
 
 					/* call soil concentration calculation routine to calculate the concetration of FL */
-					if (!errorCode && calc_soilconc(layer, 1, sprop, ws, cs, ns, soilInfo))
+					if (!errorCode && check_soilcontent(layer, 1, sprop, cs, ns, soilInfo))
 					{
-						printf("ERROR in calc_soilconc.c for flooding.c\n");
+						printf("ERROR in check_soilcontent.c for flooding.c\n");
 						errorCode = 1;
 					}
 								
@@ -175,8 +127,55 @@ int flooding(control_struct* ctrl, const siteconst_struct* sitec, const flooding
 	}
 	else
 	{
-		for (dm = 0; dm < N_DISSOLVMATER; dm++) soilInfo->conc_FL[dm] = 0;
+		for (dm = 0; dm < N_DISSOLVMATER; dm++) soilInfo->FLconc[dm] = 0;
 
 	}
+	return (errorCode);
+}
+
+int flooding_concentration(int md, const flooding_struct* FLS, soilInfo_struct* soilInfo, wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
+{
+	int dm, FLlayer;
+	int errorCode = 0;
+	double FLconc_fromFILE[N_DISSOLVMATER];
+	double soilconc_array[N_DISSOLVMATER];
+
+	FLlayer = 0;
+
+	/* calculation of soil concentration */
+
+	soilconc_array[0] = (ns->NH4[FLlayer] * soilInfo->dissolv_prop[0]) / ws->soilw[FLlayer];
+	soilconc_array[1] = (ns->NO3[FLlayer] * soilInfo->dissolv_prop[1]) / ws->soilw[FLlayer];
+	soilconc_array[2] = (ns->soil1n[FLlayer] * soilInfo->dissolv_prop[2]) / ws->soilw[FLlayer];
+	soilconc_array[3] = (ns->soil2n[FLlayer] * soilInfo->dissolv_prop[3]) / ws->soilw[FLlayer];
+	soilconc_array[4] = (ns->soil3n[FLlayer] * soilInfo->dissolv_prop[4]) / ws->soilw[FLlayer];
+	soilconc_array[5] = (ns->soil4n[FLlayer] * soilInfo->dissolv_prop[5]) / ws->soilw[FLlayer];
+	soilconc_array[6] = (cs->soil1c[FLlayer] * soilInfo->dissolv_prop[6]) / ws->soilw[FLlayer];
+	soilconc_array[7] = (cs->soil2c[FLlayer] * soilInfo->dissolv_prop[7]) / ws->soilw[FLlayer];
+	soilconc_array[8] = (cs->soil3c[FLlayer] * soilInfo->dissolv_prop[8]) / ws->soilw[FLlayer];
+	soilconc_array[9] = (cs->soil4c[FLlayer] * soilInfo->dissolv_prop[9]) / ws->soilw[FLlayer];
+
+	FLconc_fromFILE[0] = FLS->FL_NH4ppm_array[md] * 1e-6;
+	FLconc_fromFILE[1] = FLS->FL_NO3ppm_array[md] * 1e-6;
+	FLconc_fromFILE[2] = FLS->FL_DON1ppm_array[md] * 1e-6;
+	FLconc_fromFILE[3] = FLS->FL_DON2ppm_array[md] * 1e-6;
+	FLconc_fromFILE[4] = FLS->FL_DON3ppm_array[md] * 1e-6;
+	FLconc_fromFILE[5] = FLS->FL_DON4ppm_array[md] * 1e-6;
+	FLconc_fromFILE[6] = FLS->FL_DOC1ppm_array[md] * 1e-6;
+	FLconc_fromFILE[7] = FLS->FL_DOC2ppm_array[md] * 1e-6;
+	FLconc_fromFILE[8] = FLS->FL_DOC3ppm_array[md] * 1e-6;
+	FLconc_fromFILE[9] = FLS->FL_DOC4ppm_array[md] * 1e-6;
+
+	/* if input data is avaialbe ins FLfile - concentration from file; else: concentration from soil (no effect of FL) */
+	for (dm = 0; dm < N_DISSOLVMATER; dm++)
+	{
+		if (FLconc_fromFILE[dm] >= 0)
+			soilInfo->FLconc[dm] = FLconc_fromFILE[dm];
+		else
+			soilInfo->FLconc[dm] = soilconc_array[dm];
+	}
+
+
+
 	return (errorCode);
 }

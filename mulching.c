@@ -55,11 +55,22 @@ int mulching(control_struct* ctrl, const mulching_struct* MUL,  cstate_struct* c
 			cs->cwdc[0]  += cf->cwdc_from_MUL;	
 			ns->cwdn[0]  += nf->cwdn_from_MUL;
 
+			cs->litrCabove[0] += cf->litrc_from_MUL;
+			cs->cwdCabove[0] += cf->cwdc_from_MUL;
+
+			cs->litrCabove_total += cf->litrc_from_MUL;
+			cs->cwdCabove_total += cf->cwdc_from_MUL;
+
 	
 			cs->MULsrc_C += cf->litrc_from_MUL + cf->cwdc_from_MUL;
 			ns->MULsrc_N += nf->litrn_from_MUL + nf->cwdn_from_MUL;
 
 
+		}
+		else
+		{
+			cf->litrc_from_MUL = 0;
+			cf->cwdc_from_MUL = 0;
 		}
 		
 	

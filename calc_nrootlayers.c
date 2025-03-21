@@ -19,7 +19,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int calc_nrootlayers(int flag, double maxRD, double frootc, siteconst_struct* sitec, epvar_struct* epv)
+int calc_nrootlayers(int flag, double maxRD, double frootc, const siteconst_struct* sitec, epvar_struct* epv)
 {
 
 	int errorCode=0;

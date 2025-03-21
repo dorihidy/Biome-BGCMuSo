@@ -69,7 +69,7 @@ int decomp(const metvar_struct* metv,const epconst_struct* epc, soilprop_struct*
 	cf->cwdc_to_litrc_total = 0;
 	nf->cwdn_to_litrn_total = 0;
 	nf->grossMINERflux_total = 0;
-	nf->potIMMOBflux_total = 0;;
+	nf->potIMMOBflux_total = 0;
 
 	/* 1. calculate the rate constant scalar in multilayer soil: layer by layer  */
 	for (layer=0; layer < N_SOILLAYERS; layer++)
@@ -244,10 +244,10 @@ int decomp(const metvar_struct* metv,const epconst_struct* epc, soilprop_struct*
 		cn_l2 = litr2c/litr2n;
 		cn_l4 = litr4c/litr4n;
 
-		if (soil1n) sprop->soil1_CN = soil1c / soil1n;
-		if (soil2n) sprop->soil2_CN = soil2c / soil2n;
-		if (soil3n) sprop->soil3_CN = soil3c / soil3n;
-		if (soil4n) sprop->soil4_CN = soil4c / soil4n;
+	/*	if (soil1n && soil1c) sprop->soil1_CN = soil1c / soil1n;
+		if (soil2n && soil2c) sprop->soil2_CN = soil2c / soil2n;
+		if (soil3n && soil3c) sprop->soil3_CN = soil3c / soil3n;
+		if (soil4n && soil4c) sprop->soil4_CN = soil4c / soil4n;*/
 
 		cn_s1 = sprop->soil1_CN;
 		cn_s2 = sprop->soil2_CN;
@@ -310,9 +310,9 @@ int decomp(const metvar_struct* metv,const epconst_struct* epc, soilprop_struct*
 	
 			plitr1c_loss = kl1 * (litr1c - cf->litr1c_to_release[layer]);
 			if (plitr1c_loss > litr1c) plitr1c_loss = litr1c;
-			if (litr1n > 0.0) ratio = cn_s1/cn_l1;
+			if (litr1n > 0.0 && cn_l1) ratio = cn_s1/cn_l1;
 			else ratio = 0.0;
-			pmnf_l1s1 = (plitr1c_loss * (1.0 - rfl1s1 - (ratio)))/cn_s1;
+			if (cn_s1) pmnf_l1s1 = (plitr1c_loss * (1.0 - rfl1s1 - (ratio)))/cn_s1;
 		}
 		
 		/* 2. cellulose litter to fast SOM pool  */
@@ -323,9 +323,9 @@ int decomp(const metvar_struct* metv,const epconst_struct* epc, soilprop_struct*
 
 			plitr2c_loss = kl2 * (litr2c - cf->litr2c_to_release[layer]);
 			if (plitr2c_loss > litr2c) plitr2c_loss = litr2c;
-			if (litr2n > 0.0) ratio = cn_s2/cn_l2;
+			if (litr2n > 0.0 && cn_l2) ratio = cn_s2/cn_l2;
 			else ratio = 0.0;
-			pmnf_l2s2 = (plitr2c_loss * (1.0 - rfl2s2 - (ratio)))/cn_s2;
+			if (cn_s2) pmnf_l2s2 = (plitr2c_loss * (1.0 - rfl2s2 - (ratio)))/cn_s2;
 		}
 		
 		/* 3. lignin litter to slow SOM pool  */
@@ -337,9 +337,9 @@ int decomp(const metvar_struct* metv,const epconst_struct* epc, soilprop_struct*
 			plitr4c_loss = kl4 * (litr4c - cf->litr4c_to_release[layer]);
 
 			if (plitr4c_loss > litr4c) plitr4c_loss = litr4c;
-			if (litr4n > 0.0) ratio = cn_s3/cn_l4;
+			if (litr4n > 0.0 && cn_l4) ratio = cn_s3/cn_l4;
 			else ratio = 0.0;
-			pmnf_l4s3 = (plitr4c_loss * (1.0 - rfl4s3 - (ratio)))/cn_s3;
+			if (cn_s3) pmnf_l4s3 = (plitr4c_loss * (1.0 - rfl4s3 - (ratio)))/cn_s3;
 		}
 		
 		/* 4. labile SOM pool to fast SOM pool  */
@@ -347,7 +347,7 @@ int decomp(const metvar_struct* metv,const epconst_struct* epc, soilprop_struct*
 		{
 			psoil1c_loss = ks1 * soil1c;
 			if (psoil1c_loss > soil1c) psoil1c_loss = soil1c;
-			pmnf_s1s2 = (psoil1c_loss * (1.0 - rfs1s2 - (cn_s2/cn_s1)))/cn_s2;
+			if (cn_s2) pmnf_s1s2 = (psoil1c_loss * (1.0 - rfs1s2 - (cn_s2/cn_s1)))/cn_s2;
 		}
 		
 		/* 5. fast SOM pool to slow SOM pool */
@@ -355,7 +355,7 @@ int decomp(const metvar_struct* metv,const epconst_struct* epc, soilprop_struct*
 		{
 			psoil2c_loss = ks2 * soil2c;
 			if (psoil2c_loss > soil2c) psoil2c_loss = soil2c;
-			pmnf_s2s3 = (psoil2c_loss * (1.0 - rfs2s3 - (cn_s3/cn_s2)))/cn_s3;
+			if (cn_s3) pmnf_s2s3 = (psoil2c_loss * (1.0 - rfs2s3 - (cn_s3/cn_s2)))/cn_s3;
 		}
 		
 		/* 6. slow SOM pool to stable SOM pool */
@@ -363,7 +363,7 @@ int decomp(const metvar_struct* metv,const epconst_struct* epc, soilprop_struct*
 		{
 			psoil3c_loss = ks3 * soil3c;
 			if (psoil3c_loss > soil3c) psoil3c_loss = soil3c;
-			pmnf_s3s4 = (psoil3c_loss * (1.0 - rfs3s4 - (cn_s4/cn_s3)))/cn_s4;
+			if (cn_s4) pmnf_s3s4 = (psoil3c_loss * (1.0 - rfs3s4 - (cn_s4/cn_s3)))/cn_s4;
 		}
 		
 		/* 7. mineralization of stable SOM */
@@ -371,7 +371,7 @@ int decomp(const metvar_struct* metv,const epconst_struct* epc, soilprop_struct*
 		{
 			psoil4c_loss = ks4 * soil4c;
 			if (psoil4c_loss > soil4c) psoil4c_loss = soil4c;
-			pmnf_s4 = -psoil4c_loss/cn_s4;
+			if (cn_s4) pmnf_s4 = -psoil4c_loss/cn_s4;
 		}
 		
 		/* determine if there is sufficient mineral N to support potential

@@ -1,5 +1,5 @@
  /*
-leachCalc.c
+calc_leach.c
 Calculation of leaching flux between two soil layers (layer0 and layer1; materials: NO3, NH4, DON and DOC)
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -20,7 +20,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int leachCalc(control_struct* ctrl, soilInfo_struct* soilInfo, double wflux, double wstate0, double wstate1, double state0[N_DISSOLVMATER], double state1[N_DISSOLVMATER],
+int calc_leach(control_struct* ctrl, soilInfo_struct* soilInfo, double wflux, double wstate0, double wstate1, double state0[N_DISSOLVMATER], double state1[N_DISSOLVMATER],
 	                                                             double conc0[N_DISSOLVMATER], double conc1[N_DISSOLVMATER], double leachFlux[N_DISSOLVMATER])
 {
 	int dm, nc;
@@ -82,7 +82,7 @@ int leachCalc(control_struct* ctrl, soilInfo_struct* soilInfo, double wflux, dou
 			if (fabs(state0[dm]) > CRIT_PREC)
 			{
 				printf("\n");
-				printf("ERROR leachCalc.c negative storage values.c\n");
+				printf("ERROR calc_leach.c negative storage values.c\n");
 				errorCode = 1;
 			}
 			else
@@ -94,10 +94,10 @@ int leachCalc(control_struct* ctrl, soilInfo_struct* soilInfo, double wflux, dou
 
 		if (state1[dm] < 0)
 		{
-			if (fabs(state0[dm]) > CRIT_PREC)
+			if (fabs(state1[dm]) > CRIT_PREC)
 			{
 				printf("\n");
-				printf("ERROR leachCalc.c negative storage values.c\n");
+				printf("ERROR calc_leach.c negative storage values.c\n");
 				errorCode = 1;
 			}
 			else

@@ -253,7 +253,7 @@ int canopy_et(const control_struct* ctrl, const metvar_struct* metv, epvar_struc
 	/* 5. Energy limit  */
 	/*---------------------------------------------------------------*/
 	diff = wf->EVPcanopyw + wf->potTRPsoilw - wf->potETcanopy;
-	if (diff > CRIT_PRECwater)
+	if (diff > CRIT_PREC_lenient)
 	{
 		if (wf->EVPcanopyw  > wf->potETcanopy)
 		{

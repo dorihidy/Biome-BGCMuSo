@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 	{
         if(!strcmp(argv[1],"-v"))
 		{
-           	printf("Model version: Biome-BGCMuSo7.0alfa\n");
+           	printf("Model version: Biome-BGCMuSo7.0b30\n");
 			exit(0);
         }
     }
@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* initialize water state structure */
-	errorCode = wstate_init(init, &bgcin.sitec, &bgcin.sprop, &bgcin.ws);
+	errorCode = wstate_init(init, &bgcin.ctrl, &bgcin.sitec, &bgcin.sprop, &bgcin.ws);
 	if (errorCode)
 	{
 		printf("ERROR in call to wstate_init.c from pointbgc.c... Exiting\n");
@@ -477,8 +477,11 @@ int main(int argc, char *argv[])
 		free(bgcin.HRV.HRVyear_array);  
 		free(bgcin.HRV.HRVmonth_array); 
 		free(bgcin.HRV.HRVday_array); 
-		free(bgcin.HRV.snagprop_array); 
-		free(bgcin.HRV.transportHRV_array); 
+		free(bgcin.HRV.propStemResidue_array); 
+		free(bgcin.HRV.propRootResidue_array);
+		free(bgcin.HRV.transportHRVleaf_array); 
+		free(bgcin.HRV.transportHRVstem_array);
+		free(bgcin.HRV.transportHRVyield_array);
 	}
 
 	if (bgcin.PLG.PLG_num)
@@ -543,7 +546,14 @@ int main(int argc, char *argv[])
         free(bgcin.GWS.GWdepth_array);	
 		free(bgcin.GWS.GW_NH4ppm_array);
 		free(bgcin.GWS.GW_NO3ppm_array);
-		free(bgcin.GWS.GW_DOCppm_array);
+		free(bgcin.GWS.GW_DOC1ppm_array);
+		free(bgcin.GWS.GW_DOC2ppm_array);
+		free(bgcin.GWS.GW_DOC3ppm_array);
+		free(bgcin.GWS.GW_DOC4ppm_array);
+		free(bgcin.GWS.GW_DON1ppm_array);
+		free(bgcin.GWS.GW_DON2ppm_array);
+		free(bgcin.GWS.GW_DON3ppm_array);
+		free(bgcin.GWS.GW_DON4ppm_array);
 	}
 
 	if (bgcin.FLS.FLnum)
@@ -557,7 +567,14 @@ int main(int argc, char *argv[])
         free(bgcin.FLS.FLheight_array);
 		free(bgcin.FLS.FL_NH4ppm_array);
 		free(bgcin.FLS.FL_NO3ppm_array);
-		free(bgcin.FLS.FL_DOCppm_array);
+		free(bgcin.FLS.FL_DOC1ppm_array);
+		free(bgcin.FLS.FL_DOC2ppm_array);
+		free(bgcin.FLS.FL_DOC3ppm_array);
+		free(bgcin.FLS.FL_DOC4ppm_array);
+		free(bgcin.FLS.FL_DON1ppm_array);
+		free(bgcin.FLS.FL_DON2ppm_array);
+		free(bgcin.FLS.FL_DON3ppm_array);
+		free(bgcin.FLS.FL_DON4ppm_array);
 	}
 
 	if (bgcin.co2.varco2) free(bgcin.co2.co2ppm_array);

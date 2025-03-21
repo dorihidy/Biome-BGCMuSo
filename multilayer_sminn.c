@@ -1,6 +1,6 @@
 /* 
 multilayer_sminn.c
-Calculating the change in content of soil mineral nitrogen in multilayer soil (plant N upate, soil processes, 
+Calculating the soilInfo->dismatTOTALecofunc in content of soil mineral nitrogen in multilayer soil (plant N upate, soil processes, 
 depostion and fixing). 
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -24,16 +24,15 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
 int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv,const siteconst_struct* sitec, const NdepControl_struct* ndep, 
-	                 wstate_struct* ws, cstate_struct* cs, cflux_struct* cf, nstate_struct* ns, nflux_struct* nf, soilprop_struct* sprop, epvar_struct* epv, soilInfo_struct* soilInfo)
+	                 cstate_struct* cs, cflux_struct* cf, nstate_struct* ns, nflux_struct* nf, soilprop_struct* sprop, epvar_struct* epv, soilInfo_struct* soilInfo)
 {
 	int errorCode=0;
 	int layer=0;
-	int GWlayer, dm;
+	int GWlayer, CFlayer, dm;
 	double NH4_prop,SR_layer, NO3avail, NO3avail_ppm;
 	double pH, tsoil, WFPS, net_miner,NH4dissolv, N2OfluxNITRIF,NH4_to_nitrif;
 	double weight;
 	double sminn_layer[N_SOILLAYERS];
-	double change[N_DISSOLVN][N_SOILLAYERS];
 	double sminn_to_soilCTRL, sminn_to_npoolCTRL, ndep_to_sminnCTRL, nfix_to_sminnCTRL;
 	double SR_total,NO3_to_denitr,ratioN2_N2O;
 	double NH4_to_soilSUM_total, NO3_to_soilSUM_total;
@@ -44,6 +43,7 @@ int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv,const sitec
 
 
 	GWlayer = (int)sprop->GWlayer;
+	CFlayer = (int)sprop->CFlayer;
 	/* *****************************************************************************************************
 
 	1.Deposition and fixation - INPUT
@@ -55,9 +55,9 @@ int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv,const sitec
 	/* SR_total calculation - unit: kgC/ha */
 	SR_total = 0;
 	for (layer = 0; layer < N_SOILLAYERS; layer++) 
-	{ 
-		SR_total += (cf->soil1_hr[layer] + cf->soil2_hr[layer] + cf->soil3_hr[layer] + cf->soil4_hr[layer])* 10000;
-		for (dm = 0; layer < N_DISSOLVN; layer++) change[dm][layer] = 0;
+	{  
+		SR_total += (cf->soil1_hr[layer] + cf->soil2_hr[layer] + cf->soil3_hr[layer] + cf->soil4_hr[layer]) * kg_to_g;
+		for (dm = 0; layer < N_DISSOLVN; layer++) soilInfo->dismatTOTALecofunc[dm][layer] = 0;
 
 	}
 	/*-----------------------------------------------------------------------------*/
@@ -106,9 +106,12 @@ int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv,const sitec
 		}
 		else
 		{
-			/* no root is assumed in the top soil layer, but N fixation should occur also in top soil layer */
-			if (layer < 2)
+			nf->nfix_to_NH4[layer] = nf->nfix_to_sminn_total * epv->rootlengthProp[layer];
+			/* no root is assumed in the top soil layer, but N fixation should occur also in top soil layer  */
+			if (epv->rootlengthProp[0] == 0 && layer < 2)
+			{
 				nf->nfix_to_NH4[layer] = nf->nfix_to_sminn_total * epv->rootlengthProp[1] * (sitec->soillayer_thickness[layer] / sitec->soillayer_depth[1]);
+			}
 			else
 				nf->nfix_to_NH4[layer] = nf->nfix_to_sminn_total * epv->rootlengthProp[layer];
 		}
@@ -167,7 +170,8 @@ int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv,const sitec
 
 		NO3avail_ppm = ns->NO3[layer] / (sprop->BD[layer] * g_per_cm3_to_kg_per_m3 * sitec->soillayer_thickness[layer]) * multi_ppm;
 
-		SR_layer = (cf->soil1_hr[layer] + cf->soil2_hr[layer] + cf->soil3_hr[layer] + cf->soil4_hr[layer]) * 1000;
+
+		SR_layer = (cf->soil1_hr[layer] + cf->soil2_hr[layer] + cf->soil3_hr[layer] + cf->soil4_hr[layer]) * kg_to_g;
 		
 		if (sprop->critWFPS_denitr == DATA_GAP)
 			VWCcritDENIT = sprop->VWCfc[layer];
@@ -187,9 +191,9 @@ int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv,const sitec
 		else
 			nf->NO3_to_denitr[layer] = 0;
 
-		if (nf->NO3_to_denitr[layer] > ns->NO3[layer])
+		if (nf->NO3_to_denitr[layer] > NO3avail)
 		{
-			nf->NO3_to_denitr[layer] = ns->NO3[layer];
+			nf->NO3_to_denitr[layer] = NO3avail;
 			ctrl->limitDENIT_flag = 1;
 		}
 
@@ -203,29 +207,39 @@ int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv,const sitec
 		/* 7. STATE UPDATE */
 
 		/* NH4 */
-		change[0][layer] = (nf->ndep_to_NH4[layer] + nf->nfix_to_NH4[layer] +
+		soilInfo->dismatTOTALecofunc[0][layer] = (nf->ndep_to_NH4[layer] + nf->nfix_to_NH4[layer] +
 			               (nf->litr1n_to_release[layer] + nf->litr2n_to_release[layer] + nf->litr4n_to_release[layer]) * 0.5 -
 			                nf->NH4_to_soilSUM[layer] - nf->NH4_to_npool[layer] - nf->NH4_to_nitrif[layer]);
 		/* NO3 */
-		change[1][layer] = (nf->ndep_to_NO3[layer] + (nf->NH4_to_nitrif[layer] - nf->N2OfluxNITRIF[layer]) +
+		soilInfo->dismatTOTALecofunc[1][layer] = (nf->ndep_to_NO3[layer] + (nf->NH4_to_nitrif[layer] - nf->N2OfluxNITRIF[layer]) +
 			               (nf->litr1n_to_release[layer] + nf->litr2n_to_release[layer] + nf->litr4n_to_release[layer]) * 0.5 -
 			                nf->NO3_to_soilSUM[layer] - nf->NO3_to_npool[layer] - nf->NO3_to_denitr[layer]);
 
 
 		/* soilN */
-		change[2][layer] = nf->sminn_to_soil1n_l1[layer];
-		change[3][layer] = nf->sminn_to_soil2n_l2[layer] + nf->sminn_to_soil2n_s1[layer];
-		change[4][layer] = nf->sminn_to_soil3n_l4[layer] + nf->sminn_to_soil3n_s2[layer];
-		change[5][layer] = nf->sminn_to_soil4n_s3[layer] + nf->sminn_to_soiln_s4[layer];
+		soilInfo->dismatTOTALecofunc[2][layer] = nf->sminn_to_soil1n_l1[layer];
+		soilInfo->dismatTOTALecofunc[3][layer] = nf->sminn_to_soil2n_l2[layer] + nf->sminn_to_soil2n_s1[layer];
+		soilInfo->dismatTOTALecofunc[4][layer] = nf->sminn_to_soil3n_l4[layer] + nf->sminn_to_soil3n_s2[layer];
+		soilInfo->dismatTOTALecofunc[5][layer] = nf->sminn_to_soil4n_s3[layer] + nf->sminn_to_soiln_s4[layer];
+
+		if (layer < GWlayer)
+		{
+			soilInfo->dismatUNSATecofunc[0][layer] = soilInfo->dismatTOTALecofunc[0][layer];
+			soilInfo->dismatUNSATecofunc[1][layer] = soilInfo->dismatTOTALecofunc[1][layer];
+			soilInfo->dismatUNSATecofunc[2][layer] = soilInfo->dismatTOTALecofunc[2][layer];
+			soilInfo->dismatUNSATecofunc[3][layer] = soilInfo->dismatTOTALecofunc[3][layer];
+			soilInfo->dismatUNSATecofunc[4][layer] = soilInfo->dismatTOTALecofunc[4][layer];
+			soilInfo->dismatUNSATecofunc[5][layer] = soilInfo->dismatTOTALecofunc[5][layer];
+		}
 
 		/* state update */
-		ns->NH4[layer] += change[0][layer];
-		ns->NO3[layer] += change[1][layer];
+		ns->NH4[layer] += soilInfo->dismatTOTALecofunc[0][layer];
+		ns->NO3[layer] += soilInfo->dismatTOTALecofunc[1][layer];
 
-		ns->soil1n[layer] += change[2][layer];
-		ns->soil2n[layer] += change[3][layer];
-		ns->soil3n[layer] += change[4][layer];
-		ns->soil4n[layer] += change[5][layer];
+		ns->soil1n[layer] += soilInfo->dismatTOTALecofunc[2][layer];
+		ns->soil2n[layer] += soilInfo->dismatTOTALecofunc[3][layer];
+		ns->soil3n[layer] += soilInfo->dismatTOTALecofunc[4][layer];
+		ns->soil4n[layer] += soilInfo->dismatTOTALecofunc[5][layer];
 
 		ns->npool += (nf->NH4_to_npool[layer] + nf->NO3_to_npool[layer]);
 		ns->Nfix_src += nf->nfix_to_NH4[layer];
@@ -269,9 +283,9 @@ int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv,const sitec
 	/* II. CONTROL */
 
 	/* transfer value: NH4, NO3, DOC, DON - > content_array  etc.*/
-	if (!errorCode && calc_soilconc(-1, 0, sprop, ws, cs, ns, soilInfo))
+	if (!errorCode && check_soilcontent(-1, 0, sprop, cs, ns, soilInfo))
 	{
-		printf("ERROR in calc_soilconc.c for multilayer_sminn.c\n");
+		printf("ERROR in check_soilcontent.c for multilayer_sminn.c\n");
 		errorCode = 1;
 	}
 
@@ -280,47 +294,128 @@ int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv,const sitec
 	/* III. Groundwater transport */
 
 
-	if (sprop->GWD != DATA_GAP)
+	if (sprop->GWlayer != DATA_GAP)
 	{
+
+		/* if capillary zone exists in unsaturated zone (not in GWlayer) */
+		if (sprop->dz_CAPILcf)
+		{
+
+			for (dm = 0; dm < N_DISSOLVN; dm++)
+			{
+				/* calculation of NORM and CAPIL ratio */
+				if (soilInfo->content_NORMcf[dm] + soilInfo->content_CAPILcf[dm])
+				{
+					ratioNORM = soilInfo->content_NORMcf[dm] / (soilInfo->content_NORMcf[dm] + soilInfo->content_CAPILcf[dm]);
+					ratioCAPIL = soilInfo->content_CAPILcf[dm] / (soilInfo->content_NORMcf[dm] + soilInfo->content_CAPILcf[dm]);
+				}
+				else
+				{
+					ratioNORM = sprop->dz_NORMcf / (sprop->dz_NORMcf + sprop->dz_CAPILcf);
+					ratioCAPIL = sprop->dz_CAPILcf / (sprop->dz_NORMcf + sprop->dz_CAPILcf);
+				}
+				if (fabs(1 - ratioNORM - ratioCAPIL) > CRIT_PREC)
+				{
+					printf("\n");
+					printf("ERROR in ratio calculation in multilayer_sminn.c\n");
+					errorCode = 1;
+				}
+		
+				diffNORM = soilInfo->dismatTOTALecofunc[dm][CFlayer] * ratioNORM;
+				diffCAPIL = soilInfo->dismatTOTALecofunc[dm][CFlayer] * ratioCAPIL;
+
+				/* NORM zone: negative storage value is not possible - covered by GW */
+				if (diffNORM + soilInfo->content_NORMcf[dm] < 0) diffNORM = -1 * soilInfo->content_NORMcf[dm];
+
+				soilInfo->content_NORMcf[dm] += diffNORM;
+
+				/* CAPIL zone: negative storage value is not possible - covered by GW */
+				diffCAPIL = soilInfo->dismatTOTALecofunc[dm][CFlayer] - diffNORM;
+
+
+				if (soilInfo->content_CAPILcf[dm] + diffCAPIL < 0)
+				{
+					if (fabs(soilInfo->content_CAPILcf[dm] + diffCAPIL) > CRIT_PREC)
+					{
+						printf("ERROR in content_CAPILgw calculation in multilayer_sminn.c\n");
+						errorCode = 1;
+					}
+					else
+						diffCAPIL = soilInfo->content_CAPILcf[dm];
+				}
+				soilInfo->content_CAPILcf[dm] += diffCAPIL;
+
+				if (fabs(soilInfo->content_soil[dm][CFlayer] - (soilInfo->content_NORMcf[dm] + soilInfo->content_CAPILcf[dm])) > CRIT_PREC_lenient*10)
+				{
+					printf("ERROR in content_CAPILcf calculation in multilayer_sminn.c\n");
+			        errorCode = 1;
+				}
+
+			}
+		}
 		for (layer = GWlayer; layer < N_SOILLAYERS; layer++)
 		{
-			/* in GWlayer: change is distributed proportionally - change in saturated zone is accounted for  GWecofunc: -: sink, +: source*/
+			/* in GWlayer: soilInfo->dismatTOTALecofunc is distributed proportionally - soilInfo->dismatTOTALecofunc in saturated zone is accounted for  GWecofunc: -: sink, +: source*/
 
 			if (layer == GWlayer)
 			{
-				ratioNORM = sprop->dz_zoneNORM / (sprop->dz_zoneCAPIL + sprop->dz_zoneNORM + sprop->dz_zoneSAT);
-				ratioCAPIL = sprop->dz_zoneCAPIL / (sprop->dz_zoneCAPIL + sprop->dz_zoneNORM + sprop->dz_zoneSAT);
-				ratioSAT = sprop->dz_zoneSAT / (sprop->dz_zoneCAPIL + sprop->dz_zoneNORM + sprop->dz_zoneSAT);
+
 
 				for (dm = 0; dm < N_DISSOLVN; dm++)
 				{
-					diffNORM = change[dm][layer] * ratioNORM;
-					diffCAPIL = change[dm][layer] * ratioCAPIL;
-					diffSAT = change[dm][layer] * ratioSAT;
+					if (soilInfo->content_NORMgw[dm] + soilInfo->content_CAPILgw[dm] + soilInfo->content_SATgw[dm])
+					{
+						ratioNORM = soilInfo->content_NORMgw[dm] / (soilInfo->content_NORMgw[dm] + soilInfo->content_CAPILgw[dm] + soilInfo->content_SATgw[dm]);
+						ratioCAPIL = soilInfo->content_CAPILgw[dm] / (soilInfo->content_NORMgw[dm] + soilInfo->content_CAPILgw[dm] + soilInfo->content_SATgw[dm]);
+						ratioSAT = soilInfo->content_SATgw[dm] / (soilInfo->content_NORMgw[dm] + soilInfo->content_CAPILgw[dm] + soilInfo->content_SATgw[dm]);
+					}
+					else
+					{ 
+
+						ratioNORM = sprop->dz_NORMgw / (sprop->dz_CAPILgw + sprop->dz_NORMgw + sprop->dz_SATgw);
+						ratioCAPIL = sprop->dz_CAPILgw / (sprop->dz_CAPILgw + sprop->dz_NORMgw + sprop->dz_SATgw);
+						ratioSAT = sprop->dz_SATgw / (sprop->dz_CAPILgw + sprop->dz_NORMgw + sprop->dz_SATgw);
+					}
+					if (fabs(1 - ratioNORM - ratioCAPIL - ratioSAT) > CRIT_PREC)
+					{
+						printf("\n");
+						printf("ERROR in ratio calculation in multilayer_sminn.c\n");
+						errorCode = 1;
+					}
+
+					diffNORM = soilInfo->dismatTOTALecofunc[dm][layer] * ratioNORM;
+					diffCAPIL = soilInfo->dismatTOTALecofunc[dm][layer] * ratioCAPIL;
+					diffSAT = soilInfo->dismatTOTALecofunc[dm][layer] * ratioSAT;
 
 
 					/* NORM zone: negative storage value is not possible - covered by GW */
-					if (diffNORM < 0)
-						diff = -1 * diffNORM - soilInfo->content_zoneNORM[dm];
+					if (soilInfo->content_NORMgw[dm] + diffNORM < 0)
+						diff = -1 * diffNORM - soilInfo->content_NORMgw[dm];
 					else
 						diff = 0;
 
 					soilInfo->dismatGWecofunc_NORM[dm] = diff;
-					soilInfo->content_zoneNORM[dm] += diffNORM + soilInfo->dismatGWecofunc_NORM[dm];
+					soilInfo->content_NORMgw[dm] += diffNORM + soilInfo->dismatGWecofunc_NORM[dm];
 
 					/* CAPIL zone: negative storage value is not possible - covered by GW */
-					if (diffCAPIL < 0)
-						diff = -1 * diffCAPIL - soilInfo->content_zoneCAPIL[dm];
+					if (soilInfo->content_CAPILgw[dm] + diffCAPIL < 0)
+						diff = -1 * diffCAPIL - soilInfo->content_CAPILgw[dm];
 					else
 						diff = 0;
 
 					soilInfo->dismatGWecofunc_CAPIL[dm] = diff;
-					soilInfo->content_zoneCAPIL[dm] += diffCAPIL + soilInfo->dismatGWecofunc_CAPIL[dm];
+					soilInfo->content_CAPILgw[dm] += diffCAPIL + soilInfo->dismatGWecofunc_CAPIL[dm];
 
-					/* SAT zone: no change is possible (constant conc) - covered by GW */
-					soilInfo->dismatGWecofunc[dm][GWlayer] = -1 * diffSAT;
+					/* SAT zone: no soilInfo->dismatTOTALecofunc is possible (constant conc) - covered by GW  */
+					soilInfo->dismatGWecofunc[dm][layer] = -1 * diffSAT;
+					soilInfo->content_SATgw[dm] += diffSAT + soilInfo->dismatGWecofunc[dm][layer];
 
-					soilInfo->content_soil[dm][layer] = soilInfo->content_zoneNORM[dm] + soilInfo->content_zoneCAPIL[dm] + soilInfo->content_zoneSAT[dm];
+	
+			
+					/* UNSAT soilInfo->dismatTOTALecofunc */
+					soilInfo->dismatUNSATecofunc[dm][layer] = diffNORM + diffCAPIL;
+
+	                soilInfo->content_soil[dm][layer] = soilInfo->content_NORMgw[dm] + soilInfo->content_CAPILgw[dm] + soilInfo->content_SATgw[dm];
 				}
 
 			}
@@ -328,15 +423,15 @@ int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv,const sitec
 			{
 				for (dm = 0; dm < N_DISSOLVN; dm++)
 				{
-					soilInfo->dismatGWecofunc[dm][layer] = -1 * change[dm][layer];
+					soilInfo->dismatGWecofunc[dm][layer] = -1 * soilInfo->dismatTOTALecofunc[dm][layer];
 					soilInfo->content_soil[dm][layer]   += soilInfo->dismatGWecofunc[dm][layer];
 				}
 			}
 
 			/* transfer value: content_array ->NH4, NO3, DOC, DON  etc.*/
-			if (!errorCode && calc_soilconc(layer, 1, sprop, ws, cs, ns, soilInfo))
+			if (!errorCode && check_soilcontent(layer, 1, sprop, cs, ns, soilInfo))
 			{
-				printf("ERROR in calc_soilconc.c for multilayer_sminn.c\n");
+				printf("ERROR in check_soilcontent.c for multilayer_sminn.c\n");
 				errorCode = 1;
 			}
 

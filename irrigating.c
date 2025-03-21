@@ -101,7 +101,7 @@ int irrigating(const control_struct* ctrl, const irrigating_struct* IRG, const s
 				ws->soilw[IRGlayer] += wf->IRG_to_soilw;
 
 				diff = ws->soilw[IRGlayer] - sprop->VWCsat[IRGlayer] * sitec->soillayer_thickness[IRGlayer] * water_density;
-				if (diff > CRIT_PRECwater) 
+				if (diff > CRIT_PREC_lenient) 
 				{
 					ws->pondw          += diff;
 					ws->soilw[IRGlayer] = sprop->VWCsat[IRGlayer] * sitec->soillayer_thickness[IRGlayer] * water_density;

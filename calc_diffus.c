@@ -1,5 +1,5 @@
  /*
-diffusCalc.c
+calc_diffus.c
 Calculation of diffusion flux between two soil layers
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -22,19 +22,17 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
-int diffusCalc(const soilprop_struct* sprop, double dz0, double VWC0, double VWC0_sat, double VWC0_fc, double VWC0_wp, double VWC0_limit,
-	                                         double dz1, double VWC1, double VWC1_sat, double VWC1_fc, double VWC1_wp, double VWC1_limit, double* soilwDiffus)
+int calc_diffus(int layer, const soilprop_struct* sprop, double dz0, double VWC0, double VWC0_sat, double VWC0_EqFC, double VWC0_wp, double VWC0_limit,
+	                                                     double dz1, double VWC1, double VWC1_sat, double VWC1_EqFC, double VWC1_wp, double VWC1_limit, double dLk, double* DBAR, double* soilwDiffus)
 {
 
 	int errorCode = 0;
-	int noVWC1limit = 0;
-	double ESWi0, ESWi1, THETi0, THETi1, innerTHET, innerESW, DBAR, GRAD, FLOW;
-	double dz0_cm, dz1_cm, soilw0, soilw1, soilw_sat0, soilw_sat1, soilw_fc0, soilw_fc1, soilwDiffus_act;
+	double ESWi0, ESWi1, THETi0, THETi1, innerTHET, innerESW, DBARlimited, GRAD, FLOW;
+	double dz0_cm, dz1_cm, soilw0, soilw1, soilw_sat0, soilw_sat1, soilwDiffus_act;
 	double soilw0_limit, soilw1_limit, diff1, diff2, diff;
 
 	dz0_cm = dz0 * 100;
 	dz1_cm = dz1 * 100;
-
 
 
 
@@ -45,38 +43,37 @@ int diffusCalc(const soilprop_struct* sprop, double dz0, double VWC0, double VWC
 	soilw1 = VWC1 * dz1 * water_density;
 
 	/* the plant-extractable soil water */
-	ESWi0 = (VWC0_fc - VWC0_wp);
-	ESWi1 = (VWC1_fc - VWC1_wp);
+	ESWi0 = (VWC0_EqFC - VWC0_wp);
+	ESWi1 = (VWC1_EqFC - VWC1_wp);
 
 
 	/* interation for determine diffusion 	*/
-	THETi0 = MIN(VWC0 - VWC0_wp, ESWi0);
-	THETi1 = MIN(VWC1 - VWC1_wp, ESWi1);
+	THETi0 = MIN(VWC0_EqFC, VWC0) - VWC0_wp;
+	THETi1 = MIN(VWC1_EqFC, VWC1) - VWC1_wp;
 
-
-	THETi0 = MAX(THETi0, 0);
-	THETi1 = MAX(THETi1, 0);
 
 	innerTHET = (THETi0 * 0.5 + THETi1 * 0.5);
-	DBAR = sprop->p1diffus_tipping * exp(sprop->p2diffus_tipping * innerTHET);
+	*DBAR = sprop->p1diffus[layer] * exp(sprop->p2diffus[layer] * innerTHET);
 
-	DBAR = MIN(DBAR, sprop->p3diffus_tipping);
+
+	DBARlimited = MIN(*DBAR, sprop->p3diffus[layer]);
 
 
 
 	innerESW = (ESWi0 * 0.5 + ESWi1 * 0.5);
 	GRAD     = innerESW * (THETi1/ESWi1 - THETi0/ESWi0);
 	
-	FLOW   = DBAR * GRAD / ((dz0_cm + dz1_cm) / 2.);
+	if (dLk == DATA_GAP)
+		FLOW = DBARlimited * GRAD / ((dz0_cm + dz1_cm) / 2.);
+	else
+		FLOW = DBARlimited * GRAD / dLk;
 
 	if (fabs(FLOW) > CRIT_PREC)
-		soilwDiffus_act = -1*(FLOW / m_to_cm) * water_density;
+		soilwDiffus_act = -1*(FLOW / mm_to_cm);
 	else
 		soilwDiffus_act = 0;
 	
 	/* tipping diffusion limitation */
-	soilw_fc0  = VWC0_fc  * dz0 * water_density;
-	soilw_fc1  = VWC1_fc  * dz1 * water_density;
 	soilw_sat0 = VWC0_sat * dz0 * water_density;
 	soilw_sat1 = VWC1_sat * dz1 * water_density;
 
@@ -87,12 +84,16 @@ int diffusCalc(const soilprop_struct* sprop, double dz0, double VWC0, double VWC
 		if (soilwDiffus_act > 0)
 		{
 			/* equalization control */
-			diff1 = soilw1 + soilwDiffus_act - soilw1_limit;
+			if (VWC1_limit != DATA_GAP)
+				diff1 = soilw1 + soilwDiffus_act - soilw1_limit;
+			else
+				diff1 = 0;
+
 			diff2 = soilw0 - soilwDiffus_act - soilw0_limit;
 
 			if (diff1 > 0 || diff2 < 0)
 			{
-				if (diff1 > 0 && diff2 < 0)
+				if (diff1 >= 0 && diff2 < 0)
 				{
 					if (fabs(diff1) > fabs(diff2))
 						diff = fabs(diff1);
@@ -101,27 +102,20 @@ int diffusCalc(const soilprop_struct* sprop, double dz0, double VWC0, double VWC
 				}
 				else
 				{
-					if (diff1 > 0)
+					if (diff1 >= 0)
 						diff = diff1;
 					else
 						diff = fabs(diff2);
 				}
 				soilwDiffus_act -= diff;
-				
-				/* FC-control */
-				diff = soilw1 + soilwDiffus_act - soilw_fc1;
-				if (diff > 0)
-				{
-					soilwDiffus_act -= diff;
-				}
 
 			}
 			if (soilwDiffus_act < 0)
 			{
-				if (fabs(soilwDiffus_act) > CRIT_PRECwater && !errorCode)
+				if (fabs(soilwDiffus_act) > CRIT_PREC_lenient && !errorCode)
 				{
 					printf("\n");
-					printf("ERROR in diffusCalc.c from tipping.c\n");
+					printf("ERROR in calc_diffus.c\n");
 					errorCode = 1;
 				}
 				else
@@ -135,9 +129,12 @@ int diffusCalc(const soilprop_struct* sprop, double dz0, double VWC0, double VWC
 		{
 
 			diff1 = soilw0 - soilwDiffus_act - soilw0_limit;
-			diff2 = soilw1 + soilwDiffus_act - soilw1_limit;
-
-			if (noVWC1limit == 1) diff2 = 0;
+			
+			/* equalization control */
+			if (VWC1_limit != DATA_GAP)
+				diff2 = soilw1 + soilwDiffus_act - soilw1_limit;
+			else
+				diff2 = 0;
 
 			if (diff1 > 0 || diff2 < 0)
 			{
@@ -159,46 +156,26 @@ int diffusCalc(const soilprop_struct* sprop, double dz0, double VWC0, double VWC
 				soilwDiffus_act += diff;
 			}
 
-			/* FC-control */
-			diff = soilw0 - soilwDiffus_act - soilw_fc0;
-			if (diff > 0)
-			{
-				soilwDiffus_act += diff;
-			}
-
-			if (soilwDiffus_act > 0)
-			{
-				if (soilwDiffus_act > CRIT_PRECwater && !errorCode)
-				{
-					printf("\n");
-					printf("ERROR in diffusCalc.c from tipping.c\n");
-					errorCode = 1;
-				}
-				else
-					soilwDiffus_act = 0;
-
-			}
-
 		}
 	}
 
 	soilw0  -= soilwDiffus_act;
 			
 	/* control to avoid oversaturation*/
-	if (soilw0 - soilw_sat0 > CRIT_PRECwater && !errorCode)
+	if (soilw0 - soilw_sat0 > CRIT_PREC_lenient && !errorCode)
 	{
 		printf("\n");
-		printf("ERROR in diffusCalc.c from tipping.c\n");
+		printf("ERROR in calc_diffus.c (soilw0 - soilw_sat0 > 0) %12.2f%12.2f%12.2f\n", soilw0,soilw_sat0, soilw0-soilw_sat0);
 		errorCode = 1;
 	}
 			
 	soilw1 += soilwDiffus_act;
 			
 	/* control to avoid oversaturation*/ 
-	if (soilw1 - soilw_sat1 > CRIT_PRECwater && !errorCode)
+	if (VWC1_limit != DATA_GAP && soilw1 - soilw_sat1 > CRIT_PREC_lenient && !errorCode)
 	{
 		printf("\n");
-		printf("ERROR in diffusCalc.c from tipping.c\n");
+		printf("ERROR in calc_diffus.c (soilw1 - soilw_sat1) %12.2f%12.2f\n", soilw1,soilw_sat1);
 		errorCode = 1;
 	}
 

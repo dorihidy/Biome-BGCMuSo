@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <Keyword>Win32Proj</Keyword>
+    <ProjectName>MuSo7</ProjectName>
+    <ProjectGuid>{E5A7337B-E5C2-D8CB-1BB0-5C631DDCEC7C}</ProjectGuid>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>..</OutDir>
+    <IntDir>.</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>src;header;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <TargetMachine>MachineX86</TargetMachine>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <TargetMachine>MachineX86</TargetMachine>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="aboveANDbelow.c" />
+    <ClCompile Include="annual_rates.c" />
+    <ClCompile Include="annVARinit.c" />
+    <ClCompile Include="atm_pres.c" />
+    <ClCompile Include="bgc.c" />
+    <ClCompile Include="calc_diffus.c" />
+    <ClCompile Include="calc_drainage.c" />
+    <ClCompile Include="calc_leach.c" />
+    <ClCompile Include="calc_nrootlayers.c" />
+    <ClCompile Include="calc_VWCeq.c" />
+    <ClCompile Include="canopy_et.c" />
+    <ClCompile Include="capillary_diffusion.c" />
+    <ClCompile Include="capillary_leaching.c" />
+    <ClCompile Include="capillary_tipping.c" />
+    <ClCompile Include="CH4flux_estimation.c" />
+    <ClCompile Include="check_balance.c" />
+    <ClCompile Include="check_soilcontent.c" />
+    <ClCompile Include="check_virtualLayer_balance.c" />
+    <ClCompile Include="co2_init.c" />
+    <ClCompile Include="conditionalMGM_init.c" />
+    <ClCompile Include="conductLimit_calculation.c" />
+    <ClCompile Include="conductLimit_information.c" />
+    <ClCompile Include="conduct_calc.c" />
+    <ClCompile Include="cutdown2litter.c" />
+    <ClCompile Include="CWDextract.c" />
+    <ClCompile Include="CWDextract_init.c" />
+    <ClCompile Include="daily_allocation.c" />
+    <ClCompile Include="date_to_doy.c" />
+    <ClCompile Include="daymet.c" />
+    <ClCompile Include="dayphen.c" />
+    <ClCompile Include="decomp.c" />
+    <ClCompile Include="diffusion.c" />
+    <ClCompile Include="doy_to_date.c" />
+    <ClCompile Include="Elimit_and_PET.c" />
+    <ClCompile Include="end_init.c" />
+    <ClCompile Include="epc_init.c" />
+    <ClCompile Include="fertilizing.c" />
+    <ClCompile Include="fertilizing_init.c" />
+    <ClCompile Include="firstday.c" />
+    <ClCompile Include="flooding.c" />
+    <ClCompile Include="flooding_init.c" />
+    <ClCompile Include="flowering_heatstress.c" />
+    <ClCompile Include="grazing.c" />
+    <ClCompile Include="grazing_init.c" />
+    <ClCompile Include="groundwater_calculations.c" />
+    <ClCompile Include="groundwater_diffusion.c" />
+    <ClCompile Include="groundwater_init.c" />
+    <ClCompile Include="groundwater_movement.c" />
+    <ClCompile Include="groundwater_preproc.c" />
+    <ClCompile Include="groundwater_tipping.c" />
+    <ClCompile Include="groundwater_leaching.c" />
+    <ClCompile Include="growth_resp.c" />
+    <ClCompile Include="GSI_calculation.c" />
+    <ClCompile Include="harvesting.c" />
+    <ClCompile Include="harvesting_init.c" />
+    <ClCompile Include="hydrol_control.c" />
+    <ClCompile Include="infiltANDpond.c" />
+    <ClCompile Include="ini.c" />
+    <ClCompile Include="irrigating.c" />
+    <ClCompile Include="irrigating_init.c" />
+    <ClCompile Include="leapControl.c" />
+    <ClCompile Include="maint_resp.c" />
+    <ClCompile Include="make_zero_flux_struct.c" />
+    <ClCompile Include="management.c" />
+    <ClCompile Include="metarr_init.c" />
+    <ClCompile Include="met_init.c" />
+    <ClCompile Include="mgm_init.c" />
+    <ClCompile Include="mortality.c" />
+    <ClCompile Include="mowing.c" />
+    <ClCompile Include="mowing_init.c" />
+    <ClCompile Include="mulching.c" />
+    <ClCompile Include="mulching_init.c" />
+    <ClCompile Include="multilayer_hydrolparams.c" />
+    <ClCompile Include="multilayer_hydrolprocess.c" />
+    <ClCompile Include="multilayer_leaching.c" />
+    <ClCompile Include="multilayer_rootdepth.c" />
+    <ClCompile Include="multilayer_sminn.c" />
+    <ClCompile Include="multilayer_transpiration.c" />
+    <ClCompile Include="multilayer_tsoil.c" />
+    <ClCompile Include="ndep_init.c" />
+    <ClCompile Include="output_handling.c" />
+    <ClCompile Include="output_init.c" />
+    <ClCompile Include="output_map_init.c" />
+    <ClCompile Include="penmon.c" />
+    <ClCompile Include="phenology.c" />
+    <ClCompile Include="phenphase.c" />
+    <ClCompile Include="photosynthesis.c" />
+    <ClCompile Include="planting.c" />
+    <ClCompile Include="planting_init.c" />
+    <ClCompile Include="ploughing.c" />
+    <ClCompile Include="ploughing_init.c" />
+    <ClCompile Include="pointbgc.c" />
+    <ClCompile Include="pondANDrunoffD.c" />
+    <ClCompile Include="potEVPsurface_to_actEVPsurface.c" />
+    <ClCompile Include="prcpANDrunoffH.c" />
+    <ClCompile Include="precision_control.c" />
+    <ClCompile Include="prephenology.c" />
+    <ClCompile Include="presim_state_init.c" />
+    <ClCompile Include="radtrans.c" />
+    <ClCompile Include="restart_init.c" />
+    <ClCompile Include="restart_io.c" />
+    <ClCompile Include="scc_init.c" />
+    <ClCompile Include="senescence.c" />
+    <ClCompile Include="simctrl_init.c" />
+    <ClCompile Include="sitec_init.c" />
+    <ClCompile Include="smooth.c" />
+    <ClCompile Include="snowmelt.c" />
+    <ClCompile Include="soilCover.c" />
+    <ClCompile Include="soilEVP_calc.c" />
+    <ClCompile Include="soilstress_calculation.c" />
+    <ClCompile Include="spinup_bgc.c" />
+    <ClCompile Include="sprop_init.c" />
+    <ClCompile Include="stateReserve.c" />
+    <ClCompile Include="state_init.c" />
+    <ClCompile Include="state_update.c" />
+    <ClCompile Include="summary.c" />
+    <ClCompile Include="thinning.c" />
+    <ClCompile Include="thinning_init.c" />
+    <ClCompile Include="time_init.c" />
+    <ClCompile Include="tipping.c" />
+    <ClCompile Include="transient_bgc.c" />
+    <ClCompile Include="writeErrorCode.c" />
+    <ClCompile Include="zero_srcsnk.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="bgc_constants.h" />
+    <ClInclude Include="bgc_func.h" />
+    <ClInclude Include="bgc_io.h" />
+    <ClInclude Include="bgc_struct.h" />
+    <ClInclude Include="ini.h" />
+    <ClInclude Include="misc_func.h" />
+    <ClInclude Include="pointbgc_func.h" />
+    <ClInclude Include="pointbgc_struct.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

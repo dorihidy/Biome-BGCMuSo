@@ -26,242 +26,104 @@ int tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, 
 {
 
 	int errorCode = 0;
-	int layer, ll, N_noGWlayers;
+	int layer, ll, N_NAGlayers;
 
 	double VWC, soilw_sat1, soilw1;
-	double INFILT, EXCESS, HOLD, DRAIN, DRMX, conduct_sat;
+	double INFILT, conduct_cmday, conductSAT_cmday;
+	double VWCsat, VWCfc, dz0, dz1, dz0_cm, HOLD;
 
-
-	double dz0, dz1;
-
-	double DRN[N_SOILLAYERS]; /* drainage rate throug soil layer (cm/day) */
-
-	for (layer = 0; layer < N_SOILLAYERS; layer++) DRN[layer] = 0;
-
+	double DC, DRN, EXCESS, VWCnew, soilw0;
 
 	/* tipping is used only for layers without GW */
 	if (sprop->GWD == DATA_GAP)
-		N_noGWlayers = N_SOILLAYERS;
+		N_NAGlayers = N_SOILLAYERS;
 	else
-		N_noGWlayers = (int) sprop->GWlayer;
+		N_NAGlayers = (int) sprop->CFlayer;
 
+	
 	/* --------------------------------------------------------------------------------------------------------------------*/
 	/* 1.PERCOLATION */
 
 	INFILT = wf->infiltPOT * mm_to_cm;
 
-	/* -----------------------------*/
-	/* 1.1. rainy days */
-	if (INFILT > 0)
+	
+	/* BEGIN LOOP: layer from top to CFlayer (is GW is exists) */
+	for (layer = 0; layer < N_NAGlayers; layer++)
 	{
 
-		/* 1.1.1. BEGIN LOOP: layer */
-		for (layer = 0; layer < N_noGWlayers; layer++)
+		VWC    = epv->VWC[layer];
+		VWCsat = sprop->VWCsat[layer];
+		VWCfc  = MAX(sprop->VWCfc[layer], sprop->VWCeq[layer]);
+		soilw0 = ws->soilw[layer];
+
+		/* unit change from m to cm */
+		dz0 = sitec->soillayer_thickness[layer];
+		dz0_cm = dz0 * m_to_cm;
+
+		DC = sprop->drainCoeff[layer];
+
+		/* hydraulic conductivity in actual layer (cm/day = m/s * 100 * sec/day) */
+		conductSAT_cmday = sprop->hydrCONDUCTsat[layer] * m_to_cm * nSEC_IN_DAY;
+		conduct_cmday = conductSAT_cmday;
+
+
+		if (!errorCode && calc_drainage(wf->flagRAIN, INFILT, VWC, VWCsat, VWCfc, dz0_cm, DC, conduct_cmday, &DRN, &EXCESS, &VWCnew))
 		{
-
-			VWC = epv->VWC[layer];
-			dz0 = sitec->soillayer_thickness[layer] * m_to_cm;
-
-			/* saturated hydraulic conductivity in actual layer (cm/day = m/s * 100 * sec/day) */
-			conduct_sat = sprop->hydrCONDUCTsat[layer] * m_to_cm * nSEC_IN_DAY;
-
-
-			/* [cm = m3/m3 * cm */
-			HOLD = (sprop->VWCsat[layer] - VWC) * dz0;
-
-
-			/* 1.1.2.  IF: INFILT > HOLD */
-			if (INFILT > 0.0 && INFILT > HOLD)
-			{
-				/* drainage from soil profile [cm = m3/m3 * cm ] */
-				DRAIN = sprop->drainCoeff[layer] * (sprop->VWCsat[layer] - sprop->VWCfc[layer]) * dz0;
-
-				/* drainage rate throug soil layer (cm/day) */
-				DRN[layer] = INFILT - HOLD + DRAIN;
-
-
-				/* drainage is limited: cm/h * h/day */
-				if ((DRN[layer] - conduct_sat) > 0.0)
-				{
-					DRN[layer] = conduct_sat;
-					DRAIN = DRN[layer] + HOLD - INFILT;
-				}
-
-
-				/* state update temporal varialbe */
-				VWC = VWC + (INFILT - DRN[layer]) / dz0;
-
-				/* above saturation - */
-				if (VWC >= sprop->VWCsat[layer])
-				{
-
-					EXCESS = (VWC - sprop->VWCsat[layer]) * dz0;
-					VWC = sprop->VWCsat[layer];
-
-					/* if there is excess water, redistribute it in layers above */
-					if (EXCESS > 0)
-					{
-						for (ll = layer - 1; ll >= 0; ll--)
-						{
-							dz1 = sitec->soillayer_thickness[ll] * mm_to_cm;
-							soilw_sat1 = sprop->VWCsat[ll] * dz1 * water_density;
-							soilw1 = epv->VWC[ll] * dz1 * water_density;
-							HOLD = MIN(soilw_sat1 - soilw1, EXCESS);
-							ws->soilw[ll] += HOLD / mm_to_cm;
-							epv->VWC[ll] = ws->soilw[ll] / sitec->soillayer_thickness[ll] / water_density;
-
-							DRN[ll] = MAX(DRN[ll] - EXCESS, 0.0);
-							wf->soilwPercol[ll] = (DRN[ll] / m_to_cm) * water_density;
-							
-							EXCESS = EXCESS - HOLD;
-
-						}
-						/* if too much pondwater -> runoff */
-						wf->soilw_to_pondw += EXCESS / mm_to_cm;;
-					}
-				}
-
-				INFILT = DRN[layer];
-
-			} /* END IF: INFILT > HOLD */
-			else
-			{ /* 1.1.3. BEGIN ELSE: INFILT < HOLD */
-
-				VWC = VWC + INFILT / dz0;
-
-
-				/* BEGIN IF-ELSE: VWC > FC */
-				if (VWC >= sprop->VWCfc[layer])
-				{
-
-					DRAIN = (VWC - sprop->VWCfc[layer]) * sprop->drainCoeff[layer] * dz0;
-
-					/* drainage rate throug soil layer (cm/day) */
-					if (DRAIN > CRIT_PRECwater)
-						DRN[layer] = DRAIN;
-					else
-						DRN[layer] = 0;
-
-
-					/* drainage is limited */
-					if ((DRN[layer] - conduct_sat) > 0.0)
-					{
-						DRN[layer] = conduct_sat;
-						DRAIN = DRN[layer];
-					}
-
-					VWC = VWC - DRN[layer] / dz0;
-					INFILT = DRN[layer];
-				}
-				else
-				{
-					INFILT = 0.0;
-					DRN[layer] = 0.0;
-
-				} /* END IF-ELSE: VWC > FC */
-
-			} /* END ELSE: INFILT < HOLD */
-
-			/* water flux: cm/day to kg/(m2*day) */
-			wf->soilwPercol[layer] = (DRN[layer] / m_to_cm) * water_density;
-	
-
-			/* state update: with new VWC calcualte soilw */
-			epv->VWC[layer] = VWC;
-			ws->soilw[layer] = epv->VWC[layer] * sitec->soillayer_thickness[layer] * water_density;
-
-
-		} /* END FOR (layer) */
-
-
-	}
-	/* -----------------------------*/
-	else /* 1.2. rainless days */
-	{
-
-		/* BEGIN LOOP: VWCsat flow */
-		for (layer = 0; layer < N_noGWlayers; layer++)
-		{
-
-			VWC = epv->VWC[layer];
-			dz0 = sitec->soillayer_thickness[layer] * m_to_cm;
-
-			/* saturated hydraulic conductivity in actual layer (cm/day = m/s * 100 * sec/day) */
-			conduct_sat = sprop->hydrCONDUCTsat[layer] * m_to_cm * nSEC_IN_DAY;
-
-
-			if (VWC > sprop->VWCfc[layer])
-			{
-				DRMX = (VWC - sprop->VWCfc[layer]) * sprop->drainCoeff[layer] * dz0;
-				DRMX = MAX(0.0, DRMX);
-
-				DRMX = MAX((VWC - sprop->VWCfc[layer]) * sprop->drainCoeff[layer] * dz0, 0);
-
-			}
-			else
-				DRMX = 0;
-
-			/* BEGIN IF-ELSE: layer == 0 */
-			if (layer == 0)
-			{
-				DRN[layer] = DRMX;
-			}
-			else
-			{
-
-				if (epv->VWC[layer] < sprop->VWCfc[layer])
-					HOLD = (sprop->VWCfc[layer] - epv->VWC[layer]) * dz0;
-				else
-					HOLD = 0.0;
-
-				DRN[layer] = MAX(DRN[layer - 1] + DRMX - HOLD, 0.0);
-
-
-			} 	/* BEGIN IF-ELSE: layer == 0 */
-
-
-			/* limitation of drainage: saturation conductivity */
-			if ((DRN[layer] - conduct_sat) > 0.0) DRN[layer] = conduct_sat;
-			if (DRN[layer] < CRIT_PRECwater) DRN[layer] = 0;
-
-
-		} /* END LOOP: VWCsat flow */
-
-		for (layer = N_noGWlayers - 1; layer >= 0; layer--)
-		{
-
-			VWC = epv->VWC[layer];
-			dz0 = sitec->soillayer_thickness[layer] * m_to_cm;
-
-
-			if (layer > 0)
-			{
-				VWC = epv->VWC[layer] + DRN[layer - 1]/dz0 - DRN[layer]/dz0;
-				if (VWC - sprop->VWCsat[layer] > CRIT_PREC)
-				{
-					DRN[layer - 1] = (sprop->VWCsat[layer] - epv->VWC[layer]) * dz0 + DRN[layer];
-					VWC = sprop->VWCsat[layer];
-				}
-			}
-			else
-			{
-				VWC = epv->VWC[layer] - (DRN[layer] / dz0);
-			}
-
-			if (DRN[layer] < CRIT_PRECwater) DRN[layer] = 0;
-
-			/* water flux: cm/day to kg/(m2*day) */
-			wf->soilwPercol[layer] = (DRN[layer] / m_to_cm) * water_density;
-
-	
-			/* state update: with new VWC calcualte soilw */
-			epv->VWC[layer] = VWC;
-			ws->soilw[layer] = epv->VWC[layer] * sitec->soillayer_thickness[layer] * water_density;
-
-
+			printf("\n");
+			printf("ERROR calc_drainage.c for tipping.c\n");
+			errorCode = 1;
 		}
 
-	}
+		/* water flux: cm/day to kg/(m2*day) */
+		wf->soilwPercol[layer] = DRN / mm_to_cm;
+
+
+		/* state update: with new VWC calcualte soilw */
+		epv->VWC[layer] = VWCnew;
+		ws->soilw[layer] = epv->VWC[layer] * sitec->soillayer_thickness[layer] * water_density;
+	
+		/* control */
+		if (fabs(VWCnew * dz0 * water_density - soilw0 - ((INFILT - DRN - EXCESS) / mm_to_cm)) > CRIT_PREC_lenient)
+		{
+			printf("\n");
+			printf("ERROR in tipping.c: soilw update\n");
+			errorCode = 1;
+		}
+
+		INFILT = DRN;
+
+		/* if there is excess water, redistribute it in layers above */
+		if (EXCESS > CRIT_PREC_lenient)
+		{
+			for (ll = layer - 1; ll >= 0; ll--)
+			{
+				dz1 = sitec->soillayer_thickness[ll];
+				soilw_sat1 = sprop->VWCsat[ll] * dz1 * water_density;
+				soilw1 = epv->VWC[ll] * dz1 * water_density;
+				HOLD = MIN((soilw_sat1 - soilw1) * mm_to_cm, EXCESS);
+				soilw1 += HOLD / mm_to_cm;
+				if (soilw1 > soilw_sat1)
+				{
+					printf("\n");
+					printf("ERROR in tipping.c: EXCESS calculation\n");
+					errorCode = 1;
+				}
+				ws->soilw[ll] = soilw1;
+				epv->VWC[ll] = ws->soilw[ll] / dz1 / water_density;
+
+				wf->soilwPercol[ll] -= EXCESS / mm_to_cm;
+
+				EXCESS = EXCESS - HOLD;
+
+			}
+			/* if too much pondwater -> runoff */
+			wf->soilw_to_pondw += EXCESS / mm_to_cm;
+		}
+
+
+
+	} /* END FOR (layer) */
+
 
 
 

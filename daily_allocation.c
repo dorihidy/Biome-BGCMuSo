@@ -116,7 +116,7 @@ int daily_allocation(const control_struct* ctrl, const epconst_struct* epc, cons
 	int layer;
 	double cn_l1,cn_l2,cn_l4,cn_s1,cn_s2,cn_s3,cn_s4;
 	double rfl1s1, rfl2s2, rfl4s3, rfs1s2, rfs2s3, rfs3s4;
-	double net_nmin, net_immob, actual_immob;;
+	double net_nmin, net_immob, actual_immob;
 	double Ndemand_total, ndemand, sminAVAIL,pot_immob, NdifSPIN, NH4_NdifSPIN, NO3_NdifSPIN;
 	double pnow = 0;			/* proportion of growth displayed on current day */ 
 
@@ -545,7 +545,7 @@ int daily_allocation(const control_struct* ctrl, const epconst_struct* epc, cons
 
 	
 		/* labile litter fluxes */
-		if (cs->litr1c[layer] > 0.0)
+		if (cs->litr1c[layer] > 0.0 && ns->litr1n[layer] > 0.0)
 		{
 
 			if (IMMOBratio < 1 && nt->pmnf_l1s1[layer] > 0.0)
@@ -557,7 +557,7 @@ int daily_allocation(const control_struct* ctrl, const epconst_struct* epc, cons
 			cf->litr1c_to_soil1c[layer] = (1.0 - rfl1s1) * nt->plitr1c_loss[layer];
 
 		
-			if (ns->litr1n[layer] > 0.0) 
+			if (ns->litr1n[layer] > 0.0 && cn_l1)
 				nf->litr1n_to_soil1n[layer] = nt->plitr1c_loss[layer] / cn_l1;
 			else 
 				nf->litr1n_to_soil1n[layer] = 0.0;
@@ -572,7 +572,7 @@ int daily_allocation(const control_struct* ctrl, const epconst_struct* epc, cons
 		}
 
 		/* cellulose litter fluxes */
-		if (cs->litr2c[layer] > 0.0)
+		if (cs->litr2c[layer] > 0.0 && ns->litr2n[layer] > 0.0)
 		{
 			if (IMMOBratio < 1 && nt->pmnf_l2s2[layer] > 0.0)
 			{
@@ -582,7 +582,7 @@ int daily_allocation(const control_struct* ctrl, const epconst_struct* epc, cons
 			cf->litr2_hr[layer]         = rfl2s2 * nt->plitr2c_loss[layer];
 			cf->litr2c_to_soil2c[layer] = (1.0 - rfl2s2) * nt->plitr2c_loss[layer];
 
-			if (ns->litr2n[layer] > 0.0) 
+			if (ns->litr2n[layer] > 0.0 && cn_l2)
 				nf->litr2n_to_soil2n[layer] = nt->plitr2c_loss[layer] / cn_l2;
 			else 
 				nf->litr2n_to_soil2n[layer] = 0.0;
@@ -598,7 +598,7 @@ int daily_allocation(const control_struct* ctrl, const epconst_struct* epc, cons
 
 		/* release of shielded cellulose litter, tied to the decay rate of
 		lignin litter */
-		if (cs->litr3c[layer] > 0.0)
+		if (cs->litr3c[layer] > 0.0 && ns->litr3n[layer] > 0.0)
 		{
 			if (IMMOBratio < 1 && nt->pmnf_l4s3[layer] > 0.0)
 			{
@@ -613,7 +613,7 @@ int daily_allocation(const control_struct* ctrl, const epconst_struct* epc, cons
 		}
 
 		/* lignin litter fluxes */
-		if (cs->litr4c[layer] > 0.0)
+		if (cs->litr4c[layer] > 0.0 && ns->litr4n[layer] > 0.0)
 		{
 			if (IMMOBratio < 1 && nt->pmnf_l4s3[layer] > 0.0)
 			{
@@ -623,7 +623,7 @@ int daily_allocation(const control_struct* ctrl, const epconst_struct* epc, cons
 			cf->litr4_hr[layer]         = rfl4s3 * nt->plitr4c_loss[layer];
 			cf->litr4c_to_soil3c[layer] = (1.0 - rfl4s3) * nt->plitr4c_loss[layer];
 
-			if (ns->litr4n[layer] > 0.0) 
+			if (ns->litr4n[layer] > 0.0 && cn_l4)
 				nf->litr4n_to_soil3n[layer] = nt->plitr4c_loss[layer] / cn_l4;
 			else 
 				nf->litr4n_to_soil3n[layer] = 0.0;
@@ -638,45 +638,43 @@ int daily_allocation(const control_struct* ctrl, const epconst_struct* epc, cons
 		}
 		
 		/* labile SOM pool */
-		if (cs->soil1c[layer] > 0.0)
+		if (cs->soil1c[layer] > 0.0 && ns->soil1n[layer] > 0.0)
 		{
 			if (IMMOBratio < 1 && nt->pmnf_s1s2[layer] > 0.0)
 			{
 				nt->psoil1c_loss[layer] *= IMMOBratio;
-				nt->pmnf_s1s2[layer]    *= IMMOBratio;
+				nt->pmnf_s1s2[layer] *= IMMOBratio;
 			}
-			cf->soil1_hr[layer]				= rfs1s2 * nt->psoil1c_loss[layer];
-			cf->soil1c_to_soil2c[layer]		= (1.0 - rfs1s2) * nt->psoil1c_loss[layer];
-			nf->soil1n_to_soil2n[layer]		= nt->psoil1c_loss[layer] / cn_s1;
-			
-			nf->sminn_to_soil2n_s1[layer]   = nt->pmnf_s1s2[layer];
+			cf->soil1_hr[layer] = rfs1s2 * nt->psoil1c_loss[layer];
+			cf->soil1c_to_soil2c[layer] = (1.0 - rfs1s2) * nt->psoil1c_loss[layer];
+			if (cn_s1) nf->soil1n_to_soil2n[layer] = nt->psoil1c_loss[layer] / cn_s1;
 
+			nf->sminn_to_soil2n_s1[layer] = nt->pmnf_s1s2[layer];
+		}
 
-			/* control to avoid negative pool */
-			change = nf->sminn_to_soil1n_l1[layer] - nf->soil1n_to_soil2n[layer];
+		/* control to avoid negative pool */
+		change = nf->sminn_to_soil1n_l1[layer] - nf->soil1n_to_soil2n[layer];
 
-			diff = ns->soil1n[layer] + change;
-			if (diff < 0)
+		diff = ns->soil1n[layer] + change;
+		if (diff < 0)
+		{
+			if (nf->sminn_to_soil1n_l1[layer] < 0)
+				nf->sminn_to_soil1n_l1[layer] -= diff;
+			else
 			{
-				if (nf->sminn_to_soil1n_l1[layer] < 0)
-					nf->sminn_to_soil1n_l1[layer] -= diff;
-				else
+				if (nf->soil1n_to_soil2n[layer] > 0)
 				{
-					if (nf->soil1n_to_soil2n[layer] > 0)
-					{
-						nf->soil1n_to_soil2n[layer] += diff;
-						nt->psoil2c_loss[layer] = nf->soil1n_to_soil2n[layer] * cn_s1;
-						cf->soil1_hr[layer] = rfs1s2 * nt->psoil1c_loss[layer];
-						cf->soil1c_to_soil2c[layer] = (1.0 - rfs1s2) * nt->psoil1c_loss[layer];
-					}
+					nf->soil1n_to_soil2n[layer] += diff;
+					nt->psoil2c_loss[layer] = nf->soil1n_to_soil2n[layer] * cn_s1;
+					cf->soil1_hr[layer] = rfs1s2 * nt->psoil1c_loss[layer];
+					cf->soil1c_to_soil2c[layer] = (1.0 - rfs1s2) * nt->psoil1c_loss[layer];
 				}
 			}
-		
-
 		}
 		
+		
 		/* fast SOM pool  */
-		if (cs->soil2c[layer] > 0.0)
+		if (cs->soil2c[layer] > 0.0 && ns->soil2n[layer] > 0.0)
 		{
 			if (IMMOBratio < 1 && nt->pmnf_s2s3[layer] > 0.0)
 			{
@@ -685,85 +683,84 @@ int daily_allocation(const control_struct* ctrl, const epconst_struct* epc, cons
 			}
 			cf->soil2_hr[layer] = rfs2s3 * nt->psoil2c_loss[layer];
 			cf->soil2c_to_soil3c[layer] = (1.0 - rfs2s3) * nt->psoil2c_loss[layer];
-			nf->soil2n_to_soil3n[layer] = nt->psoil2c_loss[layer] / cn_s2;
+			if (cn_s2) nf->soil2n_to_soil3n[layer] = nt->psoil2c_loss[layer] / cn_s2;
 
 			nf->sminn_to_soil3n_s2[layer] = nt->pmnf_s2s3[layer];
-
-
-			/* control to avoid negative pool */
-			change = nf->sminn_to_soil2n_l2[layer] + nf->sminn_to_soil2n_s1[layer] - nf->soil2n_to_soil3n[layer];
-			diff = ns->soil2n[layer] + change;
-			if (diff < 0)
-			{
-				if (nf->sminn_to_soil2n_s1[layer] < 0)
-					nf->sminn_to_soil2n_s1[layer] -= diff;
-				else
-				{
-					if (nf->soil2n_to_soil3n[layer] > 0)
-					{
-						nf->soil2n_to_soil3n[layer] += diff;
-						nt->psoil2c_loss[layer] = nf->soil2n_to_soil3n[layer] * cn_s2;
-						cf->soil2_hr[layer] = rfs2s3 * nt->psoil2c_loss[layer];
-						cf->soil2c_to_soil3c[layer] = (1.0 - rfs2s3) * nt->psoil2c_loss[layer];
-					}
-				}
-			}
-
-	
 		}
 
+		/* control to avoid negative pool */
+		change = nf->sminn_to_soil2n_l2[layer] + nf->sminn_to_soil2n_s1[layer] - nf->soil2n_to_soil3n[layer];
+		diff = ns->soil2n[layer] + change;
+		if (diff < 0)
+		{
+			if (nf->sminn_to_soil2n_s1[layer] < 0)
+				nf->sminn_to_soil2n_s1[layer] -= diff;
+			else
+			{
+				if (nf->soil2n_to_soil3n[layer] > 0)
+				{
+					nf->soil2n_to_soil3n[layer] += diff;
+					nt->psoil2c_loss[layer] = nf->soil2n_to_soil3n[layer] * cn_s2;
+					cf->soil2_hr[layer] = rfs2s3 * nt->psoil2c_loss[layer];
+					cf->soil2c_to_soil3c[layer] = (1.0 - rfs2s3) * nt->psoil2c_loss[layer];
+				}
+			}
+		}
+
+
+
 		/* slow SOM pool */
-		if (cs->soil3c[layer] > 0.0)
+		if (cs->soil3c[layer] > 0.0 && ns->soil3n[layer] > 0.0)
 		{
 			if (IMMOBratio < 1 && nt->pmnf_s3s4[layer] > 0.0)
 			{
 				nt->psoil3c_loss[layer] *= IMMOBratio;
 				nt->pmnf_s3s4[layer] *= IMMOBratio;
 			}
-			cf->soil3_hr[layer]           = rfs3s4 * nt->psoil3c_loss[layer];
-			cf->soil3c_to_soil4c[layer]   = (1.0 - rfs3s4) * nt->psoil3c_loss[layer];
-			nf->soil3n_to_soil4n[layer]   = nt->psoil3c_loss[layer] / cn_s3;
-			
-			nf->sminn_to_soil4n_s3[layer] = nt->pmnf_s3s4[layer];
+			cf->soil3_hr[layer] = rfs3s4 * nt->psoil3c_loss[layer];
+			cf->soil3c_to_soil4c[layer] = (1.0 - rfs3s4) * nt->psoil3c_loss[layer];
+			if (cn_s3) nf->soil3n_to_soil4n[layer] = nt->psoil3c_loss[layer] / cn_s3;
 
-			/* control to avoid negative pool */
-			change = nf->sminn_to_soil3n_l4[layer] + nf->sminn_to_soil3n_s2[layer] - nf->soil3n_to_soil4n[layer];
-			diff = ns->soil3n[layer] + change;
-			if (diff < 0)
+			nf->sminn_to_soil4n_s3[layer] = nt->pmnf_s3s4[layer];
+		}
+
+		/* control to avoid negative pool */
+		change = nf->sminn_to_soil3n_l4[layer] + nf->sminn_to_soil3n_s2[layer] - nf->soil3n_to_soil4n[layer];
+		diff = ns->soil3n[layer] + change;
+		if (diff < 0)
+		{
+			if (nf->sminn_to_soil3n_s2[layer] < 0)
+				nf->sminn_to_soil3n_s2[layer] -= diff;
+			else
 			{
-				if (nf->sminn_to_soil3n_s2[layer] < 0)
-					nf->sminn_to_soil3n_s2[layer] -= diff;
-				else
+				if (nf->soil3n_to_soil4n[layer] > 0)
 				{
-					if (nf->soil3n_to_soil4n[layer] > 0)
-					{
-						nf->soil3n_to_soil4n[layer] += diff;
-						nt->psoil3c_loss[layer] = nf->soil3n_to_soil4n[layer] * cn_s2;
-						cf->soil3_hr[layer] = rfs3s4 * nt->psoil3c_loss[layer];
-						cf->soil3c_to_soil4c[layer] = (1.0 - rfs3s4) * nt->psoil3c_loss[layer];
-					}
+					nf->soil3n_to_soil4n[layer] += diff;
+					nt->psoil3c_loss[layer] = nf->soil3n_to_soil4n[layer] * cn_s2;
+					cf->soil3_hr[layer] = rfs3s4 * nt->psoil3c_loss[layer];
+					cf->soil3c_to_soil4c[layer] = (1.0 - rfs3s4) * nt->psoil3c_loss[layer];
 				}
 			}
-
 		}
+
 		
 		/* stable SOM pool (rf = 1.0, always mineralizing) */
-		if (cs->soil4c[layer] > 0.0)
+		if (cs->soil4c[layer] > 0.0 && ns->soil4n[layer] > 0.0)
 		{
-			cf->soil4_hr[layer]           = nt->psoil4c_loss[layer];
+			cf->soil4_hr[layer] = nt->psoil4c_loss[layer];
 			if (ns->soil4n[layer] > 0)
 			{
-				nf->sminn_to_soiln_s4[layer]  = nt->pmnf_s4[layer];
+				nf->sminn_to_soiln_s4[layer] = nt->pmnf_s4[layer];
 			}
+		}
 
-			/* control to avoid negative pool */
-			change = nf->sminn_to_soil4n_s3[layer] + nf->sminn_to_soiln_s4[layer];
-			diff = ns->soil4n[layer] + change;
-			if (diff < 0)
-			{
-				if (nf->sminn_to_soil4n_s3[layer] < 0) nf->sminn_to_soil4n_s3[layer] -= diff;
+		/* control to avoid negative pool */
+		change = nf->sminn_to_soil4n_s3[layer] + nf->sminn_to_soiln_s4[layer];
+		diff = ns->soil4n[layer] + change;
+		if (diff < 0)
+		{
+			if (nf->sminn_to_soil4n_s3[layer] < 0) nf->sminn_to_soil4n_s3[layer] -= diff;
 				
-			}
 		}
 		
 		/* summarizing immobilization-mineralization fluxes */

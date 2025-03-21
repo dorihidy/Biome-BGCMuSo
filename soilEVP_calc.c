@@ -20,21 +20,25 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int soilEVP_calc(control_struct* ctrl, const siteconst_struct* sitec,const soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf)
+int soilEVP_calc(control_struct* ctrl, const siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf)
 {
 	int errorCode=0;
+	int CFlayer, GWlayer;
 	double EVP_lack, soilw_hw0, soilw_diff;
-	
+	double ratioNORM, ratioCAPIL, diffNORM, diffCAPIL, soilwAVAIL_NORMcf, soilwAVAIL_CAPILcf;
+	CFlayer = (int)sprop->CFlayer;
+	GWlayer = (int)sprop->GWlayer;
+	soilwAVAIL_NORMcf = soilwAVAIL_CAPILcf = 0;
 	/* SOILEVAP UPDATE: if GW-table is in the top soil layer, the source of evaporation is the GW-table */
 	
 
-	if (ws->pondw == 0)
+	if (ws->pondw == 0 && wf->EVPsoilw)
 	{
-		if ((int)sprop->GWlayer == 0)
+		if (GWlayer == 0)
 		{
 			soilw_diff = wf->EVPsoilw - wf->potEVPsurface;
 			if (soilw_diff) wf->EVPsoilw -= soilw_diff;
-			wf->GWevap = wf->EVPsoilw;
+			wf->EVPfromGW = wf->EVPsoilw;
 		}
 		else
 		{
@@ -45,7 +49,7 @@ int soilEVP_calc(control_struct* ctrl, const siteconst_struct* sitec,const soilp
 			/* theoretical lower limit of water content: hygroscopic water content. */
 			if (EVP_lack > 0)
 			{
-				if (ws->EVPsurface2cum >= sprop->soilEVPlim)
+				if (ws->EVPsurface2cum >= sprop->soilEVPcrit)
 				{
 					if (ws->EVPsurface2cum > wf->EVPsoilw)
 					{
@@ -56,11 +60,11 @@ int soilEVP_calc(control_struct* ctrl, const siteconst_struct* sitec,const soilp
 					{
 						ws->EVPsurface1cum = ws->EVPsurface1cum - (wf->EVPsoilw - ws->EVPsurface2cum);
 
-						ws->EVPsurface2cum = (ws->soilw[0] - soilw_hw0) - sprop->soilEVPlim;
+						ws->EVPsurface2cum = (ws->soilw[0] - soilw_hw0) - sprop->soilEVPcrit;
 						if (ws->EVPsurface2cum < 0) ws->EVPsurface2cum = 0;
 
 						ws->EVPsurface1cum = ws->EVPsurface1cum + (ws->soilw[0] - soilw_hw0);
-						if (ws->EVPsurface1cum < sprop->soilEVPlim) ws->EVPsurface2cum = sprop->soilEVPlim;
+						if (ws->EVPsurface1cum < sprop->soilEVPcrit) ws->EVPsurface2cum = sprop->soilEVPcrit;
 
 						epv->DSR = pow((ws->EVPsurface2cum / sprop->coeff_EVPcum), 2);
 					}
@@ -81,6 +85,67 @@ int soilEVP_calc(control_struct* ctrl, const siteconst_struct* sitec,const soilp
 
 			ws->soilw[0] -= (wf->EVPsoilw);	
 			epv->VWC[0] = ws->soilw[0] / water_density / sitec->soillayer_thickness[0];
+
+			/* if capillary zone exists in unsaturated zone (not in GWlayer) and capillary zone is in the top soil layer */
+			if (sprop->dz_CAPILcf && CFlayer == 0)
+			{
+				if (sprop->soilw_NORMcf) soilwAVAIL_NORMcf = sprop->soilw_NORMcf - sprop->VWChw[CFlayer] * sprop->dz_NORMcf * water_density;
+				soilwAVAIL_CAPILcf = sprop->soilw_CAPILcf - sprop->VWChw[CFlayer] * sprop->dz_CAPILcf * water_density;
+				if (soilwAVAIL_CAPILcf)
+				{
+					ratioNORM = soilwAVAIL_NORMcf / (soilwAVAIL_NORMcf + soilwAVAIL_CAPILcf);
+					ratioCAPIL = soilwAVAIL_CAPILcf / (soilwAVAIL_NORMcf + soilwAVAIL_CAPILcf);
+				}
+				else
+				{
+					ratioNORM = sprop->dz_NORMcf / (sprop->dz_CAPILcf + sprop->dz_NORMcf);
+					ratioCAPIL = sprop->dz_CAPILcf / (sprop->dz_CAPILcf + sprop->dz_NORMcf);
+				}
+				if (fabs(1 - ratioNORM - ratioCAPIL) > CRIT_PREC)
+				{
+					printf("\n");
+					printf("ERROR in ratio calculation in multilayer_transpiration.c\n");
+					errorCode = 1;
+				}
+
+				diffNORM = wf->EVPsoilw * ratioNORM;
+				diffCAPIL = wf->EVPsoilw * ratioCAPIL;
+
+				/* NORM zone: minimum value: hygroscopic water */
+				soilw_hw0 = sprop->VWChw[0] * sprop->dz_NORMcf * water_density;
+				if (sprop->soilw_NORMcf - diffNORM - soilw_hw0 < 0)
+				{
+					if (fabs(sprop->soilw_NORMcf - diffNORM - soilw_hw0) > CRIT_PREC)
+					{
+						printf("ERROR in content_NORMgw calculation in soilEVP.c\n");
+						errorCode = 1;
+					}
+					else
+						diffNORM = sprop->soilw_NORMcf - soilw_hw0;
+				}
+
+				sprop->soilw_NORMcf -= diffNORM;
+				if (sprop->dz_NORMcf) sprop->VWC_NORMcf = sprop->soilw_NORMcf / (sprop->dz_NORMcf * water_density);
+
+
+				/* CAPIL zone: minimum value: hygroscopic water */
+				soilw_hw0 = sprop->VWChw[0] * sprop->dz_CAPILcf * water_density;
+				if (sprop->soilw_CAPILcf - diffCAPIL - soilw_hw0 < 0)
+				{
+					if (fabs(sprop->soilw_CAPILcf - diffCAPIL - soilw_hw0) > CRIT_PREC)
+					{
+						printf("ERROR in content_CAPILgw calculation in soilEVP.c\n");
+						errorCode = 1;
+					}
+					else
+						diffCAPIL = sprop->soilw_CAPILcf - soilw_hw0;
+				}
+				sprop->soilw_CAPILcf -= diffCAPIL;
+				if (sprop->dz_CAPILcf) sprop->VWC_CAPILcf = sprop->soilw_CAPILcf / (sprop->dz_CAPILcf * water_density);
+
+				wf->EVPsoilwNORMcf = diffNORM;
+				wf->EVPsoilwCAPILcf = diffCAPIL;
+			}
 
 
 		}

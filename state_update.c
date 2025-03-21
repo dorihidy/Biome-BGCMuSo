@@ -25,7 +25,7 @@ for complete description of this change.
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int water_state_update(wflux_struct* wf, wstate_struct* ws, soilprop_struct* sprop)
+int water_state_update(wflux_struct* wf, wstate_struct* ws)
 {
 	/* daily update of the water state variables */
 
@@ -53,7 +53,7 @@ int water_state_update(wflux_struct* wf, wstate_struct* ws, soilprop_struct* spr
 	/* evapotranspiration/sublimation snk */
 	ws->EVPcanopyw_snk += wf->EVPcanopyw;
 	ws->snowSUBL_snk += wf->SUBLsnoww;
-	ws->soilEVP_snk += wf->EVPsoilw;
+	ws->soilEVP_snk += wf->EVPsoilw + wf->EVPfromGW;
 	ws->TRP_snk += wf->TRPsoilw_SUM;
 	ws->pondEVP_snk += wf->EVPpondw;
 
@@ -64,22 +64,19 @@ int water_state_update(wflux_struct* wf, wstate_struct* ws, soilprop_struct* spr
 	ws->deeppercolation_snk += wf->soilwFlux[N_SOILLAYERS - 1];
 
 	/* groundwater src/snk */
+	wf->GWrecharge_total = wf->GWrecharge_CAPILcf + wf->GWrecharge_CAPILgw + wf->GWrecharge_NORMcf + wf->GWrecharge_NORMgw + wf->GWrecharge_lastCAPIL;
 	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
-		wf->GWtransp_total    += wf->GWtransp[layer];
-
-		
-		if (wf->GWmovchange[layer] > 0)
-			ws->GWsrc_W += wf->GWmovchange[layer];
-		else
-			ws->GWsnk_W += -1* wf->GWmovchange[layer];
-
+		wf->TRPfromGW_total    += wf->TRPfromGW[layer];
+		wf->GWdischarge_total += wf->GWdischarge[layer];
+		wf->soilwPercolDiffus_fromNORM_total += wf->soilwPercolDiffus_fromNORM[layer];
 	}
-	ws->GWsrc_W += wf->GWevap;
+
+	ws->GWsrc_W += wf->EVPfromGW;
 	ws->GWsrc_W += wf->GW_to_pondw;
-	ws->GWsrc_W += wf->GWtransp_total;
-	ws->GWsrc_W += wf->GWdischarge;
-	ws->GWsnk_W += wf->GWrecharge;
+	ws->GWsrc_W += wf->TRPfromGW_total;
+	ws->GWsrc_W += wf->GWdischarge_total;
+	ws->GWsnk_W += wf->GWrecharge_total;
 
 
 	/* flooding src */
@@ -94,15 +91,13 @@ int water_state_update(wflux_struct* wf, wstate_struct* ws, soilprop_struct* spr
 }
 
 int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, soilInfo_struct* soilInfo, soilprop_struct* sprop, control_struct* ctrl, epvar_struct* epv,
-	cflux_struct* cf, nflux_struct* nf, cstate_struct* cs, nstate_struct* ns, wstate_struct* ws, int alloc, int evergreen)
+	                cflux_struct* cf, nflux_struct* nf, cstate_struct* cs, nstate_struct* ns, int alloc, int evergreen)
 {
 	/* daily update of the carbon state variables */
 
 	int errorCode = 0;
-	int layer, pp, dm, GWlayer;
+	int layer, pp, dm, GWlayer, CFlayer;
 	double leafc_to_litr, leafn_to_litr, frootc_to_litr, frootn_to_litr, yieldc_to_litr, yieldn_to_litr, softstemc_to_litr, softstemn_to_litr;
-	double propLAYER0, propLAYER1, propLAYER2;
-	double change[N_DISSOLVMATER][N_SOILLAYERS];
 	double ratioNORM, ratioCAPIL, ratioSAT, diffNORM, diffCAPIL, diffSAT, diff;
 
 	/* C state variables are updated below in the order of the relevant fluxes in the daily model loop */
@@ -112,12 +107,9 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, so
 	mortality fluxes drive the pools negative would create big, unnecessary headaches. */
 
 	/* 0. Initialization of local variables */
-	for (dm = 0; dm < N_DISSOLVMATER; dm++)
-	{
-		for (layer = 0; layer < N_SOILLAYERS; layer++) change[dm][layer] = 0;
-	}
-	GWlayer = (int)sprop->GWlayer;
 
+	GWlayer = (int)sprop->GWlayer;
+	CFlayer = (int)sprop->CFlayer;
 	/***************************************************************************************************************************************************/
 	/* 1. Phenology fluxes */
 	if (!errorCode && epc->leaf_cn && CNratio_control(cs, epc->leaf_cn, cs->leafc, ns->leafn, cf->leafc_transfer_to_leafc, nf->leafn_transfer_to_leafn, 0)) 
@@ -230,52 +222,24 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, so
 	leafn_to_litr = nf->leafn_to_litr1n + nf->leafn_to_litr2n + nf->leafn_to_litr3n + nf->leafn_to_litr4n;
 		
 	/* litter turns into the first three soil layers  (non-woody biomass: proportion to soil layer thickness, woody-biomass: higher propotion in layer2 */
-	propLAYER0 = sitec->soillayer_thickness[0]/sitec->soillayer_depth[2];
-	propLAYER1 = sitec->soillayer_thickness[1]/sitec->soillayer_depth[2];
-	propLAYER2 = sitec->soillayer_thickness[2]/sitec->soillayer_depth[2];
-
-	if (epc->woody)
-	{
-		propLAYER0 = 0.05;
-		propLAYER1 = 0.15;
-		propLAYER2 = 0.8;
-	}
 	
-
 	if (!errorCode && epc->leaf_cn && CNratio_control(cs, epc->leaf_cn, cs->leafc, ns->leafn, leafc_to_litr, leafn_to_litr, epc->leaflitr_cn)) 
 	{
-		cs->litr1c[0]  += (cf->leafc_to_litr1c) * propLAYER0;
-		cs->litr2c[0]  += (cf->leafc_to_litr2c) * propLAYER0;
-		cs->litr3c[0]  += (cf->leafc_to_litr3c) * propLAYER0;
-		cs->litr4c[0]  += (cf->leafc_to_litr4c) * propLAYER0;
+		for (layer = 0; layer < N_SOILLAYERS; layer++)
+		{
+			cs->litr1c[layer] += (cf->leafc_to_litr1c) * sprop->PROPlayerDC[layer];
+			cs->litr2c[layer] += (cf->leafc_to_litr2c) * sprop->PROPlayerDC[layer];
+			cs->litr3c[layer] += (cf->leafc_to_litr3c) * sprop->PROPlayerDC[layer];
+			cs->litr4c[layer] += (cf->leafc_to_litr4c) * sprop->PROPlayerDC[layer];
 
-		cs->litr1c[1]  += (cf->leafc_to_litr1c) * propLAYER1;
-		cs->litr2c[1]  += (cf->leafc_to_litr2c) * propLAYER1;
-		cs->litr3c[1]  += (cf->leafc_to_litr3c) * propLAYER1;
-		cs->litr4c[1]  += (cf->leafc_to_litr4c) * propLAYER1;
+			ns->litr1n[layer] += (nf->leafn_to_litr1n) * sprop->PROPlayerDC[layer];
+			ns->litr2n[layer] += (nf->leafn_to_litr2n) * sprop->PROPlayerDC[layer];
+			ns->litr3n[layer] += (nf->leafn_to_litr3n) * sprop->PROPlayerDC[layer];
+			ns->litr4n[layer] += (nf->leafn_to_litr4n) * sprop->PROPlayerDC[layer];
+		}
 
-		cs->litr1c[2]  += (cf->leafc_to_litr1c) * propLAYER2;
-		cs->litr2c[2]  += (cf->leafc_to_litr2c) * propLAYER2;
-		cs->litr3c[2]  += (cf->leafc_to_litr3c) * propLAYER2;
-		cs->litr4c[2]  += (cf->leafc_to_litr4c) * propLAYER2;
-		
+	
 		cs->leafc      -= (cf->leafc_to_litr1c + cf->leafc_to_litr2c + cf->leafc_to_litr3c + cf->leafc_to_litr4c);
-
-		ns->litr1n[0]  += (nf->leafn_to_litr1n) * propLAYER0;
-		ns->litr2n[0]  += (nf->leafn_to_litr2n) * propLAYER0;
-		ns->litr3n[0]  += (nf->leafn_to_litr3n) * propLAYER0;
-		ns->litr4n[0]  += (nf->leafn_to_litr4n) * propLAYER0;
-
-		ns->litr1n[1]  += (nf->leafn_to_litr1n) * propLAYER1;
-		ns->litr2n[1]  += (nf->leafn_to_litr2n) * propLAYER1;
-		ns->litr3n[1]  += (nf->leafn_to_litr3n) * propLAYER1;
-		ns->litr4n[1]  += (nf->leafn_to_litr4n) * propLAYER1;
-		
-		ns->litr1n[2]  += (nf->leafn_to_litr1n) * propLAYER2;
-		ns->litr2n[2]  += (nf->leafn_to_litr2n) * propLAYER2;
-		ns->litr3n[2]  += (nf->leafn_to_litr3n) * propLAYER2;
-		ns->litr4n[2]  += (nf->leafn_to_litr4n) * propLAYER2;
-
 		ns->leafn       = cs->leafc / epc->leaf_cn;
 
 		ns->retransn   += nf->leafn_to_retransn;   
@@ -292,38 +256,21 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, so
 	yieldn_to_litr = nf->yieldn_to_litr1n + nf->yieldn_to_litr2n + nf->yieldn_to_litr3n + nf->yieldn_to_litr4n;
 	if (!errorCode && epc->yield_cn && CNratio_control(cs, epc->yield_cn, cs->yieldc, ns->yieldn, yieldc_to_litr, yieldn_to_litr, 0)) 
 	{
-		cs->litr1c[0]  += (cf->yieldc_to_litr1c) * propLAYER0;
-		cs->litr2c[0]  += (cf->yieldc_to_litr2c) * propLAYER0;
-		cs->litr3c[0]  += (cf->yieldc_to_litr3c) * propLAYER0;
-		cs->litr4c[0]  += (cf->yieldc_to_litr4c) * propLAYER0;
+		for (layer = 0; layer < N_SOILLAYERS; layer++)
+		{
+			cs->litr1c[layer] += (cf->yieldc_to_litr1c) * sprop->PROPlayerDC[layer];
+			cs->litr2c[layer] += (cf->yieldc_to_litr2c) * sprop->PROPlayerDC[layer];
+			cs->litr3c[layer] += (cf->yieldc_to_litr3c) * sprop->PROPlayerDC[layer];
+			cs->litr4c[layer] += (cf->yieldc_to_litr4c) * sprop->PROPlayerDC[layer];
 
-		cs->litr1c[1]  += (cf->yieldc_to_litr1c) * propLAYER1;
-		cs->litr2c[1]  += (cf->yieldc_to_litr2c) * propLAYER1;
-		cs->litr3c[1]  += (cf->yieldc_to_litr3c) * propLAYER1;
-		cs->litr4c[1]  += (cf->yieldc_to_litr4c) * propLAYER1;
+			ns->litr1n[layer] += (nf->yieldn_to_litr1n) * sprop->PROPlayerDC[layer];
+			ns->litr2n[layer] += (nf->yieldn_to_litr2n) * sprop->PROPlayerDC[layer];
+			ns->litr3n[layer] += (nf->yieldn_to_litr3n) * sprop->PROPlayerDC[layer];
+			ns->litr4n[layer] += (nf->yieldn_to_litr4n) * sprop->PROPlayerDC[layer];
+		}
 
-		cs->litr1c[2]  += (cf->yieldc_to_litr1c) * propLAYER2;
-		cs->litr2c[2]  += (cf->yieldc_to_litr2c) * propLAYER2;
-		cs->litr3c[2]  += (cf->yieldc_to_litr3c) * propLAYER2;
-		cs->litr4c[2]  += (cf->yieldc_to_litr4c) * propLAYER2;
-
-		cs->yieldc      -= (cf->yieldc_to_litr1c + cf->yieldc_to_litr2c + cf->yieldc_to_litr3c + cf->yieldc_to_litr4c);
-
-		ns->litr1n[0]  += (nf->yieldn_to_litr1n) * propLAYER0;
-		ns->litr2n[0]  += (nf->yieldn_to_litr2n) * propLAYER0;
-		ns->litr3n[0]  += (nf->yieldn_to_litr3n) * propLAYER0;
-		ns->litr4n[0]  += (nf->yieldn_to_litr4n) * propLAYER0;
-
-		ns->litr1n[1]  += (nf->yieldn_to_litr1n) * propLAYER1;
-		ns->litr2n[1]  += (nf->yieldn_to_litr2n) * propLAYER1;
-		ns->litr3n[1]  += (nf->yieldn_to_litr3n) * propLAYER1;
-		ns->litr4n[1]  += (nf->yieldn_to_litr4n) * propLAYER1;	
-
-		ns->litr1n[2]  += (nf->yieldn_to_litr1n) * propLAYER2;
-		ns->litr2n[2]  += (nf->yieldn_to_litr2n) * propLAYER2;
-		ns->litr3n[2]  += (nf->yieldn_to_litr3n) * propLAYER2;
-		ns->litr4n[2]  += (nf->yieldn_to_litr4n) * propLAYER2;	
-
+	
+		cs->yieldc -= (cf->yieldc_to_litr1c + cf->yieldc_to_litr2c + cf->yieldc_to_litr3c + cf->yieldc_to_litr4c);
 		ns->yieldn      = cs->yieldc / epc->yield_cn;
 	}
 	else if (epc->yield_cn)		
@@ -336,36 +283,22 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, so
 	softstemn_to_litr = nf->softstemn_to_litr1n + nf->softstemn_to_litr2n + nf->softstemn_to_litr3n + nf->softstemn_to_litr4n;
 	if (!errorCode && epc->softstem_cn && CNratio_control(cs, epc->softstem_cn, cs->softstemc, ns->softstemn, softstemc_to_litr, softstemn_to_litr, 0)) 
 	{
-		cs->litr1c[0]  += (cf->softstemc_to_litr1c) * propLAYER0;
-		cs->litr2c[0]  += (cf->softstemc_to_litr2c) * propLAYER0;
-		cs->litr3c[0]  += (cf->softstemc_to_litr3c) * propLAYER0;
-		cs->litr4c[0]  += (cf->softstemc_to_litr4c) * propLAYER0;
+		for (layer = 0; layer < N_SOILLAYERS; layer++)
+		{
+
+			cs->litr1c[layer] += (cf->softstemc_to_litr1c) * sprop->PROPlayerDC[layer];
+			cs->litr2c[layer] += (cf->softstemc_to_litr2c) * sprop->PROPlayerDC[layer];
+			cs->litr3c[layer] += (cf->softstemc_to_litr3c) * sprop->PROPlayerDC[layer];
+			cs->litr4c[layer] += (cf->softstemc_to_litr4c) * sprop->PROPlayerDC[layer];
+
+			ns->litr1n[layer] += (nf->softstemn_to_litr1n) * sprop->PROPlayerDC[layer];
+			ns->litr2n[layer] += (nf->softstemn_to_litr2n) * sprop->PROPlayerDC[layer];
+			ns->litr3n[layer] += (nf->softstemn_to_litr3n) * sprop->PROPlayerDC[layer];
+			ns->litr4n[layer] += (nf->softstemn_to_litr4n) * sprop->PROPlayerDC[layer];
+		}
 				
-		cs->litr1c[1]  += (cf->softstemc_to_litr1c) * propLAYER1;
-		cs->litr2c[1]  += (cf->softstemc_to_litr2c) * propLAYER1;
-		cs->litr3c[1]  += (cf->softstemc_to_litr3c) * propLAYER1;
-		cs->litr4c[1]  += (cf->softstemc_to_litr4c) * propLAYER1;
-
-		cs->litr1c[2]  += (cf->softstemc_to_litr1c) * propLAYER2;
-		cs->litr2c[2]  += (cf->softstemc_to_litr2c) * propLAYER2;
-		cs->litr3c[2]  += (cf->softstemc_to_litr3c) * propLAYER2;
-		cs->litr4c[2]  += (cf->softstemc_to_litr4c) * propLAYER2;
+	
 		cs->softstemc  -= (cf->softstemc_to_litr1c + cf->softstemc_to_litr2c + cf->softstemc_to_litr3c + cf->softstemc_to_litr4c);
-
-		ns->litr1n[0]  += (nf->softstemn_to_litr1n) * propLAYER0;
-		ns->litr2n[0]  += (nf->softstemn_to_litr2n) * propLAYER0;
-		ns->litr3n[0]  += (nf->softstemn_to_litr3n) * propLAYER0;
-		ns->litr4n[0]  += (nf->softstemn_to_litr4n) * propLAYER0;
-		
-		ns->litr1n[1]  += (nf->softstemn_to_litr1n) * propLAYER1;
-		ns->litr2n[1]  += (nf->softstemn_to_litr2n) * propLAYER1;
-		ns->litr3n[1]  += (nf->softstemn_to_litr3n) * propLAYER1;
-		ns->litr4n[1]  += (nf->softstemn_to_litr4n) * propLAYER1;
-
-		ns->litr1n[2]  += (nf->softstemn_to_litr1n) * propLAYER2;
-		ns->litr2n[2]  += (nf->softstemn_to_litr2n) * propLAYER2;
-		ns->litr3n[2]  += (nf->softstemn_to_litr3n) * propLAYER2;
-		ns->litr4n[2]  += (nf->softstemn_to_litr4n) * propLAYER2;
 
 		ns->softstemn   = cs->softstemc / epc->softstem_cn;
 	}
@@ -524,143 +457,237 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, so
 		/*-------------------------------------------------*/
 		/* 8.2 soil pool changes for GW-calculations */
 	
-		if (GWlayer != DATA_GAP)
+	
+		soilInfo->dismatTOTALdecomp[2][layer] = nf->litr1n_to_soil1n[layer] - nf->soil1n_to_soil2n[layer];
+		soilInfo->dismatTOTALdecomp[3][layer] = nf->litr2n_to_soil2n[layer] + nf->soil1n_to_soil2n[layer] - nf->soil2n_to_soil3n[layer];
+		soilInfo->dismatTOTALdecomp[4][layer] = nf->litr4n_to_soil3n[layer] + nf->soil2n_to_soil3n[layer] - nf->soil3n_to_soil4n[layer];
+		soilInfo->dismatTOTALdecomp[5][layer] = nf->soil3n_to_soil4n[layer];
+		soilInfo->dismatTOTALdecomp[6][layer] = cf->litr1c_to_soil1c[layer] - cf->soil1c_to_soil2c[layer] - cf->soil1_hr[layer];
+		soilInfo->dismatTOTALdecomp[7][layer] = cf->litr2c_to_soil2c[layer] + cf->soil1c_to_soil2c[layer] - cf->soil2c_to_soil3c[layer] - cf->soil2_hr[layer];
+		soilInfo->dismatTOTALdecomp[8][layer] = cf->litr4c_to_soil3c[layer] + cf->soil2c_to_soil3c[layer] - cf->soil3c_to_soil4c[layer] - cf->soil3_hr[layer];
+		soilInfo->dismatTOTALdecomp[9][layer] = cf->soil3c_to_soil4c[layer] - cf->soil4_hr[layer];
+
+
+		if (layer < GWlayer)
 		{
-			if (layer >= GWlayer)
-			{
-				change[2][layer] = nf->litr1n_to_soil1n[layer] - nf->soil1n_to_soil2n[layer];
-				change[3][layer] = nf->litr2n_to_soil2n[layer] + nf->soil1n_to_soil2n[layer] - nf->soil2n_to_soil3n[layer];
-				change[4][layer] = nf->litr4n_to_soil3n[layer] + nf->soil2n_to_soil3n[layer] - nf->soil3n_to_soil4n[layer];
-				change[5][layer] = nf->soil3n_to_soil4n[layer];
-				change[6][layer] = cf->litr1c_to_soil1c[layer] - cf->soil1c_to_soil2c[layer] - cf->soil1_hr[layer];
-				change[7][layer] = cf->litr2c_to_soil2c[layer] + cf->soil1c_to_soil2c[layer] - cf->soil2c_to_soil3c[layer] - cf->soil2_hr[layer];
-				change[8][layer] = cf->litr4c_to_soil3c[layer] + cf->soil2c_to_soil3c[layer] - cf->soil3c_to_soil4c[layer] - cf->soil3_hr[layer];
-				change[9][layer] = cf->soil3c_to_soil4c[layer] - cf->soil4_hr[layer];
-			}
-		
+			soilInfo->dismatUNSATdecomp[2][layer] = soilInfo->dismatTOTALdecomp[2][layer];
+			soilInfo->dismatUNSATdecomp[3][layer] = soilInfo->dismatTOTALdecomp[3][layer];
+			soilInfo->dismatUNSATdecomp[4][layer] = soilInfo->dismatTOTALdecomp[4][layer];
+			soilInfo->dismatUNSATdecomp[5][layer] = soilInfo->dismatTOTALdecomp[5][layer];
+			soilInfo->dismatUNSATdecomp[6][layer] = soilInfo->dismatTOTALdecomp[6][layer];
+			soilInfo->dismatUNSATdecomp[7][layer] = soilInfo->dismatTOTALdecomp[7][layer];
+			soilInfo->dismatUNSATdecomp[8][layer] = soilInfo->dismatTOTALdecomp[8][layer];
+			soilInfo->dismatUNSATdecomp[9][layer] = soilInfo->dismatTOTALdecomp[9][layer];
+
 		}
 		
 	}
+
+
 
 	/*-------------------------------------------------*/
 	/* 8.4. Groundwater transport */
 
 
-	if (sprop->GWD != DATA_GAP)
+
+	if (sprop->GWlayer != DATA_GAP)
 	{ 
 
 		/* transfer value: NH4, NO3, DOC, DON - > content_array  etc.*/
-		if (!errorCode && calc_soilconc(-1, 0, sprop, ws, cs, ns, soilInfo))
+		if (!errorCode && check_soilcontent(-1, 0, sprop, cs, ns, soilInfo))
 		{
-			printf("ERROR in calc_soilconc.c for groundwater_preproc.c\n");
+			printf("ERROR in check_soilcontent.c for state_update.c\n");
 			errorCode = 1;
 		}
 
+		/* if capillary zone exists in unsaturated zone (not in GWlayer) */
+		if (sprop->dz_CAPILcf)
+		{
+			for (dm = 0; dm < N_DISSOLVMATER; dm++)
+			{
+				/* calculation of NORM and CAPIL ratio */
+				if (soilInfo->content_NORMcf[dm] + soilInfo->content_CAPILcf[dm])
+				{
+					ratioNORM = soilInfo->content_NORMcf[dm] / (soilInfo->content_NORMcf[dm] + soilInfo->content_CAPILcf[dm]);
+					ratioCAPIL = soilInfo->content_CAPILcf[dm] / (soilInfo->content_NORMcf[dm] + soilInfo->content_CAPILcf[dm]);
+				}
+				else
+				{
+					ratioNORM = sprop->dz_NORMcf / (sprop->dz_NORMcf + sprop->dz_CAPILcf);
+					ratioCAPIL = sprop->dz_CAPILcf / (sprop->dz_NORMcf + sprop->dz_CAPILcf);
+				}
+				if (fabs(1 - ratioNORM - ratioCAPIL) > CRIT_PREC)
+				{
+					printf("\n");
+					printf("ERROR in ratio calculation in capillary_diffusion.c\n");
+					errorCode = 1;
+				}
+
+				diffNORM = soilInfo->dismatTOTALdecomp[dm][CFlayer] * ratioNORM;
+				diffCAPIL = soilInfo->dismatTOTALdecomp[dm][CFlayer] * ratioCAPIL;
+
+				/* NORM zone: negative storage value is not possible  */
+				if (soilInfo->content_NORMcf[dm] + diffNORM < 0) diffNORM = soilInfo->content_NORMcf[dm];
+
+				soilInfo->content_NORMcf[dm] += diffNORM;
+
+				diffCAPIL = soilInfo->dismatTOTALdecomp[dm][CFlayer] - diffNORM;
+
+				/* CAPIL zone: negative storage value is not possible */
+				if (soilInfo->content_CAPILcf[dm] + diffCAPIL < 0)
+				{
+					if (fabs(soilInfo->content_CAPILcf[dm] + diffCAPIL) > CRIT_PREC)
+					{
+						printf("ERROR in content_CAPILcf calculation in state_update.c\n");
+						errorCode = 1;
+					}
+					else
+						diffCAPIL = soilInfo->content_CAPILcf[dm];
+				}
+				soilInfo->content_CAPILcf[dm] += diffCAPIL;
+
+				if (fabs(soilInfo->content_soil[dm][CFlayer] - (soilInfo->content_NORMcf[dm] + soilInfo->content_CAPILcf[dm])) > CRIT_PREC_lenient*10)
+				{
+					printf("ERROR in content_CAPILcf calculation in state_update.c\n");
+			        errorCode = 1;
+				}
+		
+			}
+
+		}
 		for (layer = GWlayer; layer < N_SOILLAYERS; layer++)
 		{
-			/* in GWlayer: change is distributed proportionally - change in saturated zone is accounted for  GWdecomp: -: sink, +: source*/
+			/* in GWlayer: soilInfo->dismatTOTALdecomp is distributed proportionally - soilInfo->dismatTOTALdecomp in saturated zone is accounted for  GWdecomp: -: sink, +: source*/
 
 			if (layer == GWlayer)
 			{
-				ratioNORM = sprop->dz_zoneNORM / (sprop->dz_zoneCAPIL + sprop->dz_zoneNORM + sprop->dz_zoneSAT);
-				ratioCAPIL = sprop->dz_zoneCAPIL / (sprop->dz_zoneCAPIL + sprop->dz_zoneNORM + sprop->dz_zoneSAT);
-				ratioSAT = sprop->dz_zoneSAT / (sprop->dz_zoneCAPIL + sprop->dz_zoneNORM + sprop->dz_zoneSAT);
-
+	
 				for (dm = 0; dm < N_DISSOLVMATER; dm++)
 				{
-					diffNORM = change[dm][layer] * ratioNORM;
-					diffCAPIL = change[dm][layer] * ratioCAPIL;
-					diffSAT = change[dm][layer] * ratioSAT;
-
-
-					/* NORM zone: negative storage value is not possible - covered by GW */
-					if (diffNORM < 0)
-						diff = -1 * diffNORM - soilInfo->content_zoneNORM[dm];
+					if (soilInfo->content_NORMgw[dm] + soilInfo->content_CAPILgw[dm] + soilInfo->content_SATgw[dm])
+					{
+						ratioNORM = soilInfo->content_NORMgw[dm] / (soilInfo->content_NORMgw[dm] + soilInfo->content_CAPILgw[dm] + soilInfo->content_SATgw[dm]);
+						ratioCAPIL = soilInfo->content_CAPILgw[dm] / (soilInfo->content_NORMgw[dm] + soilInfo->content_CAPILgw[dm] + soilInfo->content_SATgw[dm]);
+						ratioSAT = soilInfo->content_SATgw[dm] / (soilInfo->content_NORMgw[dm] + soilInfo->content_CAPILgw[dm] + soilInfo->content_SATgw[dm]);
+					}
 					else
-						diff = 0;
+					{
+						ratioNORM = sprop->dz_NORMgw / sitec->soillayer_thickness[GWlayer];
+						ratioCAPIL = sprop->dz_CAPILgw / sitec->soillayer_thickness[GWlayer];
+						ratioSAT = sprop->dz_SATgw / sitec->soillayer_thickness[GWlayer];
+					}
+					if (fabs(1 - ratioNORM - ratioCAPIL - ratioSAT) > CRIT_PREC)
+					{
+						printf("\n");
+						printf("ERROR in ratio calculation in capillary_diffusion.c\n");
+						errorCode = 1;
+					}
 
-					soilInfo->dismatGWdecomp_NORM[dm] = diff;
-					soilInfo->content_zoneNORM[dm] += diffNORM + soilInfo->dismatGWdecomp_NORM[dm];
+					if (soilInfo->dismatTOTALdecomp[dm][layer])
+					{
+						diffNORM = soilInfo->dismatTOTALdecomp[dm][layer] * ratioNORM;
+						diffCAPIL = soilInfo->dismatTOTALdecomp[dm][layer] * ratioCAPIL;
+						diffSAT = soilInfo->dismatTOTALdecomp[dm][layer] * ratioSAT;
 
-					/* CAPIL zone: negative storage value is not possible - covered by GW */
-					if (diffCAPIL < 0)
-						diff = -1 * diffCAPIL - soilInfo->content_zoneCAPIL[dm];
-					else
-						diff = 0;
 
-					soilInfo->dismatGWdecomp_CAPIL[dm] = diff;
-					soilInfo->content_zoneCAPIL[dm] += diffCAPIL + soilInfo->dismatGWdecomp_CAPIL[dm];
+						/* NORM zone: negative storage value is not possible - covered by GW */
+						if (soilInfo->content_NORMgw[dm] + diffNORM < 0)
+							diff = -1 * diffNORM - soilInfo->content_NORMgw[dm];
+						else
+							diff = 0;
 
-					/* SAT zone: no change is possible (constant conc) - covered by GW */
-					soilInfo->dismatGWdecomp[dm][GWlayer] = -1 * diffSAT;
+						soilInfo->dismatGWdecomp_NORM[dm] = diff;
+						soilInfo->content_NORMgw[dm] += diffNORM + soilInfo->dismatGWdecomp_NORM[dm];
 
-					soilInfo->content_soil[dm][GWlayer] += soilInfo->dismatGWdecomp_NORM[dm] + soilInfo->dismatGWdecomp_CAPIL[dm] + soilInfo->dismatGWdecomp[dm][GWlayer];
+						/* CAPIL zone: negative storage value is not possible - covered by GW */
+						if (soilInfo->content_CAPILgw[dm] + diffCAPIL < 0)
+							diff = -1 * diffCAPIL - soilInfo->content_CAPILgw[dm];
+						else
+							diff = 0;
+
+						soilInfo->dismatGWdecomp_CAPIL[dm] = diff;
+						soilInfo->content_CAPILgw[dm] += diffCAPIL + soilInfo->dismatGWdecomp_CAPIL[dm];
+
+
+						/* SAT zone: no soilInfo->dismatTOTALdecomp is possible (constant conc) - covered by GW */
+						soilInfo->dismatGWdecomp[dm][GWlayer] = -1 * diffSAT;
+						soilInfo->content_SATgw[dm] += diffSAT + soilInfo->dismatGWdecomp[dm][layer];
+
+	
+
+						/* UNSAT soilInfo->dismatTOTALdecomp */
+						soilInfo->dismatUNSATdecomp[dm][layer] = diffNORM + diffCAPIL;
+
+						soilInfo->content_soil[dm][layer] += soilInfo->dismatGWdecomp_NORM[dm] + soilInfo->dismatGWdecomp_CAPIL[dm] + soilInfo->dismatGWdecomp[dm][GWlayer];
+					}
 				}
 
 			}
 			else
 			{
-				/* below GWlayer - change is covered by GW*/
+				/* below GWlayer - soilInfo->dismatTOTALdecomp is covered by GW*/
 				for (dm = 0; dm < N_DISSOLVMATER; dm++)
 				{
-					soilInfo->dismatGWdecomp[dm][layer] = -1 * change[dm][layer];
+					
+					soilInfo->dismatGWdecomp[dm][layer] = -1 * soilInfo->dismatTOTALdecomp[dm][layer];
 					soilInfo->content_soil[dm][layer] += soilInfo->dismatGWdecomp[dm][layer];
 				}
 			}
 
 
 			/* transfer value: content_array -> NH4, NO3, DOC, DON */
-			if (!errorCode && calc_soilconc(layer, 1, sprop, ws, cs, ns, soilInfo))
+			if (!errorCode && check_soilcontent(layer, 1, sprop, cs, ns, soilInfo))
 			{
-				printf("ERROR in calc_soilconc.c for groundwater_preproc.c\n");
+				printf("ERROR in check_soilcontent.c for state_update.c\n");
 				errorCode = 1;
 			}
 
 		}
-	}
-
-	/* src/snk variables*/
-	for (dm = 0; dm < N_DISSOLVN; dm++)
-	{
-		if (soilInfo->dismatGWdecomp_NORM[dm] > 0)
-			ns->GWsrc_N += soilInfo->dismatGWdecomp_NORM[dm];
-		else
-			ns->GWsnk_N += -1 * soilInfo->dismatGWdecomp_NORM[dm];
-
-		if (soilInfo->dismatGWdecomp_CAPIL[dm] > 0)
-			ns->GWsrc_N += soilInfo->dismatGWdecomp_CAPIL[dm];
-		else
-			ns->GWsnk_N += -1 * soilInfo->dismatGWdecomp_CAPIL[dm];
-
-		for (layer = 0; layer < N_SOILLAYERS; layer++)
+		/* src/snk variables*/
+		for (dm = 0; dm < N_DISSOLVN; dm++)
 		{
-			if (soilInfo->dismatGWdecomp[dm][layer] > 0)
-				ns->GWsrc_N += soilInfo->dismatGWdecomp[dm][layer];
+			if (soilInfo->dismatGWdecomp_NORM[dm] > 0)
+				ns->GWsrc_N += soilInfo->dismatGWdecomp_NORM[dm];
 			else
-				ns->GWsnk_N += -1 * soilInfo->dismatGWdecomp[dm][layer];
+				ns->GWsnk_N += -1 * soilInfo->dismatGWdecomp_NORM[dm];
+
+			if (soilInfo->dismatGWdecomp_CAPIL[dm] > 0)
+				ns->GWsrc_N += soilInfo->dismatGWdecomp_CAPIL[dm];
+			else
+				ns->GWsnk_N += -1 * soilInfo->dismatGWdecomp_CAPIL[dm];
+
+			for (layer = 0; layer < N_SOILLAYERS; layer++)
+			{
+				if (soilInfo->dismatGWdecomp[dm][layer] > 0)
+					ns->GWsrc_N += soilInfo->dismatGWdecomp[dm][layer];
+				else
+					ns->GWsnk_N += -1 * soilInfo->dismatGWdecomp[dm][layer];
+			}
 		}
-	}
 
-	for (dm = N_DISSOLVN; dm < N_DISSOLVMATER; dm++)
-	{
-		if (soilInfo->dismatGWdecomp_NORM[dm] > 0)
-			cs->GWsrc_C += soilInfo->dismatGWdecomp_NORM[dm];
-		else
-			cs->GWsnk_C += -1 * soilInfo->dismatGWdecomp_NORM[dm];
-
-		if (soilInfo->dismatGWdecomp_CAPIL[dm] > 0)
-			cs->GWsrc_C += soilInfo->dismatGWdecomp_CAPIL[dm];
-		else
-			cs->GWsnk_C += -1 * soilInfo->dismatGWdecomp_CAPIL[dm];
-
-		for (layer = 0; layer < N_SOILLAYERS; layer++)
+		for (dm = N_DISSOLVN; dm < N_DISSOLVMATER; dm++)
 		{
-			if (soilInfo->dismatGWdecomp[dm][layer] > 0)
-				cs->GWsrc_C += soilInfo->dismatGWdecomp[dm][layer];
+			if (soilInfo->dismatGWdecomp_NORM[dm] > 0)
+				cs->GWsrc_C += soilInfo->dismatGWdecomp_NORM[dm];
 			else
-				cs->GWsnk_C += -1 * soilInfo->dismatGWdecomp[dm][layer];
+				cs->GWsnk_C += -1 * soilInfo->dismatGWdecomp_NORM[dm];
+
+			if (soilInfo->dismatGWdecomp_CAPIL[dm] > 0)
+				cs->GWsrc_C += soilInfo->dismatGWdecomp_CAPIL[dm];
+			else
+				cs->GWsnk_C += -1 * soilInfo->dismatGWdecomp_CAPIL[dm];
+
+			for (layer = 0; layer < N_SOILLAYERS; layer++)
+			{
+				if (soilInfo->dismatGWdecomp[dm][layer] > 0)
+					cs->GWsrc_C += soilInfo->dismatGWdecomp[dm][layer];
+				else
+					cs->GWsnk_C += -1 * soilInfo->dismatGWdecomp[dm][layer];
+			}
 		}
+
 	}
+
 
 
 	/***************************************************************************************************************************************************/
@@ -1102,7 +1129,8 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, so
 		}
 	} /* end if allocation day */
 
-	
+
+
 
 
 	return (errorCode);

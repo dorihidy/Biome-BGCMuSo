@@ -26,24 +26,17 @@ int groundwater_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 {
 
 	int errorCode = 0;
-	int ll;
-	int GWlayer;
-	double INFILT, DRN, GWR;
+	int  ll;
 
 	double VWC, soilw_sat1, soilw1;
-	double EXCESS, HOLD, DRAIN, DRMX, conduct_sat;
+	double INFILT, conduct_cmday, conductSAT_cmday;
+	double VWCsat, VWCcrit, dz0, dz1, dz0_cm, HOLD, soilw0;
 
-	double VWC_zoneNORM, VWC_zoneCAPIL, soilw_zoneNORM, soilw_zoneCAPIL, changeNORM1, changeCAPIL1, changeNORM2, changeCAPIL2;
+	double DC, DRN, EXCESS, VWCnew;
 
-	double dz0, dz1, VWCfc;
+	int GWlayer = (int)sprop->GWlayer;
+	int CFlayer = (int)sprop->CFlayer;
 
-
-
-	GWlayer = (int)sprop->GWlayer;
-	DRN = GWR = DRMX = 0;
-
-	/* saturated hydraulic conductivity in actual layer (cm/day = m/s * 100 * sec/day) */
-	conduct_sat = sprop->hydrCONDUCTsat[GWlayer] * m_to_cm * nSEC_IN_DAY;
 
 	/* infiltration: percolation from layer above */
 	if (GWlayer == 0)
@@ -51,246 +44,227 @@ int groundwater_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 	else
 		INFILT = wf->soilwPercol[GWlayer - 1] * mm_to_cm;
 
+	/* hydraulic conductivity in actual GWlayer (cm/day = m/s * 100 * sec/day) */
+	conductSAT_cmday = sprop->hydrCONDUCTsat[GWlayer] * m_to_cm * nSEC_IN_DAY;
+	conduct_cmday = conductSAT_cmday;
+
 	/* -----------------------------*/
 	/* 1. normZone */
 
-	if (sprop->dz_zoneNORM > 0)
+	if (sprop->dz_NORMgw)
 	{
 
-		VWC = sprop->VWC_zoneNORM;
-		dz0 = sprop->dz_zoneNORM * m_to_cm;
-		VWCfc = sprop->VWCfc_base[GWlayer];
+		VWC = sprop->VWC_NORMgw;
+		VWCsat = sprop->VWCsat[GWlayer];
+		VWCcrit = MAX(sprop->VWCfc[GWlayer], sprop->VWCeq[GWlayer]);
+		soilw0 = sprop->soilw_NORMgw;
+
+		/* unit change from m to cm */
+		dz0 = sprop->dz_NORMgw;
+		dz0_cm = dz0 * m_to_cm;
+
+		DC = sprop->drainCoeff[GWlayer];
 
 
-		/* [cm = m3/m3 * cm */
-		HOLD = (sprop->VWCsat[GWlayer] - VWC) * dz0;
-
-
-		/* 1.1.  IF: INFILT > HOLD */
-		if (INFILT > 0.0 && INFILT > HOLD)
+		if (!errorCode && calc_drainage(wf->flagRAIN, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conduct_cmday, &DRN, &EXCESS, &VWCnew))
 		{
-			/* drainage from soil profile [cm = m3/m3 * cm ] */
-			DRAIN = sprop->drainCoeff[GWlayer] * (sprop->VWCsat[GWlayer] - VWCfc) * dz0;
+			printf("\n");
+			printf("ERROR calc_drainage.c for tipping.c\n");
+			errorCode = 1;
+		}
 
-			/* drainage rate throug soil layer (cm/day) */
-			DRN = INFILT - HOLD + DRAIN;
+		/* water flux: cm/day to kg/(m2*day) */
+		wf->soilwPercol_NORMvsCAPILgw = DRN / mm_to_cm;
+
+		/* state update: with new VWC calcualte soilw */
+		sprop->VWC_NORMgw = VWCnew;
+		sprop->soilw_NORMgw = sprop->VWC_NORMgw * dz0 * water_density;
+
+		/* control */
+		if (fabs(VWCnew * dz0 * water_density - soilw0 - ((INFILT - DRN - EXCESS) / mm_to_cm)) > CRIT_PREC_lenient)
+		{
+			printf("\n");
+			printf("ERROR in tipping.c: soilw udpate\n");
+			errorCode = 1;
+		}
+
+		INFILT = DRN;
 
 
-			/* drainage is limited: cm/h * h/day */
-			if ((DRN - conduct_sat) > 0.0)
+
+
+		/* if there is excess water, redistribute it in layers above */
+		if (EXCESS > CRIT_PREC_lenient)
+		{
+			for (ll = GWlayer - 1; ll >= 0; ll--)
 			{
-				DRN = conduct_sat;
-				DRAIN = DRN + HOLD - INFILT;
-			}
-
-
-			/* state update temporal varialbe */
-			VWC = VWC + (INFILT - DRN) / dz0;
-
-			/* above saturation - */
-			if (VWC >= sprop->VWCsat[GWlayer])
-			{
-				EXCESS = (VWC - sprop->VWCsat[GWlayer]) * dz0;
-				VWC = sprop->VWCsat[GWlayer];
-
-	
-				for (ll = GWlayer - 1; ll >= 0; ll--)
+				dz1 = sitec->soillayer_thickness[ll];
+				soilw_sat1 = sprop->VWCsat[ll] * dz1 * water_density;
+				soilw1 = epv->VWC[ll] * dz1 * water_density;
+				HOLD = MIN((soilw_sat1 - soilw1) * mm_to_cm, EXCESS);
+				soilw1 += HOLD / mm_to_cm;
+				if (soilw1 > soilw_sat1)
 				{
-					dz1 = sitec->soillayer_thickness[ll] * mm_to_cm;
-					soilw_sat1 = sprop->VWCsat[ll] * sitec->soillayer_thickness[ll] * water_density * mm_to_cm;
-					soilw1 = epv->VWC[ll] * sitec->soillayer_thickness[ll] * water_density * mm_to_cm;
-					HOLD = MIN(soilw_sat1 - soilw1, EXCESS);
-					ws->soilw[ll] += HOLD / mm_to_cm;
-					epv->VWC[ll] = ws->soilw[ll] / sitec->soillayer_thickness[ll] / water_density;
-
-					wf->soilwPercol[ll] = MAX(((wf->soilwPercol[ll] - EXCESS) / m_to_cm) * water_density, 0);
-
-					EXCESS = EXCESS - HOLD;
-
+					printf("\n");
+					printf("ERROR in tipping.c: EXCESS calculation\n");
+					errorCode = 1;
 				}
-				/* if too much pondwater -> runoff */
-				wf->soilw_to_pondw += EXCESS / mm_to_cm;
-			}
-
-			INFILT = DRN;
-			
-
-		} /* END IF: INFILT > HOLD */
-		else
-		/* 1.2 BEGIN ELSE: INFILT < HOLD */
-		{ 
-
-			VWC = VWC + INFILT / dz0;
-
-
-			/* BEGIN IF-ELSE: VWC > FC */
-			if (VWC >= VWCfc)
-			{
-
-				DRAIN = (VWC - VWCfc) * sprop->drainCoeff[GWlayer] * dz0;
-
-				/* drainage rate throug soil layer (cm/day) */
-				if (DRAIN > CRIT_PRECwater)
-					DRN = DRAIN;
-				else
-					DRN = 0;
-
-
-				/* drainage is limited */
-				if ((DRN - conduct_sat) > 0.0)
+				/* udapte of NORMcf and CAPILcf*/
+				if (ll == CFlayer)
 				{
-					DRN = conduct_sat;
-					DRAIN = DRN;
+					sprop->soilw_CAPILcf += soilw1 - ws->soilw[ll];
+					soilw_sat1 = sprop->VWCsat[ll] * sprop->dz_CAPILcf * water_density;
+					if (sprop->soilw_CAPILcf > soilw_sat1)
+					{
+						sprop->soilw_NORMcf += sprop->soilw_CAPILcf - soilw_sat1;
+						sprop->soilw_CAPILcf = soilw_sat1;
+					}
+					if (sprop->dz_CAPILcf) sprop->VWC_CAPILcf = sprop->soilw_CAPILcf / sprop->dz_CAPILcf / water_density;
+					if (sprop->dz_NORMcf) sprop->VWC_NORMcf = sprop->soilw_NORMcf / sprop->dz_NORMcf / water_density;
 				}
+				ws->soilw[ll] = soilw1;
+				epv->VWC[ll] = ws->soilw[ll] / dz1 / water_density;
 
+				wf->soilwPercol[ll] -= EXCESS / mm_to_cm;
 
-				VWC = VWC - DRN / dz0;
-				INFILT = DRN;
+				EXCESS = EXCESS - HOLD;
+
 			}
-			else
-			{
-				INFILT = 0.0;
-				DRN = 0.0;
-
-			} /* END IF-ELSE: VWC > FC */
-
-			
-
-		} /* END ELSE: INFILT < HOLD */
-
-
-		VWC_zoneNORM = VWC;
-
-
+			/* if too much pondwater -> runoff */
+			wf->soilw_to_pondw += EXCESS / mm_to_cm;
+		}
 	}
-	else
-		VWC_zoneNORM = 0;
 
 	/* -----------------------------*/
 	/* 2. capillZone */
 
-	VWC = sprop->VWC_zoneCAPIL;
-	dz0 = sprop->dz_zoneCAPIL * m_to_cm;
-	VWCfc = sprop->VWCsat[GWlayer];
-
-
-	/* [cm = m3/m3 * cm */
-	HOLD = (sprop->VWCsat[GWlayer] - VWC) * dz0;
-
-
-	/* 2.1.  IF: INFILT > HOLD */
-	if (INFILT > 0.0 && INFILT > HOLD)
+	if (sprop->dz_CAPILgw)
 	{
-		/* drainage from soil profile [cm = m3/m3 * cm ] */
-		DRAIN = sprop->drainCoeff[GWlayer] * (sprop->VWCsat[GWlayer] - VWCfc) * dz0;
+		VWC = sprop->VWC_CAPILgw;
+		VWCsat = sprop->VWCsat[GWlayer];
+		VWCcrit = sprop->VWCsat[GWlayer];
+		soilw0 = sprop->soilw_CAPILgw;
 
-		/* drainage rate throug soil layer (cm/day) */
-		GWR = INFILT - HOLD + DRAIN;
+		/* unit change from m to cm */
+		dz0 = sprop->dz_CAPILgw;
+		dz0_cm = dz0 * m_to_cm;
+
+		DC = sprop->drainCoeff[GWlayer];
+
+		/* hydraulic conductivity in actual GWlayer (cm/day = m/s * 100 * sec/day) */
+		conductSAT_cmday = sprop->hydrCONDUCTsat[GWlayer] * m_to_cm * nSEC_IN_DAY;
+		conduct_cmday = conductSAT_cmday;
 
 
-		/* drainage is limited: cm/h * h/day */
-		if ((GWR - conduct_sat) > 0.0)
+		if (!errorCode && calc_drainage(wf->flagRAIN, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conduct_cmday, &DRN, &EXCESS, &VWCnew))
 		{
-			GWR = conduct_sat;
-			DRAIN = GWR + HOLD - INFILT;
+			printf("\n");
+			printf("ERROR calc_drainage.c for tipping.c\n");
+			errorCode = 1;
+		}
+
+		/* water flux: cm/day to kg/(m2*day) */
+		wf->GWrecharge_CAPILgw = DRN / mm_to_cm;
+
+
+		/* state update: with new VWC calcualte soilw */
+		sprop->VWC_CAPILgw = VWCnew;
+		sprop->soilw_CAPILgw = sprop->VWC_CAPILgw * dz0 * water_density;
+		/* control */
+		if (fabs(VWCnew * dz0 * water_density - soilw0 - ((INFILT - DRN - EXCESS) / mm_to_cm)) > CRIT_PREC_lenient)
+		{
+			printf("\n");
+			printf("ERROR in groundwater_tipping.c: soilw update\n");
+			errorCode = 1;
 		}
 
 
-		/* state update temporal varialbe */
-		VWC = VWC + (INFILT - GWR) / dz0;
+		INFILT = DRN;
 
-		/* above saturation - */
-		if (VWC >= sprop->VWCsat[GWlayer])
+		/* if there is excess water, redistribute it in layers above */
+		if (EXCESS > 0)
 		{
-			EXCESS = (VWC - sprop->VWCsat[GWlayer]) * dz0;
-			VWC = sprop->VWCsat[GWlayer];
-			GWR += EXCESS;
+			/* first of all: normal layer is saturated */
+			if (sprop->dz_NORMgw)
+			{
+				dz1 = sprop->dz_NORMgw;
+				soilw_sat1 = sprop->VWCsat[GWlayer] * dz1 * water_density;
+				soilw1 = sprop->VWC_NORMgw * dz1 * water_density;
+				HOLD = MIN((soilw_sat1 - soilw1) * mm_to_cm, EXCESS);
+				soilw1 += HOLD / mm_to_cm;
+				if (soilw1 > soilw_sat1)
+				{
+					printf("\n");
+					printf("ERROR in tipping.c: EXCESS calculation\n");
+					errorCode = 1;
+				}
+	
+				sprop->soilw_NORMgw = soilw1;
+				sprop->VWC_NORMgw = sprop->soilw_NORMgw / dz1 / water_density;
+
+				wf->soilwPercol_NORMvsCAPILgw -= EXCESS / mm_to_cm;
+				EXCESS = EXCESS - HOLD;
+			}
+			if (EXCESS > CRIT_PREC_lenient)
+			{ 
+				for (ll = GWlayer - 1; ll >= 0; ll--)
+				{
+					dz1 = sitec->soillayer_thickness[ll];
+					soilw_sat1 = sprop->VWCsat[ll] * dz1 * water_density;
+					soilw1 = epv->VWC[ll] * dz1 * water_density;
+					HOLD = MIN((soilw_sat1 - soilw1) * mm_to_cm, EXCESS);
+					soilw1 += HOLD / mm_to_cm;
+					if (soilw1 > soilw_sat1)
+					{
+						printf("\n");
+						printf("ERROR in tipping.c: EXCESS calculation\n");
+						errorCode = 1;
+					}
+
+					/* udapte of NORMcf and CAPILcf*/
+					if (ll == CFlayer)
+					{
+						sprop->soilw_CAPILcf += soilw1 - ws->soilw[ll];
+						soilw_sat1 = sprop->VWCsat[ll] * sprop->dz_CAPILcf * water_density;
+						if (sprop->soilw_CAPILcf > soilw_sat1)
+						{
+							sprop->soilw_NORMcf += sprop->soilw_CAPILcf - soilw_sat1;
+							sprop->soilw_CAPILcf = soilw_sat1;
+						}
+						if (sprop->dz_CAPILcf) sprop->VWC_CAPILcf = sprop->soilw_CAPILcf / sprop->dz_CAPILcf / water_density;
+						if (sprop->dz_NORMcf) sprop->VWC_NORMcf = sprop->soilw_NORMcf / sprop->dz_NORMcf / water_density;
+					}
+
+					ws->soilw[ll] = soilw1;
+					epv->VWC[ll] = ws->soilw[ll] / sitec->soillayer_thickness[ll] / water_density;
+
+					wf->soilwPercol[ll] -= EXCESS / mm_to_cm;
+
+					EXCESS = EXCESS - HOLD;
+
+				}
+			}
+			/* if too much pondwater -> runoff */
+			wf->soilw_to_pondw += EXCESS / mm_to_cm;
 		}
 
 
-	} /* END IF: INFILT > HOLD */
+		/* state update: with new VWC calcualte soilw */
+		ws->soilw[GWlayer] = sprop->soilw_NORMgw + sprop->soilw_CAPILgw + sprop->soilw_SATgw;
+		epv->VWC[GWlayer] = ws->soilw[GWlayer] / (sitec->soillayer_thickness[GWlayer] * water_density);
+
+	}
 	else
-	/* 2.2 BEGIN ELSE: INFILT < HOLD */
 	{
-
-		VWC = VWC + INFILT / dz0;
-
-
-		/* BEGIN IF-ELSE: VWC > FC */
-		if (VWC >= VWCfc)
+		/* no capillary zone in GW-layer */
+		if (GWlayer - 1 == CFlayer)
 		{
-
-			DRAIN = (VWC - VWCfc) * sprop->drainCoeff[GWlayer] * dz0;
-
-			/* drainage rate throug soil layer (cm/day) */
-			if (DRAIN > CRIT_PRECwater)
-				GWR = DRAIN;
-			else
-				GWR = 0;
-
-
-
-			VWC = VWC - GWR / dz0;
+			wf->GWrecharge_CAPILcf = INFILT / mm_to_cm;
+			wf->soilwPercol[CFlayer] = 0;
 		}
 		else
-			GWR = 0.0;
-
-	} /* END ELSE: INFILT < HOLD */
-
-	VWC_zoneCAPIL = VWC;
-
-
-	wf->soilwPercol_NORMvsCAPIL = DRN / mm_to_cm;
-	wf->GWrecharge              = GWR / mm_to_cm;
-
-	sprop->VWC_zoneNORM = VWC_zoneNORM;
-	sprop->VWC_zoneCAPIL = VWC_zoneCAPIL;
-
-
-	/* control*/
-	soilw_zoneNORM = VWC_zoneNORM * (sprop->dz_zoneNORM * water_density);
-	soilw_zoneCAPIL = VWC_zoneCAPIL * (sprop->dz_zoneCAPIL * water_density);
-
-
-	if (GWlayer == 0)
-		INFILT = wf->infiltPOT;
-	else
-		INFILT = wf->soilwPercol[GWlayer - 1];
-
-	if (sprop->dz_zoneNORM)
-	{
-		changeNORM1 = INFILT - DRN / mm_to_cm;
-		changeCAPIL1 = DRN / mm_to_cm  - GWR / mm_to_cm;
+			wf->GWrecharge_lastCAPIL = INFILT / mm_to_cm;
 	}
-	else
-	{
-		changeNORM1 = 0;
-		changeCAPIL1 = INFILT - GWR / mm_to_cm;
-	}
-
-
-	changeNORM2 = soilw_zoneNORM - sprop->soilw_zoneNORM;
-	changeCAPIL2 = soilw_zoneCAPIL - sprop->soilw_zoneCAPIL;
-
-
-	if (fabs(changeNORM1 - changeNORM2) > CRIT_PRECwater || fabs(changeCAPIL1 - changeCAPIL2) > CRIT_PRECwater)
-	{
-		printf("\n");
-		printf("ERROR in groundwater_tipping in multilayer_hydrolprocess.c\n");
-		errorCode = 1;
-	}
-
-	sprop->soilw_zoneNORM = soilw_zoneNORM;
-	sprop->soilw_zoneCAPIL = soilw_zoneCAPIL;
-
-
-	/* state update: with new VWC calcualte soilw */
-	ws->soilw[GWlayer] = sprop->soilw_zoneNORM + sprop->soilw_zoneCAPIL + sprop->soilw_zoneSAT;
-	epv->VWC[GWlayer] = ws->soilw[GWlayer] / (sitec->soillayer_thickness[GWlayer] * water_density);
-
-
-
-
 
 
 	return (errorCode);

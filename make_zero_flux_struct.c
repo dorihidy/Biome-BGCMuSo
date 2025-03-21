@@ -23,11 +23,21 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int make_zero_flux_struct(wflux_struct* wf, cflux_struct* cf, nflux_struct* nf, soilInfo_struct* soilInfo, summary_struct* summary)
+int make_zero_flux_struct(const control_struct* ctrl, wflux_struct* wf, cflux_struct* cf, nflux_struct* nf, soilInfo_struct* soilInfo, summary_struct* summary)
 {
 	int errorCode=0;
 	int layer, dm;
 
+	if (ctrl->simyr == 0 && ctrl->yday == 0)
+	{
+		wf->soilwFLuxFromBelow = 0;
+	}
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
+	{
+		wf->FRZ_to_NORM[layer] = 0;
+		wf->FRZ_to_CAPIL[layer] = 0;
+	}
+	wf->flagRAIN = 0;
 	wf->prcp_to_canopyw = 0;
 	wf->prcp_to_soilSurface = 0;
 	wf->prcp_to_snoww = 0;
@@ -40,6 +50,13 @@ int make_zero_flux_struct(wflux_struct* wf, cflux_struct* cf, nflux_struct* nf, 
 	wf->SUBLsnoww = 0;
 	wf->snoww_to_soilw = 0;
 	wf->EVPsoilw = 0;
+	wf->EVPsoilw0 = 0;
+	wf->EVPsoilw1 = 0;
+	wf->EVPsoilwNORMcf = 0;
+	wf->EVPsoilwCAPILcf = 0;
+	wf->TRPsoilwNORMcf = 0;
+	wf->TRPsoilwCAPILcf = 0;
+
 	wf->potEVPsurface = 0;
 	wf->potETcanopy = 0;
 	wf->potSUBLsnow = 0;
@@ -69,18 +86,49 @@ int make_zero_flux_struct(wflux_struct* wf, cflux_struct* cf, nflux_struct* nf, 
 	wf->FRZ_to_soilw = 0;
 	wf->infiltPOT = 0;
 	wf->waterFromAbove = 0;
-	wf->GWevap = 0;
-	wf->GWtransp_zoneCAPIL = 0;
-	wf->GWtransp_zoneNORM = 0;
-	wf->GWtransp_total = 0;
-	wf->GWmovchange_zoneCAPIL = 0;
-	wf->GWmovchange_zoneNORM = 0;
-	wf->GWmovchange_total = 0;
-	wf->soilwFlux_NORMvsCAPIL = 0;
-	wf->soilwPercol_NORMvsCAPIL = 0;
-	wf->soilwDiffus_NORMvsCAPIL = 0;
-	wf->GWdischarge = 0;
-	wf->GWrecharge = 0;
+	wf->EVPfromGW = 0;
+	wf->TRPsoilw_CAPILgw = 0;
+	wf->TRPsoilw_NORMgw = 0;
+	wf->TRPfromGW_CAPILcf = 0;
+	wf->TRPfromGW_NORMcf = 0;
+	wf->TRPfromGW_total = 0;
+	wf->GWmovchange = 0;
+	wf->soilwFlux_NORMvsCAPILgw = 0;
+	wf->soilwPercol_NORMvsCAPILgw = 0;
+	wf->soilwDiffus_NORMvsCAPILgw = 0;
+	wf->soilwFlux_NORMvsCAPILcf = 0;
+	wf->soilwPercol_NORMvsCAPILcf = 0;
+	wf->soilwDiffus_NORMvsCAPILcf = 0;
+	wf->GWdischarge_total = 0;
+
+	wf->GWdischargeNORMcf = 0;
+	wf->GWdischargeNORMgw = 0;
+	wf->GWdischargeCAPILcf = 0;
+	wf->GWdischargeCAPILgw = 0;
+
+	wf->soilwDiffus_aboveGWlayer_vs_NORMgw = 0;
+	wf->soilwDiffus_aboveGWlayer_vs_CAPILgw = 0;
+	wf->soilwDiffusNORMcf = 0;
+	wf->soilwDiffusCAPILcf = 0;
+	wf->soilwDiffus_aboveCFlayer_vs_NORMcf = 0;
+	wf->soilwDiffus_aboveCFlayer_vs_CAPILcf = 0;
+	wf->soilwPercolDiffus_fromNORM_total = 0;
+
+	wf->GWrecharge_NORMcf = 0;
+	wf->GWrecharge_NORMgw = 0;
+	wf->GWrecharge_CAPILgw = 0;
+	wf->GWrecharge_CAPILcf = 0;
+	wf->GWrecharge_lastCAPIL = 0;
+	wf->GWrecharge_total = 0;
+
+	wf->inflow_NORMcf = 0;
+	wf->inflow_CAPILcf = 0;
+	wf->inflow_NORMgw = 0;
+	wf->inflow_CAPILgw = 0;
+	wf->outflow_NORMcf = 0;
+	wf->outflow_CAPILcf = 0;
+	wf->outflow_NORMgw = 0;
+	wf->outflow_CAPILgw = 0;
 
 	cf->m_leafc_to_litr1c = 0;
 	cf->m_leafc_to_litr2c = 0;
@@ -375,14 +423,18 @@ int make_zero_flux_struct(wflux_struct* wf, cflux_struct* cf, nflux_struct* nf, 
 	cf->softstemc_to_HRV = 0;
 	cf->softstemc_storage_to_HRV = 0;
 	cf->softstemc_transfer_to_HRV = 0;
+	cf->frootc_to_HRV = 0;
+	cf->frootc_storage_to_HRV = 0;
+	cf->frootc_transfer_to_HRV = 0;
 	cf->gresp_storage_to_HRV = 0;
 	cf->gresp_transfer_to_HRV = 0;
 	cf->HRV_to_CTDBc_leaf = 0;
-	cf->HRV_to_CTDBc_yield = 0;
 	cf->HRV_to_CTDBc_softstem = 0;
+	cf->HRV_to_CTDBc_yield = 0;
 	cf->STDBc_leaf_to_HRV = 0;
 	cf->STDBc_yield_to_HRV = 0;
 	cf->STDBc_softstem_to_HRV = 0;
+	cf->STDBc_froot_to_HRV = 0;
 	cf->leafc_to_PLG = 0;
 	cf->leafc_storage_to_PLG = 0;
 	cf->leafc_transfer_to_PLG = 0;
@@ -426,11 +478,8 @@ int make_zero_flux_struct(wflux_struct* wf, cflux_struct* cf, nflux_struct* nf, 
 	cf->FRZ_to_litr2c = 0;
 	cf->FRZ_to_litr3c = 0;
 	cf->FRZ_to_litr4c = 0;
-	cf->litrc_from_MUL = 0;
-	cf->cwdc_from_MUL = 0;
-	cf->cwdc0_to_CWE = 0;
-	cf->cwdc1_to_CWE = 0;
-	cf->cwdc2_to_CWE = 0;
+
+	cf->cwdc_to_CWE = 0;
 	cf->CH4flux_soil = 0;
 	cf->CH4flux_manure = 0;
 	cf->CH4flux_animal = 0;
@@ -441,12 +490,23 @@ int make_zero_flux_struct(wflux_struct* wf, cflux_struct* cf, nflux_struct* nf, 
 	cf->soil2_hr_total = 0;		
 	cf->soil3_hr_total = 0;		
 	cf->soil4_hr_total = 0;	
-				
+		
+	cf->litr1c_to_soil1c_total = 0;
+	cf->litr2c_to_soil2c_total = 0;
+	cf->litr4c_to_soil3c_total = 0;
 	cf->litrc_to_soilc_total = 0;						
 	cf->cwdc_to_litrc_total = 0;						
 	cf->litrc_to_release_total = 0;  
+	cf->litr3c_to_litr2c_total = 0;
+	cf->soil1c_to_soil2c_total = 0;
+	cf->soil2c_to_soil3c_total = 0;
+	cf->soil3c_to_soil4c_total = 0;
 
 	cf->orgC_fromFL = 0;
+
+
+	cf->litrc_from_MUL = 0;
+	cf->cwdc_from_MUL = 0;
 
 	nf->m_leafn_to_litr1n = 0;
 	nf->m_leafn_to_litr2n = 0;
@@ -600,9 +660,16 @@ int make_zero_flux_struct(wflux_struct* wf, cflux_struct* cf, nflux_struct* nf, 
 	nf->softstemn_to_litr4n = 0;
 	nf->ndep_to_sminn_total = 0;
 	nf->nfix_to_sminn_total = 0;
-	
+
+	nf->litr1n_to_soil1n_total = 0;
+	nf->litr2n_to_soil2n_total = 0;
+	nf->litr4n_to_soil3n_total = 0;
+	nf->litrn_to_soiln_total = 0;
 	nf->cwdn_to_litrn_total = 0;                               
 	nf->litrn_to_release_total = 0;  
+	nf->soil1n_to_soil2n_total = 0;
+	nf->soil2n_to_soil3n_total = 0;
+	nf->soil3n_to_soil4n_total = 0;
 
 	nf->NO3_to_denitr_total = 0;
 	nf->NH4_to_nitrif_total = 0;
@@ -734,14 +801,17 @@ int make_zero_flux_struct(wflux_struct* wf, cflux_struct* cf, nflux_struct* nf, 
 	nf->softstemn_to_HRV = 0;
 	nf->softstemn_storage_to_HRV = 0;
 	nf->softstemn_transfer_to_HRV = 0;
-	nf->retransn_to_HRV = 0;
+	nf->frootn_to_HRV = 0;
+	nf->frootn_storage_to_HRV = 0;
+	nf->frootn_transfer_to_HRV = 0;
 	nf->HRV_to_CTDBn_leaf = 0;
-	nf->HRV_to_CTDBn_yield = 0;
 	nf->HRV_to_CTDBn_softstem = 0;
+	nf->HRV_to_CTDBn_yield = 0;
 	nf->HRV_to_transpN = 0;
 	nf->STDBn_leaf_to_HRV = 0;
 	nf->STDBn_yield_to_HRV = 0;
 	nf->STDBn_softstem_to_HRV = 0;
+	nf->STDBn_froot_to_HRV = 0;
 	nf->leafn_to_PLG = 0;
 	nf->leafn_storage_to_PLG = 0;
 	nf->leafn_transfer_to_PLG = 0;
@@ -793,9 +863,8 @@ int make_zero_flux_struct(wflux_struct* wf, cflux_struct* cf, nflux_struct* nf, 
 
 	nf->litrn_from_MUL = 0;
 	nf->cwdn_from_MUL = 0;
-	nf->cwdn0_to_CWE = 0;
-	nf->cwdn1_to_CWE = 0;
-	nf->cwdn2_to_CWE = 0;
+	nf->cwdn_to_CWE = 0;
+
 
 	nf->sminn_to_soil1n_l1_total    = 0; 
     nf->sminn_to_soil2n_l2_total    = 0; 
@@ -814,7 +883,7 @@ int make_zero_flux_struct(wflux_struct* wf, cflux_struct* cf, nflux_struct* nf, 
 	nf->environment_to_NH4_total = 0;
 	nf->environment_to_NO3_total = 0;
 
-
+	
 
 	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
@@ -823,8 +892,9 @@ int make_zero_flux_struct(wflux_struct* wf, cflux_struct* cf, nflux_struct* nf, 
 		wf->soilwFlux[layer] = 0;
 		wf->soilwPercol[layer] = 0;
 		wf->soilwDiffus[layer] = 0;
-		wf->GWmovchange[layer] = 0;
-		wf->GWtransp[layer] = 0;
+		wf->soilwPercolDiffus_fromNORM[layer] = 0;
+		wf->GWdischarge[layer] = 0;
+		wf->TRPfromGW[layer] = 0;
 
 		cf->cwdc_to_litr2c[layer] = 0;
 		cf->cwdc_to_litr3c[layer] = 0;
@@ -843,7 +913,7 @@ int make_zero_flux_struct(wflux_struct* wf, cflux_struct* cf, nflux_struct* nf, 
 		cf->soil3_hr[layer] = 0;
 		cf->soil3c_to_soil4c[layer] = 0;
 		cf->soil4_hr[layer] = 0;
-
+		cf->cwdc_to_CWElayer[layer] = 0;
 
 		cf->m_litr1c_to_fire[layer] = 0;  
 		cf->m_litr2c_to_fire[layer] = 0;              
@@ -855,7 +925,6 @@ int make_zero_flux_struct(wflux_struct* wf, cflux_struct* cf, nflux_struct* nf, 
 		cf->litr2c_to_release[layer] = 0;  
 		cf->litr4c_to_release[layer] = 0;  
 
-	
 		nf->m_litr1n_to_fire[layer] = 0;  
 		nf->m_litr2n_to_fire[layer] = 0;              
 		nf->m_litr3n_to_fire[layer] = 0;             
@@ -901,29 +970,52 @@ int make_zero_flux_struct(wflux_struct* wf, cflux_struct* cf, nflux_struct* nf, 
 		nf->environment_to_sminn[layer] = 0;    
 		nf->immobFlux_LtoS[layer] = 0; 
 		nf->immobFlux_StoS[layer] = 0; 
-
-	
+		nf->grossMINERflux[layer] = 0;
+		nf->netMINERflux[layer] = 0;
+		nf->actIMMOBflux[layer] = 0;
+		nf->potIMMOBflux[layer] = 0;
+		nf->cwdn_to_CWElayer[layer] = 0;
 
 		for (dm = 0; dm < N_DISSOLVMATER; dm++)
 		{
-			soilInfo->dismatLeach[dm][layer] = 0;		
-			soilInfo->dismatGWmovchange[dm][layer] = 0;
+			soilInfo->dismatLeach[dm][layer] = 0;	
+			soilInfo->dismatLeach_percolDiffus[dm][layer] = 0;
+
+			soilInfo->dismatGWrecharge[dm][layer] = 0;
+			soilInfo->dismatGWdischarge[dm][layer] = 0;
 			soilInfo->dismatGWdecomp[dm][layer] = 0;
+			soilInfo->dismatGWfertil[dm][layer] = 0;
 			soilInfo->dismatGWecofunc[dm][layer] = 0;
+			soilInfo->dismatUNSATdecomp[dm][layer] = 0;
+			soilInfo->dismatUNSATfertil[dm][layer] = 0;
+			soilInfo->dismatUNSATecofunc[dm][layer] = 0;
+			soilInfo->dismatTOTALdecomp[dm][layer] = 0;
+			soilInfo->dismatTOTALfertil[dm][layer] = 0;
+			soilInfo->dismatTOTALecofunc[dm][layer] = 0;
+
+			if (dm < N_DISSOLVorgN)
+			{
+				soilInfo->FRZ_to_litrN[dm][layer] = 0;
+				soilInfo->FRZ_to_litrC[dm][layer] = 0;
+			}
+
 		}
+		
 	}
+
+	soilInfo->dismatGWmovchangeN_total = 0;
+	soilInfo->dismatGWmovchangeC_total = 0;
 
 	for (dm = 0; dm < N_DISSOLVMATER; dm++)
 	{
-		soilInfo->dismatGWrecharge[dm] = 0;
-		soilInfo->dismatGWdischarge[dm] = 0;
-		soilInfo->dismatLeach_NORM[dm] = 0;	
+
+		soilInfo->dismatLeach_NORMgw[dm] = 0;	
+		soilInfo->dismatLeach_NORMcf[dm] = 0;
 		soilInfo->dismatGWdecomp_NORM[dm] = 0;
 		soilInfo->dismatGWdecomp_CAPIL[dm] = 0;
-		soilInfo->dismatGWmovchange_NORM[dm] = 0;
-		soilInfo->dismatGWmovchange_CAPIL[dm] = 0;
 		soilInfo->dismatGWecofunc_NORM[dm] = 0;
 		soilInfo->dismatGWecofunc_CAPIL[dm] = 0;
+		soilInfo->dismatGWmovchange[dm] = 0;
 
 	}
 
@@ -971,6 +1063,13 @@ int make_zero_flux_struct(wflux_struct* wf, cflux_struct* cf, nflux_struct* nf, 
 	summary->SON_top30 = 0;
 	summary->NH4dissolv_top30ppm = 0;
 	summary->NO3dissolv_top30ppm = 0;
+
+	summary->GWdischarge_NH4 = 0;
+	summary->GWdischarge_NO3 = 0;
+	summary->GWdischarge_orgN = 0;
+	summary->GWrecharge_NH4 = 0;
+	summary->GWrecharge_NO3 = 0;
+	summary->GWrecharge_orgN = 0;
 
 
 	return (errorCode);

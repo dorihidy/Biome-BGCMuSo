@@ -29,9 +29,10 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 	         wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, summary_struct* summary, psn_struct* psn_sun, psn_struct* psn_shade)
 {
 	int errorCode=0;
-	int layer, day, pp;
+	int layer, day, pp, dm;
 	double prop_transfer, transfer, prop_litfall;
 	double max_deadstemc, max_deadcrootc;
+	int N_DECOMPLAYERS = 3;
 	
 	/* *****************************************************************************- */
 	/* 1. Initialize ecophysiological variables */
@@ -51,6 +52,7 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 
 	epv->germDepth = 0.05;
     epv->projLAI = 0;
+	epv->projLAI_STDB = 0;
     epv->allLAI = 0;
 	epv->SLA_avg = 0;
     epv->plaisun = 0;
@@ -193,8 +195,6 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 	summary->yield_LandD = 0;
 	summary->softstemc_LandD = 0;
 	summary->CNlitr_total = 0;
-	summary->soilC_unsat = 0;
-	summary->soilN_unsat = 0;
 	summary->NH4_unsat = 0;
 	summary->NO3_unsat = 0;
 	summary->orgN_unsat = 0;
@@ -217,14 +217,60 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 		sprop->hydrDIFFUSfc[layer] = (((sprop->soilB[layer] * sprop->hydrCONDUCTsat[layer] * (-100 * sprop->PSIsat[layer]))) / sprop->VWCsat[layer])
 			* pow(sprop->VWCfc[layer] / sprop->VWCsat[layer], sprop->soilB[layer] + 2);
 
-
 		summary->NH4_ppm[layer] = 0;
 		summary->NO3_ppm[layer] = 0;
+		summary->orgN_ppm[layer] = 0;
 		summary->sminNdissolv[layer] = 0;
 		summary->SOCpercent[layer] = 0;
 
 	}
-	sprop->infiltDepth_max =  (sprop->hydrCONDUCTsat[0] * 0.6 + sprop->hydrCONDUCTsat[1] * 0.3 + sprop->hydrCONDUCTsat[2] * 0.1) * nSEC_IN_DAY;
+
+	for (layer = 0; layer < N_SOILvirtLAYERS; layer++)
+	{
+		sprop->Ztop[layer] = 0;
+		sprop->Zbot[layer] = 0;
+		sprop->virtLayer[layer] = 0;
+	}
+
+	sprop->ratioNORMcf = 0;
+	sprop->ratioCAPILcf = 0;
+	sprop->ratioNORMgw = 0;
+	sprop->ratioCAPILgw = 0;
+
+	sprop->balance_NORMcf = 0;
+	sprop->balance_CAPILcf = 0;
+	sprop->balance_NORMgw = 0;
+	sprop->balance_CAPILgw = 0;
+
+	sprop->soilw_NORMcf_pre = 0;
+	sprop->soilw_CAPILcf_pre = 0;
+	sprop->soilw_NORMgw_pre = 0;
+	sprop->soilw_CAPILgw_pre = 0;
+	sprop->soilw_SATgw_pre = 0;
+
+	/* the role of the layer in the decomposition */
+	
+	if (sprop->PROPlayerDC_mes[0] == DATA_GAP)
+	{ 
+		for (layer = 0; layer < N_DECOMPLAYERS; layer++) sprop->PROPlayerDC[layer] = sitec->soillayer_thickness[layer] / sitec->soillayer_depth[N_DECOMPLAYERS - 1];
+		for (layer = N_DECOMPLAYERS; layer < N_SOILLAYERS; layer++) sprop->PROPlayerDC[layer] = 0;
+	}
+	else
+		for (layer = 0; layer < N_SOILLAYERS; layer++) sprop->PROPlayerDC[layer] = sprop->PROPlayerDC_mes[layer];
+
+	if (ctrl->spinup)
+	{
+		sprop->GWD_pre = DATA_GAP;
+		for (dm = 0; dm < N_DISSOLVMATER; dm++)
+		{
+			soilInfo->content_NORMcf[dm] = 0;
+			soilInfo->content_CAPILcf[dm] = 0;
+			soilInfo->content_NORMgw[dm] = 0;
+			soilInfo->content_CAPILgw[dm] = 0;
+			soilInfo->content_SATgw[dm] = 0;
+		}
+	}
+		
 
 	/* initalize the number of the soil layers in which root can be found. It determines the rootzone depth (only on first day) */
 	
@@ -242,6 +288,13 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
 		epv->m_WS_layer[layer]  = 1;
+		epv->ws_nitrif[layer] = 0;
+		epv->ps_nitrif[layer] = 0;
+		epv->ts_nitrif[layer] = 0;
+		epv->ws_decomp[layer] = 0;
+		epv->rs_decomp[layer] = 0;
+		epv->ts_decomp[layer] = 0;
+		epv->IMMOBratio[layer] = 0;
 	    epv->rootlengthProp[layer]     = 0;
 		epv->rootlengthLandD_prop[layer]= 0;
 		ns->sminN[layer]              = ns->NH4[layer] + ns->NO3[layer];
@@ -288,7 +341,12 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 	epv->gl_t_wv_shade = 0;
 	epv->gl_t_wv_sunPOT = 0;
 	epv->gl_t_wv_shadePOT = 0;
-
+	epv->WPM = 0;
+	epv->FM = 0;
+	epv->plantNdemand = 0;
+	epv->ES = 0;
+	epv->EV = 0;
+	epv->Tday = 0;
 
 	for (day = 0; day < 2*nDAYS_OF_YEAR; day++)
 	{
@@ -350,6 +408,21 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 		cs->gresp_storage = 0.0;
 		cs->cpool = 0.0;
 		
+		/* initalization of above- and belowground litter */
+		cs->litrCabove[0] = cs->litr1c[0] + cs->litr2c[0] + cs->litr3c[0] + cs->litr4c[0];
+		cs->litrCbelow[0] = 0;
+		cs->cwdCabove[0] = cs->cwdc[0];
+		cs->cwdCbelow[0] = 0;
+
+		for (layer = 1; layer < N_SOILLAYERS; layer++) 
+		{ 
+			cs->litrCabove[layer] = 0;
+			cs->litrCbelow[layer] = cs->litr1c[layer] + cs->litr2c[layer] + cs->litr3c[layer] + cs->litr4c[layer]; 
+			cs->cwdCabove[layer] = 0;
+			cs->cwdCbelow[layer] = cs->cwdc[layer];
+		}
+
+		
 		ns->leafn_storage = 0.0;
 		ns->frootn_storage = 0.0;
 		ns->yieldn_storage = 0.0;
@@ -366,71 +439,71 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 
 		if (epc->leaf_cn)
 		{
-			cs->leafc_transfer       = cinit->max_leafc      * epc->nonwoody_turnover;
-			cs->leafc                = cinit->max_leafc      - cs->leafc_transfer;
+			cs->leafc_transfer = cinit->max_leafc * epc->nonwoody_turnover;
+			cs->leafc = cinit->max_leafc - cs->leafc_transfer;
 			ns->leafn_transfer = cs->leafc_transfer / epc->leaf_cn;
 			ns->leafn = cs->leafc / epc->leaf_cn;
 		}
- 		
+
 		if (epc->froot_cn)
 		{
-			cinit->max_frootc         = cinit->max_leafc    * (epc->alloc_frootc[0]/epc->alloc_leafc[0]);
-			cs->frootc_transfer       = cinit->max_frootc   * epc->nonwoody_turnover;
-			cs->frootc                = cinit->max_frootc   - cs->frootc_transfer;
-			ns->frootn_transfer       = cs->frootc_transfer / epc->froot_cn;
-			ns->frootn                 = cs->frootc         / epc->froot_cn;
+			cinit->max_frootc = cinit->max_leafc * (epc->alloc_frootc[0] / epc->alloc_leafc[0]);
+			cs->frootc_transfer = cinit->max_frootc * epc->nonwoody_turnover;
+			cs->frootc = cinit->max_frootc - cs->frootc_transfer;
+			ns->frootn_transfer = cs->frootc_transfer / epc->froot_cn;
+			ns->frootn = cs->frootc / epc->froot_cn;
 		}
 
 		if (epc->yield_cn)
 		{
-			cinit->max_yieldc         = cinit->max_leafc    * (epc->alloc_yield[0]/epc->alloc_leafc[0]);
-			cs->yieldc_transfer       = cinit->max_yieldc   * epc->nonwoody_turnover;
-			cs->yieldc                = cinit->max_yieldc   - cs->yieldc_transfer;
-			ns->yieldn_transfer       = cs->yieldc_transfer / epc->yield_cn;
-			ns->yieldn                = cs->yieldc          / epc->yield_cn;
+			cinit->max_yieldc = cinit->max_leafc * (epc->alloc_yield[0] / epc->alloc_leafc[0]);
+			cs->yieldc_transfer = cinit->max_yieldc * epc->nonwoody_turnover;
+			cs->yieldc = cinit->max_yieldc - cs->yieldc_transfer;
+			ns->yieldn_transfer = cs->yieldc_transfer / epc->yield_cn;
+			ns->yieldn = cs->yieldc / epc->yield_cn;
 		}
 
 		if (epc->softstem_cn)
 		{
-			cinit->max_softstemc         = cinit->max_leafc    * (epc->alloc_softstemc[0]/epc->alloc_leafc[0]);
-			cs->softstemc_transfer       = cinit->max_softstemc   * epc->nonwoody_turnover;
-			cs->softstemc                = cinit->max_softstemc   - cs->softstemc_transfer;
-			ns->softstemn_transfer       = cs->softstemc_transfer / epc->softstem_cn;
-			ns->softstemn                = cs->softstemc          / epc->softstem_cn;
+			cinit->max_softstemc = cinit->max_leafc * (epc->alloc_softstemc[0] / epc->alloc_leafc[0]);
+			cs->softstemc_transfer = cinit->max_softstemc * epc->nonwoody_turnover;
+			cs->softstemc = cinit->max_softstemc - cs->softstemc_transfer;
+			ns->softstemn_transfer = cs->softstemc_transfer / epc->softstem_cn;
+			ns->softstemn = cs->softstemc / epc->softstem_cn;
 		}
 
-		
+
 		if (epc->livewood_cn)
 		{
-			cinit->max_livestemc     = cinit->max_leafc        * (epc->alloc_livestemc[0]/epc->alloc_leafc[0]);
-			cs->livestemc_transfer   = cinit->max_livestemc    * epc->woody_turnover;
-			cs->livestemc            = cinit->max_livestemc    - cs->livestemc_transfer;
-            ns->livestemn_transfer   = cs->livestemc_transfer  / epc->livewood_cn;
-			ns->livestemn            = cs->livestemc           / epc->livewood_cn;
+			cinit->max_livestemc = cinit->max_leafc * (epc->alloc_livestemc[0] / epc->alloc_leafc[0]);
+			cs->livestemc_transfer = cinit->max_livestemc * epc->woody_turnover;
+			cs->livestemc = cinit->max_livestemc - cs->livestemc_transfer;
+			ns->livestemn_transfer = cs->livestemc_transfer / epc->livewood_cn;
+			ns->livestemn = cs->livestemc / epc->livewood_cn;
 
-			cinit->max_livecrootc    = cinit->max_leafc        * (epc->alloc_livecrootc[0]/epc->alloc_leafc[0]);
-			cs->livecrootc_transfer  = cinit->max_livecrootc   * epc->woody_turnover;
-			cs->livecrootc           = cinit->max_livecrootc   - cs->livecrootc_transfer;
-			ns->livecrootn_transfer  = cs->livecrootc_transfer / epc->livewood_cn;
-			ns->livecrootn           = cs->livecrootc          / epc->livewood_cn;
+			cinit->max_livecrootc = cinit->max_leafc * (epc->alloc_livecrootc[0] / epc->alloc_leafc[0]);
+			cs->livecrootc_transfer = cinit->max_livecrootc * epc->woody_turnover;
+			cs->livecrootc = cinit->max_livecrootc - cs->livecrootc_transfer;
+			ns->livecrootn_transfer = cs->livecrootc_transfer / epc->livewood_cn;
+			ns->livecrootn = cs->livecrootc / epc->livewood_cn;
 		}
-	
+
 		if (epc->deadwood_cn)
 		{
-			max_deadstemc            = cinit->max_leafc        * (epc->alloc_deadstemc[0]/epc->alloc_leafc[0]);
-			cs->deadstemc_transfer   = max_deadstemc    * epc->woody_turnover;
-			cs->deadstemc            = max_deadstemc    - cs->deadstemc_transfer;
-            ns->deadstemn_transfer   = cs->deadstemc_transfer  / epc->deadwood_cn;
-			ns->deadstemn            = cs->deadstemc           / epc->deadwood_cn;
+			max_deadstemc = cinit->max_leafc * (epc->alloc_deadstemc[0] / epc->alloc_leafc[0]);
+			cs->deadstemc_transfer = max_deadstemc * epc->woody_turnover;
+			cs->deadstemc = max_deadstemc - cs->deadstemc_transfer;
+			ns->deadstemn_transfer = cs->deadstemc_transfer / epc->deadwood_cn;
+			ns->deadstemn = cs->deadstemc / epc->deadwood_cn;
 
-			max_deadcrootc           = cinit->max_leafc        * (epc->alloc_deadcrootc[0]/epc->alloc_leafc[0]);
-			cs->deadcrootc_transfer  = max_deadcrootc   * epc->woody_turnover;
-			cs->deadcrootc           = max_deadcrootc   - cs->deadcrootc_transfer;
-			ns->deadcrootn_transfer  = cs->deadcrootc_transfer / epc->deadwood_cn;
-			ns->deadcrootn           = cs->deadcrootc          / epc->deadwood_cn;
+			max_deadcrootc = cinit->max_leafc * (epc->alloc_deadcrootc[0] / epc->alloc_leafc[0]);
+			cs->deadcrootc_transfer = max_deadcrootc * epc->woody_turnover;
+			cs->deadcrootc = max_deadcrootc - cs->deadcrootc_transfer;
+			ns->deadcrootn_transfer = cs->deadcrootc_transfer / epc->deadwood_cn;
+			ns->deadcrootn = cs->deadcrootc / epc->deadwood_cn;
 
 		}
-
+	
 		/* *****************************************************************************- */
 		/* 4. use then penology array information to determine, for the first day of simulation, how many days of transfer and litterfall have already occurred for this year */
 		
@@ -520,7 +593,7 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 	}
 
 	/*  if planting: transfer pools are deplenished (set to zero) on the first simulation day */ 
-	if (PLT->PLT_num > 0)
+	if (PLT->PLT_num > 0 || ctrl->bareground_flag == 1)
 	{
 		cs->HRV_snkC += cs->leafc + cs->leafc_transfer;
 		cs->HRV_snkC += cs->frootc + cs->frootc_transfer;
@@ -605,7 +678,7 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 
 
 	/* in case of land-use change: agroecosystem to natural vegetation */
-	if (!ctrl->spinup && !PLT->PLT_num)
+	if (!ctrl->spinup && !PLT->PLT_num && ctrl->bareground_flag == 0)
 	{
 		if (!cs->leafc_transfer)
 		{
@@ -685,10 +758,13 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 	soilInfo->dissolv_prop[8] = sprop->SOIL3_dissolv_prop;
 	soilInfo->dissolv_prop[9] = sprop->SOIL4_dissolv_prop;
 
+	
+	
+
 	/* call soil concentration calculation routine to calculate the concetration of soil (-1: all layers, NH4 -> content_soil*/
-	if (!errorCode && calc_soilconc(-1, 0, sprop, ws, cs, ns, soilInfo))
+	if (!errorCode && check_soilcontent(-1, 0, sprop, cs, ns, soilInfo))
 	{
-		printf("ERROR in calc_soilconc.c for flooding.c\n");
+		printf("ERROR in check_soilcontent.c for firstday.c\n");
 		errorCode = 1;
 	}
 
@@ -696,7 +772,7 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 	if (!errorCode && multilayer_hydrolparams(sitec, sprop, ws, epv))
 	{
 		printf("\n");
-		printf("ERROR in multilayer_hydrolparams.c from firstday.c\n");
+		printf("ERROR in multilayer_hydrolparams.c for firstday.c\n");
 		errorCode = 40701;
 	}
 

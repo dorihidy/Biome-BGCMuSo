@@ -39,7 +39,7 @@ int soilCover(siteconst_struct* sitec, soilprop_struct* sprop, metvar_struct* me
 	/**********************************************************************************************/
 	/* I. CALCULATING the effect of soil cover on the top soil layers: UNIFORM DISTRIBUTION OF tsoil */
 
-	soilCover =cs->litrc_above + cs->cwdc_above;
+	soilCover = cs->litrCabove_total + cs->cwdCabove_total;
 	epv->SCpercent = sprop->p1_soilCover * pow((soilCover)/sprop->p2_soilCover, sprop->p3_soilCover);
 	epv->SC_EVPred   = pow(sprop->pRED_soilCover, epv->SCpercent/100);
 
@@ -56,8 +56,6 @@ int soilCover(siteconst_struct* sitec, soilprop_struct* sprop, metvar_struct* me
 			metv->tsoil[layer] = tsoilSUM;
 		}
 
-
-		metv->tsoil_surface_pre = metv->tsoil[0];
 		metv->tsoil_surface     = metv->tsoil[0];
 	}
 

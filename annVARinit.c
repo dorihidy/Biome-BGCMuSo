@@ -32,6 +32,8 @@ int annVARinit(summary_struct* summary, epvar_struct* epv, cstate_struct* cs, ws
 	summary->annprcp        = 0;
 	summary->anntavg        = 0;
 	summary->cumRunoff      = 0;
+	summary->cumRunoffH     = 0;
+	summary->cumRunoffD     = 0;
 	summary->cumWleach_RZmax    = 0;
 	summary->cumNleach_RZmax    = 0;
 	summary->Wleach_RZmax       = 0;
@@ -124,44 +126,55 @@ int annVARinit(summary_struct* summary, epvar_struct* epv, cstate_struct* cs, ws
 	epv->annmax_livestemc = 0;
 	epv->annmax_livecrootc = 0;
 
-	summary->cumGWtransp_total = 0;
-	summary->cumGWmovchange_total = 0;
-	summary->cumNH4_GWchange_total = 0;
-	summary->cumNO3_GWchange_total = 0;
-	summary->cumSOILN_GWchange_total = 0;
-	summary->cumSOILC_GWchange_total = 0;
+
+	summary->cumUNSATchangeGW_orgN= 0;
+	summary->cumUNSATplantUPto_orgN = 0;
+	summary->cumUNSATecofunc_orgN = 0;
+	summary->cumUNSATfertil_orgN = 0;
+	summary->cumUNSATdischarge_orgN = 0;
+	summary->cumUNSATrecharge_orgN = 0;
+
+	summary->cumTOTALchangeGW_orgN = 0;
+	summary->cumTOTALplantUPto_orgN = 0;
+	summary->cumTOTALecofunc_orgN = 0;
+	summary->cumTOTALfertil_orgN = 0;
+	summary->cumTOTALdischarge_orgN = 0;
+	summary->cumTOTALrecharge_orgN = 0;
+
+	summary->cumUNSATchangeGW_NH4 = 0;
+	summary->cumUNSATchangeGW_NO3 = 0;
+	summary->cumUNSATecofunc_NH4= 0;
+	summary->cumUNSATecofunc_NO3= 0;
+	summary->cumUNSATfertil_NH4= 0;
+	summary->cumUNSATfertil_NO3= 0;
+	summary->cumUNSATdischarge_NH4= 0;
+	summary->cumUNSATdischarge_NO3= 0;
+	summary->cumUNSATrecharge_NH4= 0;
+	summary->cumUNSATrecharge_NO3= 0;
+	summary->cumUNSATdenitr = 0;
+	summary->cumUNSATvolat = 0;
+
 	summary->cumHRV_to_transpN = 0;
-	summary->cumN2OfluxFRZ_NH4 = 0;
-	summary->cumN2OfluxFRZ_NO3 = 0;
+	summary->cumENVtoSMINN = 0;
+	summary->cumFRZtoN = 0;
+
+
 	summary->cumWflux_fromPRCP = 0;
-	summary->cumWflux_toET = 0;
-	summary->cumWflux_toRUNOFF = 0;
 	summary->cumWflux_fromFRZ = 0;
 	summary->cumWflux_fromIRG = 0;
-	summary->cumGWtransp_unsat = 0;
-	summary->cumGWmovchange_unsat = 0;
 	summary->cumGWdischarge = 0;
 	summary->cumGWrecharge = 0;
-	summary->cumGWevap = 0;
-	summary->cumGWplus_unsat = 0;
-	summary->cumGWminus_unsat = 0;
-	summary->cumNH4_GWplus_unsat = 0;
-	summary->cumNO3_GWplus_unsat = 0;
-	summary->cumSOILN_GWplus_unsat = 0;
-	summary->cumNH4_GWminus_unsat = 0;
-	summary->cumNO3_GWminus_unsat = 0;
-	summary->cumSOILN_GWminus_unsat = 0;
-	summary->cumENV_to_NH4_unsat = 0;
-	summary->cumENV_to_NO3_unsat = 0;
-	summary->cumNH4_to_soilSUM_unsat = 0;
-	summary->cumNO3_to_soilSUM_unsat = 0;
-	summary->cumNH4_to_nitrif_unsat = 0;
-	summary->cumNO3_to_denitr_unsat = 0;
-	summary->cumNH4_to_npool_unsat = 0;
-	summary->cumNO3_to_npool_unsat = 0;
-	summary->cumN2OfluxNITRIF_unsat = 0;
-	summary->cumNO3leach_unsat = 0;
+	summary->cumEVPfromGW = 0;
+	summary->cumTRPfromGW = 0;
+	summary->cumGWsrc = 0;
+	summary->cumGWsnk = 0;
+	summary->cumWinput = 0;
+	summary->cumWoutput = 0;
 	summary->cumPET = 0;
+	summary->cumPETcanopy = 0;
+	summary->cumPETsurface = 0;
+	summary->cumFLsoilw = 0;
+
 
 	return (errorCode);
 

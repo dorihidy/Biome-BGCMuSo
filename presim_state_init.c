@@ -144,8 +144,6 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 	cs->litr3c_total = 0;
 	cs->litr4c_total = 0;
 	cs->cwdc_total = 0;
-	cs->cwdc_above = 0;
-	cs->litrc_above = 0;
 	cs->STDBc_leaf = 0;
 	cs->STDBc_froot = 0;
 	cs->STDBc_yield = 0;
@@ -295,6 +293,7 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
 		ws->soilw[layer] = 0;
+		ws->soilw_pre[layer] = 0;
 		ws->soilw_avail[layer] = 0;
 		cs->cwdc[layer] = 0;
 		cs->litr1c[layer] = 0;
@@ -321,29 +320,43 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 	for (dm = 0; dm < N_DISSOLVMATER; dm++)
 	{
 		soilInfo->dissolv_prop[dm] = 0;
-		soilInfo->conc_GW[dm] = 0;
-		soilInfo->conc_FL[dm] = 0;
-		soilInfo->content_zoneNORM[dm] = 0;
-		soilInfo->content_zoneCAPIL[dm] = 0;
-		soilInfo->content_zoneSAT[dm] = 0;
-		soilInfo->dismatLeach_NORM[dm] = 0;
-		soilInfo->dismatGWrecharge[dm] = 0;
-		soilInfo->dismatGWdischarge[dm] = 0;
-		soilInfo->dismatGWmovchange_NORM[dm] = 0;
-		soilInfo->dismatGWmovchange_CAPIL[dm] = 0;
+		soilInfo->GWconc[dm] = 0;
+		soilInfo->FLconc[dm] = 0;
+		soilInfo->content_NORMgw[dm] = 0;
+		soilInfo->content_CAPILgw[dm] = 0;
+		soilInfo->content_SATgw[dm] = 0;
+		soilInfo->dismatLeach_NORMgw[dm] = 0;
+		soilInfo->dismatLeach_NORMcf[dm] = 0;
+		soilInfo->dismatGWmovchange[dm] = 0;
 		soilInfo->dismatGWecofunc_NORM[dm] = 0;
 		soilInfo->dismatGWecofunc_CAPIL[dm] = 0;
 		soilInfo->dismatGWdecomp_CAPIL[dm] = 0;
+		soilInfo->dismatGWdecomp_NORM[dm] = 0;
+
 
 		for (layer = 0; layer < N_SOILLAYERS; layer++)
 		{
-			soilInfo->conc_soil[dm][layer] = 0;
 			soilInfo->content_soil[dm][layer] = 0;
 			soilInfo->dismatLeach[dm][layer] = 0;
-			soilInfo->dismatGWmovchange[dm][layer] = 0;
+			soilInfo->dismatLeach_percolDiffus[dm][layer] = 0;
+			soilInfo->dismatGWdischarge[dm][layer] = 0;
+			soilInfo->dismatGWrecharge[dm][layer] = 0;
 			soilInfo->dismatGWecofunc[dm][layer] = 0;
 			soilInfo->dismatGWdecomp[dm][layer] = 0;
-			soilInfo->dismatGWdecomp_NORM[dm] = 0;
+			soilInfo->dismatGWfertil[dm][layer] = 0;
+			soilInfo->dismatUNSATecofunc[dm][layer] = 0;
+			soilInfo->dismatUNSATdecomp[dm][layer] = 0;
+			soilInfo->dismatUNSATfertil[dm][layer] = 0;
+			soilInfo->dismatTOTALecofunc[dm][layer] = 0;
+			soilInfo->dismatTOTALdecomp[dm][layer] = 0;
+			soilInfo->dismatTOTALfertil[dm][layer] = 0;
+
+			if (dm < N_DISSOLVorgN)
+			{
+				soilInfo->FRZ_to_litrN[dm][layer] = 0;
+				soilInfo->FRZ_to_litrC[dm][layer] = 0;
+			}
+
 		}
 	}
 

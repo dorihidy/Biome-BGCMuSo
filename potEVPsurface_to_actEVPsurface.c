@@ -28,21 +28,17 @@ int potEVPsurface_to_actEVPsurface(soilprop_struct* sprop, epvar_struct* epv, ws
 	/* internal variables */
 	int errorCode=0;
 	double infiltPOT;
-	
-	sprop->coeff_EVPlim = 0.4;
-	sprop->coeff_EVPcum = 3.5;
-	sprop->coeff_DSRmax  = 5;
 
 	
 	/* assign water fluxes, all excess not evaporated goes to soil water compartment */
     wf->canopyw_to_soilw = wf->prcp_to_canopyw - wf->EVPcanopyw;
 
-	infiltPOT     = wf->prcp_to_soilSurface + wf->snoww_to_soilw + wf->canopyw_to_soilw + wf->IRG_to_prcp;
+	infiltPOT     = wf->prcp_to_soilSurface + wf->snoww_to_soilw + wf->canopyw_to_soilw + wf->IRG_to_prcp + wf->soilwFLuxFromBelow;
 
 	
 	/*-----------------------------------------------------------------------------*/
-	/* 1. first evaporation phase - no limit */
-	if (ws->EVPsurface1cum < sprop->soilEVPlim)
+	/* 1. first evaporation phase - no limit  if CF layer is at soil surface */
+	if (ws->EVPsurface1cum < sprop->soilEVPcrit || sprop->CFlayer == 0)
 	{
 		epv->DSR = 0;
 	
@@ -60,7 +56,7 @@ int potEVPsurface_to_actEVPsurface(soilprop_struct* sprop, epvar_struct* epv, ws
 
 	}
 	/*-----------------------------------------------------------------------------*/
-	/* 2. second evaporation phase - limit of DSR: ws->EVPsurface1cum > soilEVPlim  */
+	/* 2. second evaporation phase - limit of DSR: ws->EVPsurface1cum > soilEVPcrit  */
 	else
 	{
 		if (infiltPOT >= ws->EVPsurface2cum) 
@@ -71,7 +67,7 @@ int potEVPsurface_to_actEVPsurface(soilprop_struct* sprop, epvar_struct* epv, ws
 			infiltPOT             -= ws->EVPsurface2cum;
 			ws->EVPsurface2cum   =0;
 
-			if (infiltPOT > sprop->soilEVPlim)
+			if (infiltPOT > sprop->soilEVPcrit)
 				ws->EVPsurface1cum  = 0;
 			else
 				ws->EVPsurface1cum  -= infiltPOT;
@@ -119,12 +115,12 @@ int EVPphase1TOphase2(const soilprop_struct* sprop, epvar_struct* epv, wstate_st
 
 
 	ws->EVPsurface1cum += wf->potEVPsurface;
-	if (ws->EVPsurface1cum > sprop->soilEVPlim)
+	if (ws->EVPsurface1cum > sprop->soilEVPcrit)
 	{
-		wf->EVPsoilw = wf->potEVPsurface - sprop->coeff_EVPlim*(ws->EVPsurface1cum - sprop->soilEVPlim);
-		ws->EVPsurface2cum = (1-sprop->coeff_EVPlim)*(ws->EVPsurface1cum - sprop->soilEVPlim);
+		wf->EVPsoilw = wf->potEVPsurface - sprop->coeff_EVPlim*(ws->EVPsurface1cum - sprop->soilEVPcrit);
+		ws->EVPsurface2cum = (1-sprop->coeff_EVPlim)*(ws->EVPsurface1cum - sprop->soilEVPcrit);
 		epv->DSR = pow(ws->EVPsurface2cum/sprop->coeff_EVPcum,2);
-		ws->EVPsurface1cum = sprop->soilEVPlim;
+		ws->EVPsurface1cum = sprop->soilEVPcrit;
 	}
 	else
 	{

@@ -58,20 +58,20 @@ int multilayer_tsoil(const control_struct* ctrl, const epconst_struct* epc, cons
 		heating_coefficient = heatcoeff_nosnow;
 	
 	/* shading effect of vegetation (if soil temperature is lower than air temperature the effect is zero) */
-	if (metv->Tday > metv->tsoil_surface_pre && epv->projLAI > 0) 
-		effect_of_vegetation = exp(-1 * epc->ext_coef * epv->projLAI);
+	if (metv->Tday > metv->tsoil_surface && (epv->projLAI + epv->projLAI_STDB) > 0)
+		effect_of_vegetation = exp(-1 * epc->ext_coef * (epv->projLAI+epv->projLAI_STDB));
 	else 
 		effect_of_vegetation = 1.0;
 
    if (effect_of_vegetation < 0.5) effect_of_vegetation = 0.5;
 
 	/* empirical function for the effect of tair changing */
-	metv->tsoil_top_change = (metv->Tday - metv->tsoil_surface_pre) * heating_coefficient * effect_of_vegetation;
+	metv->tsoil_top_change = (metv->Tday - metv->tsoil_surface) * heating_coefficient * effect_of_vegetation;
+
 
 	epv->ES = heating_coefficient;
 	epv->EV = effect_of_vegetation;
 	epv->Tday = metv->Tday;
-	epv->TSsurf_pre = metv->tsoil_surface_pre;
 
 	/* ************************************************- */
 	/* 2. TEMPERATURE OF DEEPER LAYER BASED ON TEMPERATURE GRADIENT BETWEEN SURFACE LAYER AND LOWERMOST LAYER (BELOW 3M) */
@@ -110,7 +110,6 @@ int multilayer_tsoil(const control_struct* ctrl, const epconst_struct* epc, cons
 
 	}
 
-	metv->tsoil_surface_pre = metv->tsoil_surface;
     metv->tsoil_avg         = tsoil_avg;
 
 	return (errorCode);

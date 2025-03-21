@@ -20,9 +20,10 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "pointbgc_struct.h"
 #include "bgc_struct.h"
 #include "pointbgc_func.h"
+#include "bgc_func.h"
 #include "bgc_constants.h"
 
-int planting(control_struct* ctrl, const siteconst_struct* sitec, const planting_struct* PLT, epconst_struct* epc, 
+int planting(control_struct* ctrl, const siteconst_struct* sitec, const soilprop_struct* sprop, const planting_struct* PLT, epconst_struct* epc,
 	         epvar_struct* epv, phenology_struct* phen, cstate_struct* cs, nstate_struct*ns, cflux_struct* cf, nflux_struct* nf)
 {
 
@@ -33,9 +34,7 @@ int planting(control_struct* ctrl, const siteconst_struct* sitec, const planting
 	double seed_quantity,seed_Ccontent;					
 	double g_to_kg;
 	double prop_leaf, prop_froot, prop_yield, prop_softstem;
-	double propLAYER0, propLAYER1, propLAYER2;
-	double total_allocation = epc->alloc_leafc[epc->n_germ_phenophase-1]+epc->alloc_frootc[epc->n_germ_phenophase-1]+
-		                      epc->alloc_softstemc[epc->n_germ_phenophase-1]+epc->alloc_yield[epc->n_germ_phenophase-1];
+	double total_allocation;
 	 
 	int errorCode=0;
 	int flag_layerIMP, layer, EPCfromINI; 
@@ -159,6 +158,7 @@ int planting(control_struct* ctrl, const siteconst_struct* sitec, const planting
 
 	}
 
+	total_allocation = epc->alloc_leafc[epc->n_germ_phenophase - 1] + epc->alloc_frootc[epc->n_germ_phenophase - 1] + epc->alloc_softstemc[epc->n_germ_phenophase - 1] + epc->alloc_yield[epc->n_germ_phenophase - 1];
 	if (seed_quantity && epc->n_germ_phenophase)
 	{
 		/* 2.3 Allocation is calculated based on  EPC alloc.params */
@@ -238,104 +238,73 @@ int planting(control_struct* ctrl, const siteconst_struct* sitec, const planting
 		/* 2.5. mortality fluxes turn into litter pools: 	aboveground biomass into the top soil layer, belowground biomass divided between soil layers based on their root content */
 	
 		/* new feature: litter turns into the first AND the second soil layer */
-		propLAYER0 = sitec->soillayer_thickness[0]/sitec->soillayer_depth[2];
-		propLAYER1 = sitec->soillayer_thickness[1]/sitec->soillayer_depth[2];
-		propLAYER2 = sitec->soillayer_thickness[2]/sitec->soillayer_depth[2];
-
 
 		/* 9.1 aboveground biomass into the top soil layer */
+		 for (layer =0; layer < N_SOILLAYERS; layer++)
+		 { 
+			cs->litr1c[layer] += (cf->STDBc_leaf_to_PLT * epc->leaflitr_flab  + cf->STDBc_yield_to_PLT * epc->yieldlitr_flab  + 
+							  cf->STDBc_softstem_to_PLT * epc->softstemlitr_flab) * sprop->PROPlayerDC[layer];
+			cs->litr2c[layer] += (cf->STDBc_leaf_to_PLT * epc->leaflitr_fucel + cf->STDBc_yield_to_PLT * epc->yieldlitr_fucel + 
+							  cf->STDBc_softstem_to_PLT * epc->softstemlitr_fucel) * sprop->PROPlayerDC[layer];
+			cs->litr3c[layer] += (cf->STDBc_leaf_to_PLT * epc->leaflitr_fscel + cf->STDBc_yield_to_PLT * epc->yieldlitr_fscel + 
+							  cf->STDBc_softstem_to_PLT * epc->softstemlitr_fscel) * sprop->PROPlayerDC[layer];
+			cs->litr4c[layer] += (cf->STDBc_leaf_to_PLT * epc->leaflitr_flig  + cf->STDBc_yield_to_PLT * epc->yieldlitr_flig  + 
+							  cf->STDBc_softstem_to_PLT * epc->softstemlitr_flig) * sprop->PROPlayerDC[layer];
 
-		cs->litr1c[0] += (cf->STDBc_leaf_to_PLT * epc->leaflitr_flab  + cf->STDBc_yield_to_PLT * epc->yieldlitr_flab  + 
-						  cf->STDBc_softstem_to_PLT * epc->softstemlitr_flab) * propLAYER0;
-		cs->litr2c[0] += (cf->STDBc_leaf_to_PLT * epc->leaflitr_fucel + cf->STDBc_yield_to_PLT * epc->yieldlitr_fucel + 
-						  cf->STDBc_softstem_to_PLT * epc->softstemlitr_fucel) * propLAYER0;
-		cs->litr3c[0] += (cf->STDBc_leaf_to_PLT * epc->leaflitr_fscel + cf->STDBc_yield_to_PLT * epc->yieldlitr_fscel + 
-						  cf->STDBc_softstem_to_PLT * epc->softstemlitr_fscel) * propLAYER0;
-		cs->litr4c[0] += (cf->STDBc_leaf_to_PLT * epc->leaflitr_flig  + cf->STDBc_yield_to_PLT * epc->yieldlitr_flig  + 
-						  cf->STDBc_softstem_to_PLT * epc->softstemlitr_flig) * propLAYER0;
+			/* update of aboveground biomass */
+			cs->litrCabove[layer] += (cf->STDBc_leaf_to_PLT + cf->STDBc_yield_to_PLT + cf->STDBc_softstem_to_PLT)* sprop->PROPlayerDC[layer];
 
-		ns->litr1n[0] += (nf->STDBn_leaf_to_PLT * epc->leaflitr_flab  + nf->STDBn_yield_to_PLT * epc->yieldlitr_flab  + 
-						  nf->STDBn_softstem_to_PLT * epc->softstemlitr_flab) * propLAYER0;
-		ns->litr2n[0] += (nf->STDBn_leaf_to_PLT * epc->leaflitr_fucel + nf->STDBn_yield_to_PLT * epc->yieldlitr_fucel + 
-						  nf->STDBn_softstem_to_PLT * epc->softstemlitr_fucel) * propLAYER0;
-		ns->litr3n[0] += (nf->STDBn_leaf_to_PLT * epc->leaflitr_fscel + nf->STDBn_yield_to_PLT * epc->yieldlitr_fscel + 
-						  nf->STDBn_softstem_to_PLT * epc->softstemlitr_fscel) * propLAYER0;
-		ns->litr4n[0] += (nf->STDBn_leaf_to_PLT * epc->leaflitr_flig  + nf->STDBn_yield_to_PLT * epc->yieldlitr_flig  + 
-						  nf->STDBn_softstem_to_PLT * epc->softstemlitr_flig) * propLAYER0;
 
-		cs->litr1c[1] += (cf->STDBc_leaf_to_PLT * epc->leaflitr_flab  + cf->STDBc_yield_to_PLT * epc->yieldlitr_flab  + 
-						  cf->STDBc_softstem_to_PLT * epc->softstemlitr_flab) * propLAYER1;
-		cs->litr2c[1] += (cf->STDBc_leaf_to_PLT * epc->leaflitr_fucel + cf->STDBc_yield_to_PLT * epc->yieldlitr_fucel + 
-						  cf->STDBc_softstem_to_PLT * epc->softstemlitr_fucel) * propLAYER1;
-		cs->litr3c[1] += (cf->STDBc_leaf_to_PLT * epc->leaflitr_fscel + cf->STDBc_yield_to_PLT * epc->yieldlitr_fscel + 
-						  cf->STDBc_softstem_to_PLT * epc->softstemlitr_fscel) * propLAYER1;
-		cs->litr4c[1] += (cf->STDBc_leaf_to_PLT * epc->leaflitr_flig  + cf->STDBc_yield_to_PLT * epc->yieldlitr_flig  + 
-						  cf->STDBc_softstem_to_PLT * epc->softstemlitr_flig) * propLAYER1;
+			ns->litr1n[layer] += (nf->STDBn_leaf_to_PLT * epc->leaflitr_flab  + nf->STDBn_yield_to_PLT * epc->yieldlitr_flab  + 
+							  nf->STDBn_softstem_to_PLT * epc->softstemlitr_flab) * sprop->PROPlayerDC[layer];
+			ns->litr2n[layer] += (nf->STDBn_leaf_to_PLT * epc->leaflitr_fucel + nf->STDBn_yield_to_PLT * epc->yieldlitr_fucel + 
+							  nf->STDBn_softstem_to_PLT * epc->softstemlitr_fucel) * sprop->PROPlayerDC[layer];
+			ns->litr3n[layer] += (nf->STDBn_leaf_to_PLT * epc->leaflitr_fscel + nf->STDBn_yield_to_PLT * epc->yieldlitr_fscel + 
+							  nf->STDBn_softstem_to_PLT * epc->softstemlitr_fscel) * sprop->PROPlayerDC[layer];
+			ns->litr4n[layer] += (nf->STDBn_leaf_to_PLT * epc->leaflitr_flig  + nf->STDBn_yield_to_PLT * epc->yieldlitr_flig  + 
+							  nf->STDBn_softstem_to_PLT * epc->softstemlitr_flig) * sprop->PROPlayerDC[layer];
 
-		ns->litr1n[1] += (nf->STDBn_leaf_to_PLT * epc->leaflitr_flab  + nf->STDBn_yield_to_PLT * epc->yieldlitr_flab  + 
-						  nf->STDBn_softstem_to_PLT * epc->softstemlitr_flab) * propLAYER1;
-		ns->litr2n[1] += (nf->STDBn_leaf_to_PLT * epc->leaflitr_fucel + nf->STDBn_yield_to_PLT * epc->yieldlitr_fucel + 
-						  nf->STDBn_softstem_to_PLT * epc->softstemlitr_fucel) * propLAYER1;
-		ns->litr3n[1] += (nf->STDBn_leaf_to_PLT * epc->leaflitr_fscel + nf->STDBn_yield_to_PLT * epc->yieldlitr_fscel + 
-						  nf->STDBn_softstem_to_PLT * epc->softstemlitr_fscel) * propLAYER1;
-		ns->litr4n[1] += (nf->STDBn_leaf_to_PLT * epc->leaflitr_flig  + nf->STDBn_yield_to_PLT * epc->yieldlitr_flig  + 
-						  nf->STDBn_softstem_to_PLT * epc->softstemlitr_flig) * propLAYER1;
+
+		 }
 	
-		cs->litr1c[2] += (cf->STDBc_leaf_to_PLT * epc->leaflitr_flab  + cf->STDBc_yield_to_PLT * epc->yieldlitr_flab  + 
-						  cf->STDBc_softstem_to_PLT * epc->softstemlitr_flab) * propLAYER2;
-		cs->litr2c[2] += (cf->STDBc_leaf_to_PLT * epc->leaflitr_fucel + cf->STDBc_yield_to_PLT * epc->yieldlitr_fucel + 
-						  cf->STDBc_softstem_to_PLT * epc->softstemlitr_fucel) * propLAYER2;
-		cs->litr3c[2] += (cf->STDBc_leaf_to_PLT * epc->leaflitr_fscel + cf->STDBc_yield_to_PLT * epc->yieldlitr_fscel + 
-						  cf->STDBc_softstem_to_PLT * epc->softstemlitr_fscel) * propLAYER2;
-		cs->litr4c[2] += (cf->STDBc_leaf_to_PLT * epc->leaflitr_flig  + cf->STDBc_yield_to_PLT * epc->yieldlitr_flig  + 
-						  cf->STDBc_softstem_to_PLT * epc->softstemlitr_flig) * propLAYER2;
-
-		ns->litr1n[2] += (nf->STDBn_leaf_to_PLT * epc->leaflitr_flab  + nf->STDBn_yield_to_PLT * epc->yieldlitr_flab  + 
-						  nf->STDBn_softstem_to_PLT * epc->softstemlitr_flab) * propLAYER2;
-		ns->litr2n[2] += (nf->STDBn_leaf_to_PLT * epc->leaflitr_fucel + nf->STDBn_yield_to_PLT * epc->yieldlitr_fucel + 
-						  nf->STDBn_softstem_to_PLT * epc->softstemlitr_fucel) * propLAYER2;
-		ns->litr3n[2] += (nf->STDBn_leaf_to_PLT * epc->leaflitr_fscel + nf->STDBn_yield_to_PLT * epc->yieldlitr_fscel + 
-						  nf->STDBn_softstem_to_PLT * epc->softstemlitr_fscel) * propLAYER2;
-		ns->litr4n[2] += (nf->STDBn_leaf_to_PLT * epc->leaflitr_flig  + nf->STDBn_yield_to_PLT * epc->yieldlitr_flig  + 
-						  nf->STDBn_softstem_to_PLT * epc->softstemlitr_flig) * propLAYER2;
 
 		/* 9.2 	belowground biomass divided between soil layers based on their root content */ 
 	
-		if (epv->rootDepth > CRIT_PREC)
-		{
-			for (layer=0; layer < N_SOILLAYERS; layer++)
-			{
-				cs->litr1c[layer]  += cf->STDBc_froot_to_PLT * epc->frootlitr_flab  * epv->rootlengthProp[layer];
-				cs->litr2c[layer]  += cf->STDBc_froot_to_PLT * epc->frootlitr_fucel * epv->rootlengthProp[layer];
-				cs->litr3c[layer]  += cf->STDBc_froot_to_PLT * epc->frootlitr_fscel * epv->rootlengthProp[layer];
-				cs->litr4c[layer]  += cf->STDBc_froot_to_PLT * epc->frootlitr_flig  * epv->rootlengthProp[layer];
+		 for (layer = 0; layer < N_SOILLAYERS; layer++)
+		 {
+			 cs->litr1c[layer] += cf->STDBc_froot_to_PLT * epc->frootlitr_flab * epv->rootlengthLandD_prop[layer];
+			 cs->litr2c[layer] += cf->STDBc_froot_to_PLT * epc->frootlitr_fucel * epv->rootlengthLandD_prop[layer];
+			 cs->litr3c[layer] += cf->STDBc_froot_to_PLT * epc->frootlitr_fscel * epv->rootlengthLandD_prop[layer];
+			 cs->litr4c[layer] += cf->STDBc_froot_to_PLT * epc->frootlitr_flig * epv->rootlengthLandD_prop[layer];
 
-				ns->litr1n[layer]  += nf->STDBn_froot_to_PLT * epc->frootlitr_flab  * epv->rootlengthProp[layer];
-				ns->litr2n[layer]  += nf->STDBn_froot_to_PLT * epc->frootlitr_fucel * epv->rootlengthProp[layer];
-				ns->litr3n[layer]  += nf->STDBn_froot_to_PLT * epc->frootlitr_fscel * epv->rootlengthProp[layer];
-				ns->litr4n[layer]  += nf->STDBn_froot_to_PLT * epc->frootlitr_flig  * epv->rootlengthProp[layer];
-			}
-		}
-		else
-		{
-			for (layer=0; layer < N_SOILLAYERS; layer++)
-			{
-				cs->litr1c[layer]  += cf->STDBc_froot_to_PLT * epc->frootlitr_flab  * epv->rootlengthLandD_prop[layer];
-				cs->litr2c[layer]  += cf->STDBc_froot_to_PLT * epc->frootlitr_fucel * epv->rootlengthLandD_prop[layer];
-				cs->litr3c[layer]  += cf->STDBc_froot_to_PLT * epc->frootlitr_fscel * epv->rootlengthLandD_prop[layer];
-				cs->litr4c[layer]  += cf->STDBc_froot_to_PLT * epc->frootlitr_flig  * epv->rootlengthLandD_prop[layer];
+			 cs->litrCbelow[layer] += cf->STDBc_froot_to_PLT * epv->rootlengthLandD_prop[layer];
 
-				ns->litr1n[layer]  += nf->STDBn_froot_to_PLT * epc->frootlitr_flab  * epv->rootlengthLandD_prop[layer];
-				ns->litr2n[layer]  += nf->STDBn_froot_to_PLT * epc->frootlitr_fucel * epv->rootlengthLandD_prop[layer];
-				ns->litr3n[layer]  += nf->STDBn_froot_to_PLT * epc->frootlitr_fscel * epv->rootlengthLandD_prop[layer];
-				ns->litr4n[layer]  += nf->STDBn_froot_to_PLT * epc->frootlitr_flig  * epv->rootlengthLandD_prop[layer];
-			}
-		}
+			 ns->litr1n[layer] += nf->STDBn_froot_to_PLT * epc->frootlitr_flab * epv->rootlengthLandD_prop[layer];
+			 ns->litr2n[layer] += nf->STDBn_froot_to_PLT * epc->frootlitr_fucel * epv->rootlengthLandD_prop[layer];
+			 ns->litr3n[layer] += nf->STDBn_froot_to_PLT * epc->frootlitr_fscel * epv->rootlengthLandD_prop[layer];
+			 ns->litr4n[layer] += nf->STDBn_froot_to_PLT * epc->frootlitr_flig * epv->rootlengthLandD_prop[layer];
+		 }
 	}
 	
 
+	/* ***************************************************************************************************** */
+	/* Calculating the number of the soil layers in which root can be found. It determines the rootzone depth (only on first day) */
 
+	if (!errorCode && calc_nrootlayers(0, epc->rootzoneDepth_max, cs->frootc, sitec, epv))
+	{
+		printf("\n");
+		printf("ERROR in calc_nrootlayers.c for planting.c\n");
+		errorCode = 1;
+	}
 
+	/* ***************************************************************************************************** */
+	/* Calculating the number of the soil layers in which root can be found. It determines the rootzone depth (only on first day) */
+
+	if (!errorCode && conductLimit_calculations(sprop, epc, epv))
+	{
+		printf("ERROR in call to conductLimit_calculations.c, from bgc.c\n");
+		errorCode = 1;
+	}
 
    return (errorCode);
 }

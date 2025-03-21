@@ -113,7 +113,8 @@ int Elimit_and_PET(const control_struct* ctrl, const epconst_struct* epc, const 
 		/* 3. maximum energy limits potential */
 		/*---------------------------------------------------------------*/
 		
-		potETS        = wf->potEVPandSUBLsurface+wf->potETcanopy ;
+		potETS        = wf->potEVPandSUBLsurface+wf->potETcanopy;
+
 
 		if (potETS > wf->ET_Elimit)
 		{
@@ -171,7 +172,7 @@ int Elimit_and_PET(const control_struct* ctrl, const epconst_struct* epc, const 
 		
 	if (metv->Tday > 0)
 	{
-		if (wf->SUBLsnoww - wf->potEVPandSUBLsurface > CRIT_PRECwater)
+		if (wf->SUBLsnoww - wf->potEVPandSUBLsurface > CRIT_PREC_lenient)
 		{
 			wf->SUBLsnoww     = wf->potEVPandSUBLsurface;
 			wf->potEVPsurface = 0;
@@ -181,7 +182,7 @@ int Elimit_and_PET(const control_struct* ctrl, const epconst_struct* epc, const 
 	}
 	else
 	{
-		if (wf->SUBLsnoww - wf->potEVPandSUBLsurface > CRIT_PRECwater) wf->SUBLsnoww = wf->potEVPandSUBLsurface;
+		if (wf->SUBLsnoww - wf->potEVPandSUBLsurface > CRIT_PREC_lenient) wf->SUBLsnoww = wf->potEVPandSUBLsurface;
 		wf->potEVPsurface = 0;
 		wf->potETcanopy   = 0;
 		wf->PET           = wf->potEVPandSUBLsurface + wf->potETcanopy;
@@ -189,7 +190,6 @@ int Elimit_and_PET(const control_struct* ctrl, const epconst_struct* epc, const 
 
 	
 	
-
 
 	
 	return(errorCode);

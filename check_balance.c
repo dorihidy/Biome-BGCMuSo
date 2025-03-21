@@ -25,11 +25,12 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 int check_water_balance(wstate_struct* ws, int first_balance)
 {
 	int errorCode=0;
-	static double old_balance;
-	
-	int layer; 
+
+	int layer;
+
 	double balance, soilw_SUM, soilw_2m;
 	balance=soilw_SUM=soilw_2m=0;
+	static double old_balance;
 	
 	/* DAILY CHECK ON WATER BALANCE */
 
@@ -86,17 +87,30 @@ int check_water_balance(wstate_struct* ws, int first_balance)
 
 	}
 	old_balance = balance;
-	
+
+
+
 	return (errorCode);
 }
 
 int check_carbon_balance(cstate_struct* cs, int first_balance)
 {
 	int errorCode=0;
-	int layer=0;
+	int layer;
+
 	static double old_balance;
 	double balance;
-	
+
+	cs->soil1c_total = 0;
+	cs->soil2c_total = 0;
+	cs->soil3c_total = 0;
+	cs->soil4c_total = 0;
+	cs->litr1c_total = 0;
+	cs->litr2c_total = 0;
+	cs->litr3c_total = 0;
+	cs->litr4c_total = 0;
+	cs->cwdc_total = 0;
+
 	/* control avoiding negative pools */
 	if (cs->leafc < 0.0 ||  cs->leafc_storage < 0.0 || cs->leafc_transfer < 0.0 || 
 		cs->frootc < 0.0 || cs->frootc_storage < 0.0 || cs->frootc_transfer < 0.0 || 
@@ -116,58 +130,40 @@ int check_carbon_balance(cstate_struct* cs, int first_balance)
 		}
 
 	
-	/* control avoiding negative pools in SOILC array and calculate soil1c_total */
-	cs->soil1c_total	= 0;
-	cs->soil2c_total	= 0;
-	cs->soil3c_total	= 0;
-	cs->soil4c_total	= 0;
-	cs->litr1c_total	= 0;
-	cs->litr2c_total	= 0;
-	cs->litr3c_total	= 0;
-	cs->litr4c_total	= 0;
-	cs->cwdc_total		= 0;
+	/* summarizing cut-down and standing dead biomass */
+	cs->CTDBc_above = cs->CTDBc_leaf + cs->CTDBc_yield + cs->CTDBc_softstem + cs->CTDBc_cstem;
+	cs->CTDBc_below = cs->CTDBc_froot + cs->CTDBc_croot;
+
+	cs->STDBc_above = cs->STDBc_leaf + cs->STDBc_yield + cs->STDBc_softstem;
+	cs->STDBc_below = cs->STDBc_froot;
+
+
 
 	/* summarizing soil and litter pools  */
 	for (layer=0; layer < N_SOILLAYERS; layer++)
 	{
-		if ((cs->soil1c[layer] < 0.0 || cs->soil2c[layer] < 0.0 || cs->soil3c[layer] < 0.0 || cs-> soil4c[layer] < 0.0) && !errorCode)
-		{
-		 	printf("\n");
-			printf("ERROR: negative soil carbon stock\n");
-			errorCode=1;
-		}
-		cs->soil1c_total	+= cs->soil1c[layer];
-		cs->soil2c_total	+= cs->soil2c[layer];
-		cs->soil3c_total	+= cs->soil3c[layer];
-		cs->soil4c_total	+= cs->soil4c[layer];
-		cs->soilC[layer]     = cs->soil1c[layer] + cs->soil2c[layer] + cs->soil3c[layer] + cs->soil4c[layer];
-
-
 	
 		if ((cs->litr1c[layer] < 0.0 || cs->litr2c[layer] < 0.0 || cs->litr3c[layer] < 0.0 || cs-> litr4c[layer] < 0.0  || cs->cwdc[layer] < 0.0) && !errorCode)
 		{	
 			printf("ERROR: negative litter carbon stock\n");
 			errorCode=1;
 		}
+
+		cs->soil1c_total += cs->soil1c[layer];
+		cs->soil2c_total += cs->soil2c[layer];
+		cs->soil3c_total += cs->soil3c[layer];
+		cs->soil4c_total += cs->soil4c[layer];
+		cs->soilC[layer] = cs->soil1c[layer] + cs->soil2c[layer] + cs->soil3c[layer] + cs->soil4c[layer];
+
 		cs->litr1c_total += cs->litr1c[layer];
 		cs->litr2c_total += cs->litr2c[layer];
 		cs->litr3c_total += cs->litr3c[layer];
 		cs->litr4c_total += cs->litr4c[layer];
 		cs->litrC[layer] = cs->litr1c[layer] + cs->litr2c[layer] + cs->litr3c[layer] + cs->litr4c[layer];
-		cs->cwdc_total   += cs->cwdc[layer];
+		cs->cwdc_total += cs->cwdc[layer];
+
+
 	}
-
-
-	/* summarizing cut-down and standing dead biomass */
-	cs->CTDBc_above = cs->CTDBc_leaf  + cs->CTDBc_yield  + cs->CTDBc_softstem + cs->CTDBc_cstem;
-	cs->CTDBc_below = cs->CTDBc_froot + cs->CTDBc_croot;
-	
-	cs->STDBc_above = cs->STDBc_leaf  + cs->STDBc_yield + cs->STDBc_softstem;
-	cs->STDBc_below = cs->STDBc_froot;
-
-	cs->litrc_above = cs->litr1c[0] + cs->litr2c[0] + cs->litr3c[0] + cs->litr4c[0];
-	cs->cwdc_above = cs->cwdc[0];
-
 
 
 	/* DAILY CHECK ON CARBON BALANCE */
@@ -228,6 +224,18 @@ int check_nitrogen_balance(nstate_struct* ns, int first_balance)
 	int layer=0;
 	double balance;
 	static double old_balance = 0.0;
+
+	ns->NH4_total = 0;
+	ns->NO3_total = 0;
+	ns->litr1n_total = 0;
+	ns->litr2n_total = 0;
+	ns->litr3n_total = 0;
+	ns->litr4n_total = 0;
+	ns->cwdn_total = 0;
+	ns->soil1n_total = 0;
+	ns->soil2n_total = 0;
+	ns->soil3n_total = 0;
+	ns->soil4n_total = 0;
 	
 	/* CONTROL AVOIDING NITROGEN POOLS */
 	if (ns->leafn < 0.0 ||  ns->leafn_storage < 0.0 || ns->leafn_transfer < 0.0 || 
@@ -247,69 +255,47 @@ int check_nitrogen_balance(nstate_struct* ns, int first_balance)
 		errorCode=1;
 	}
 
-	/* control avoiding negative pools in SOILC array and calculate soil1c_total */
-	ns->soil1n_total	= 0;
-	ns->soil2n_total	= 0;
-	ns->soil3n_total	= 0;
-	ns->soil4n_total	= 0;
-	ns->NH4_total	= 0;
-	ns->NO3_total	= 0;
-	ns->litr1n_total	= 0;
-	ns->litr2n_total	= 0;
-	ns->litr3n_total	= 0;
-	ns->litr4n_total	= 0;
-	ns->cwdn_total		= 0;
+	
+
+	/* summarizing cut-down and standing dead biomass */
+	ns->CTDBn_above = ns->CTDBn_leaf + ns->CTDBn_yield + ns->CTDBn_softstem + ns->CTDBn_cstem;
+	ns->CTDBn_below = ns->CTDBn_froot + ns->CTDBn_croot;
+
+	ns->STDBn_above = ns->STDBn_leaf + ns->STDBn_yield + ns->STDBn_softstem;
+	ns->STDBn_below = ns->STDBn_froot;
 
 	/* summarizing soil and litter pools  */
 	for (layer=0; layer < N_SOILLAYERS; layer++)
 	{
-		if ((ns->soil1n[layer] < 0.0  || ns->soil2n[layer] < 0.0 || ns->soil3n[layer] < 0.0 || ns->soil4n[layer] < 0.0) && !errorCode)
-		{			
-			printf("\n");
-			printf("ERROR: negative soil nitrogen pool\n");
-			errorCode=1;
-		}
-		ns->soil1n_total	+= ns->soil1n[layer];
-		ns->soil2n_total	+= ns->soil2n[layer];
-		ns->soil3n_total	+= ns->soil3n[layer];
-		ns->soil4n_total	+= ns->soil4n[layer];
-		ns->soilN[layer]     = ns->soil1n[layer] + ns->soil2n[layer] + ns->soil3n[layer] + ns->soil4n[layer];
-
-
-
 		if (ns->litr1n[layer] < 0.0 || ns->litr2n[layer] < 0.0 || ns->litr3n[layer] < 0.0 || ns-> litr4n[layer] < 0.0 || ns->cwdn[layer] < 0.0)
 		{	
 			printf("\n");
 			printf("ERROR: negative litter nitrogen pool\n");
 			errorCode=1;
 		}
-		ns->litr1n_total	+= ns->litr1n[layer];
-		ns->litr2n_total	+= ns->litr2n[layer];
-		ns->litr3n_total	+= ns->litr3n[layer];
-		ns->litr4n_total	+= ns->litr4n[layer];
-		ns->litrN[layer]     = ns->litr1n[layer] + ns->litr2n[layer] + ns->litr3n[layer] + ns->litr4n[layer];
-		ns->cwdn_total		+= ns->cwdn[layer];
 
 
-		if (ns->NH4[layer] < 0 || ns->NO3[layer] < 0 )
-		{
-			printf("\n");
-			printf("ERROR: negative mineralized nitrogen pool\n");
-			errorCode=1;
-		}
-	
-		ns->NH4_total	+= ns->NH4[layer];
-		ns->NO3_total	+= ns->NO3[layer];
+		ns->soil1n_total += ns->soil1n[layer];
+		ns->soil2n_total += ns->soil2n[layer];
+		ns->soil3n_total += ns->soil3n[layer];
+		ns->soil4n_total += ns->soil4n[layer];
+		ns->soilN[layer] = ns->soil1n[layer] + ns->soil2n[layer] + ns->soil3n[layer] + ns->soil4n[layer];
+
+		ns->litr1n_total += ns->litr1n[layer];
+		ns->litr2n_total += ns->litr2n[layer];
+		ns->litr3n_total += ns->litr3n[layer];
+		ns->litr4n_total += ns->litr4n[layer];
+		ns->litrN[layer] = ns->litr1n[layer] + ns->litr2n[layer] + ns->litr3n[layer] + ns->litr4n[layer];
+		ns->cwdn_total += ns->cwdn[layer];
+
+
+		ns->NH4_total += ns->NH4[layer];
+		ns->NO3_total += ns->NO3[layer];
+
+
+
 	}
 	
-	/* summarizing cut-down and standing dead biomass */
-	ns->CTDBn_above = ns->CTDBn_leaf  + ns->CTDBn_yield + ns->CTDBn_softstem + ns->CTDBn_cstem;
-	ns->CTDBn_below = ns->CTDBn_froot + ns->CTDBn_croot;
-
-	ns->STDBn_above = ns->STDBn_leaf  + ns->STDBn_yield + ns->STDBn_softstem;
-	ns->STDBn_below = ns->STDBn_froot;
-
-
 
 	/* DAILY CHECK ON NITROGEN BALANCE */
 	

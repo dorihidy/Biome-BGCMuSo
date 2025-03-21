@@ -25,11 +25,13 @@ Updated:
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
+int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, soilprop_struct* sprop, soilInfo_struct* soilInfo)
 {
-	int errorCode=0;
-	int layer;
-	
+	int errorCode = 0;
+	int layer, CFlayer, GWlayer, dm;
+	CFlayer = (int)sprop->CFlayer;
+	GWlayer = (int)sprop->GWlayer;
+
 	/* CARBON AND NITROGEN STATE VARIABLES */
 	/* force very low leaf C to 0.0, to avoid roundoff
 	error in canopy radiation routines. Send excess to litter 1.
@@ -44,9 +46,9 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 		ns->litr1n[0] += ns->leafn;
 		cs->leafc = 0.0;
 		ns->leafn = 0.0;
-	}													 
+	}
 
-    if ((cs->leafc_storage != 0 && fabs(cs->leafc_storage) < CRIT_PREC_RIG) || (ns->leafn_storage != 0 && fabs(ns->leafn_storage) < CRIT_PREC_RIG) )
+	if ((cs->leafc_storage != 0 && fabs(cs->leafc_storage) < CRIT_PREC_RIG) || (ns->leafn_storage != 0 && fabs(ns->leafn_storage) < CRIT_PREC_RIG))
 	{
 		cs->litr1c[0] += cs->leafc_storage;
 		ns->litr1n[0] += ns->leafn_storage;
@@ -54,7 +56,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 		ns->leafn_storage = 0.0;
 	}
 
-	if ((cs->leafc_transfer != 0 && fabs(cs->leafc_transfer) < CRIT_PREC_RIG) || (ns->leafn_transfer != 0 && fabs(ns->leafn_transfer) < CRIT_PREC_RIG) )
+	if ((cs->leafc_transfer != 0 && fabs(cs->leafc_transfer) < CRIT_PREC_RIG) || (ns->leafn_transfer != 0 && fabs(ns->leafn_transfer) < CRIT_PREC_RIG))
 	{
 		cs->litr1c[0] += cs->leafc_transfer;
 		ns->litr1n[0] += ns->leafn_transfer;
@@ -71,7 +73,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 		ns->frootn = 0.0;
 	}
 
-    if ((cs->frootc_storage != 0 && fabs(cs->frootc_storage) < CRIT_PREC_RIG) || (ns->frootn_storage != 0 && fabs(ns->frootn_storage) < CRIT_PREC_RIG) )
+	if ((cs->frootc_storage != 0 && fabs(cs->frootc_storage) < CRIT_PREC_RIG) || (ns->frootn_storage != 0 && fabs(ns->frootn_storage) < CRIT_PREC_RIG))
 	{
 		cs->litr1c[0] += cs->frootc_storage;
 		ns->litr1n[0] += ns->frootn_storage;
@@ -79,7 +81,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 		ns->frootn_storage = 0.0;
 	}
 
-	if ((cs->frootc_transfer != 0 && fabs(cs->frootc_transfer) < CRIT_PREC_RIG) || (ns->frootn_transfer != 0 && fabs(ns->frootn_transfer) < CRIT_PREC_RIG) )
+	if ((cs->frootc_transfer != 0 && fabs(cs->frootc_transfer) < CRIT_PREC_RIG) || (ns->frootn_transfer != 0 && fabs(ns->frootn_transfer) < CRIT_PREC_RIG))
 	{
 		cs->litr1c[0] += cs->frootc_transfer;
 		ns->litr1n[0] += ns->frootn_transfer;
@@ -96,7 +98,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 		ns->yieldn = 0.0;
 	}
 
-    if ((cs->yieldc_storage != 0 && fabs(cs->yieldc_storage) < CRIT_PREC_RIG) || (ns->yieldn_storage != 0 && fabs(ns->yieldn_storage) < CRIT_PREC_RIG) )
+	if ((cs->yieldc_storage != 0 && fabs(cs->yieldc_storage) < CRIT_PREC_RIG) || (ns->yieldn_storage != 0 && fabs(ns->yieldn_storage) < CRIT_PREC_RIG))
 	{
 		cs->litr1c[0] += cs->yieldc_storage;
 		ns->litr1n[0] += ns->yieldn_storage;
@@ -104,7 +106,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 		ns->yieldn_storage = 0.0;
 	}
 
-	if ((cs->yieldc_transfer != 0 && fabs(cs->yieldc_transfer) < CRIT_PREC_RIG) || (ns->yieldn_transfer < 0 && fabs(ns->yieldn_transfer) < CRIT_PREC_RIG) )
+	if ((cs->yieldc_transfer != 0 && fabs(cs->yieldc_transfer) < CRIT_PREC_RIG) || (ns->yieldn_transfer < 0 && fabs(ns->yieldn_transfer) < CRIT_PREC_RIG))
 	{
 		cs->litr1c[0] += cs->yieldc_transfer;
 		ns->litr1n[0] += ns->yieldn_transfer;
@@ -113,7 +115,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 	}
 
 	/************************/
-	if ((fabs(cs->softstemc) != 0  && fabs(cs->softstemc) < CRIT_PREC) || (fabs(ns->softstemn) != 0 && fabs(ns->softstemn) < CRIT_PREC))
+	if ((fabs(cs->softstemc) != 0 && fabs(cs->softstemc) < CRIT_PREC) || (fabs(ns->softstemn) != 0 && fabs(ns->softstemn) < CRIT_PREC))
 	{
 		cs->litr1c[0] += cs->softstemc;
 		ns->litr1n[0] += ns->softstemn;
@@ -122,7 +124,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 	}
 
 
-    if ((cs->softstemc_storage != 0 && fabs(cs->softstemc_storage) < CRIT_PREC_RIG) || (ns->softstemn_storage != 0 && fabs(ns->softstemn_storage) < CRIT_PREC_RIG) )
+	if ((cs->softstemc_storage != 0 && fabs(cs->softstemc_storage) < CRIT_PREC_RIG) || (ns->softstemn_storage != 0 && fabs(ns->softstemn_storage) < CRIT_PREC_RIG))
 	{
 		cs->litr1c[0] += cs->softstemc_storage;
 		ns->litr1n[0] += ns->softstemn_storage;
@@ -130,7 +132,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 		ns->softstemn_storage = 0.0;
 	}
 
-	if ((cs->softstemc_transfer != 0 && fabs(cs->softstemc_transfer) < CRIT_PREC_RIG) || (ns->softstemn_transfer != 0 && fabs(ns->softstemn_transfer) < CRIT_PREC_RIG) )
+	if ((cs->softstemc_transfer != 0 && fabs(cs->softstemc_transfer) < CRIT_PREC_RIG) || (ns->softstemn_transfer != 0 && fabs(ns->softstemn_transfer) < CRIT_PREC_RIG))
 	{
 		cs->litr1c[0] += cs->softstemc_transfer;
 		ns->litr1n[0] += ns->softstemn_transfer;
@@ -146,8 +148,8 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 		cs->livestemc = 0.0;
 		ns->livestemn = 0.0;
 	}
-    
-    if ((cs->livestemc_storage != 0 && fabs(cs->livestemc_storage) < CRIT_PREC_RIG) || (ns->livestemn_storage != 0 && fabs(ns->livestemn_storage) < CRIT_PREC_RIG) )
+
+	if ((cs->livestemc_storage != 0 && fabs(cs->livestemc_storage) < CRIT_PREC_RIG) || (ns->livestemn_storage != 0 && fabs(ns->livestemn_storage) < CRIT_PREC_RIG))
 	{
 		cs->litr1c[0] += cs->livestemc_storage;
 		ns->litr1n[0] += ns->livestemn_storage;
@@ -155,7 +157,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 		ns->livestemn_storage = 0.0;
 	}
 
-	if ((cs->livestemc_transfer != 0 && fabs(cs->livestemc_transfer) < CRIT_PREC_RIG) || (ns->livestemn_transfer != 0 && fabs(ns->livestemn_transfer) < CRIT_PREC_RIG) )
+	if ((cs->livestemc_transfer != 0 && fabs(cs->livestemc_transfer) < CRIT_PREC_RIG) || (ns->livestemn_transfer != 0 && fabs(ns->livestemn_transfer) < CRIT_PREC_RIG))
 	{
 		cs->litr1c[0] += cs->livestemc_transfer;
 		ns->litr1n[0] += ns->livestemn_transfer;
@@ -171,8 +173,8 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 		cs->deadstemc = 0.0;
 		ns->deadstemn = 0.0;
 	}
-   
-    if ((cs->deadstemc_storage != 0 && fabs(cs->deadstemc_storage) < CRIT_PREC_RIG) || (ns->deadstemn_storage != 0 && fabs(ns->deadstemn_storage) < CRIT_PREC_RIG) )
+
+	if ((cs->deadstemc_storage != 0 && fabs(cs->deadstemc_storage) < CRIT_PREC_RIG) || (ns->deadstemn_storage != 0 && fabs(ns->deadstemn_storage) < CRIT_PREC_RIG))
 	{
 		cs->litr1c[0] += cs->deadstemc_storage;
 		ns->litr1n[0] += ns->deadstemn_storage;
@@ -180,7 +182,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 		ns->deadstemn_storage = 0.0;
 	}
 
-	if ((cs->deadstemc_transfer != 0 && fabs(cs->deadstemc_transfer) < CRIT_PREC_RIG) || (ns->deadstemn_transfer != 0 && fabs(ns->deadstemn_transfer) < CRIT_PREC_RIG) )
+	if ((cs->deadstemc_transfer != 0 && fabs(cs->deadstemc_transfer) < CRIT_PREC_RIG) || (ns->deadstemn_transfer != 0 && fabs(ns->deadstemn_transfer) < CRIT_PREC_RIG))
 	{
 		cs->litr1c[0] += cs->deadstemc_transfer;
 		ns->litr1n[0] += ns->deadstemn_transfer;
@@ -197,7 +199,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 		ns->livecrootn = 0.0;
 	}
 
-    if ((cs->livecrootc_storage < 0 && fabs(cs->livecrootc_storage) < CRIT_PREC) || (ns->livecrootn_storage < 0 && fabs(ns->livecrootn_storage) < CRIT_PREC) )
+	if ((cs->livecrootc_storage < 0 && fabs(cs->livecrootc_storage) < CRIT_PREC) || (ns->livecrootn_storage < 0 && fabs(ns->livecrootn_storage) < CRIT_PREC))
 	{
 		cs->litr1c[0] += cs->livecrootc_storage;
 		ns->litr1n[0] += ns->livecrootn_storage;
@@ -205,7 +207,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 		ns->livecrootn_storage = 0.0;
 	}
 
-	if ((cs->livecrootc_transfer < 0 && fabs(cs->livecrootc_transfer) < CRIT_PREC) || (ns->livecrootn_transfer < 0 && fabs(ns->livecrootn_transfer) < CRIT_PREC) )
+	if ((cs->livecrootc_transfer < 0 && fabs(cs->livecrootc_transfer) < CRIT_PREC) || (ns->livecrootn_transfer < 0 && fabs(ns->livecrootn_transfer) < CRIT_PREC))
 	{
 		cs->litr1c[0] += cs->livecrootc_transfer;
 		ns->litr1n[0] += ns->livecrootn_transfer;
@@ -222,7 +224,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 		ns->deadcrootn = 0.0;
 	}
 
-    if ((cs->deadcrootc_storage < 0 && fabs(cs->deadcrootc_storage) < CRIT_PREC) || (ns->deadcrootn_storage < 0 && fabs(ns->deadcrootn_storage) < CRIT_PREC) )
+	if ((cs->deadcrootc_storage < 0 && fabs(cs->deadcrootc_storage) < CRIT_PREC) || (ns->deadcrootn_storage < 0 && fabs(ns->deadcrootn_storage) < CRIT_PREC))
 	{
 		cs->litr1c[0] += cs->deadcrootc_storage;
 		ns->litr1n[0] += ns->deadcrootn_storage;
@@ -230,7 +232,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 		ns->deadcrootn_storage = 0.0;
 	}
 
-	if ((cs->deadcrootc_transfer < 0 && fabs(cs->deadcrootc_transfer) < CRIT_PREC) || (ns->deadcrootn_transfer < 0 && fabs(ns->deadcrootn_transfer) < CRIT_PREC) )
+	if ((cs->deadcrootc_transfer < 0 && fabs(cs->deadcrootc_transfer) < CRIT_PREC) || (ns->deadcrootn_transfer < 0 && fabs(ns->deadcrootn_transfer) < CRIT_PREC))
 	{
 		cs->litr1c[0] += cs->deadcrootc_transfer;
 		ns->litr1n[0] += ns->deadcrootn_transfer;
@@ -241,42 +243,42 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 	/************************/
 	if (fabs(cs->gresp_transfer) < CRIT_PREC && cs->gresp_transfer != 0)
 	{
- 		cs->litr1c[0] += cs->gresp_transfer;
+		cs->litr1c[0] += cs->gresp_transfer;
 		cs->gresp_transfer = 0.0;
 
 	}
 
 	if (fabs(cs->cpool) < CRIT_PREC && cs->cpool != 0)
 	{
- 		cs->litr1c[0] += cs->cpool;
+		cs->litr1c[0] += cs->cpool;
 		cs->cpool = 0.0;
 
 	}
 
 	if (fabs(cs->NSCnw) < CRIT_PREC && cs->NSCnw != 0)
 	{
- 		cs->litr1c[0] += cs->NSCnw;
+		cs->litr1c[0] += cs->NSCnw;
 		cs->NSCnw = 0.0;
 
 	}
 
 	if (fabs(cs->NSCw) < CRIT_PREC && cs->NSCw != 0)
 	{
- 		cs->litr1c[0] += cs->NSCw;
+		cs->litr1c[0] += cs->NSCw;
 		cs->NSCw = 0.0;
 
 	}
 
 	if (fabs(cs->SCnw) < CRIT_PREC && cs->SCnw != 0)
 	{
- 		cs->litr1c[0] += cs->SCnw;
+		cs->litr1c[0] += cs->SCnw;
 		cs->SCnw = 0.0;
 
 	}
 
 	if (fabs(cs->SCw) < CRIT_PREC && cs->SCw != 0)
 	{
- 		cs->litr1c[0] += cs->SCw;
+		cs->litr1c[0] += cs->SCw;
 		cs->SCw = 0.0;
 
 	}
@@ -351,110 +353,112 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 
 
 
-	/************************/	
+	/************************/
 	/* test for litter and soil poils in multilayer soil. Excess goes to HR sink (C) or volatilized sink (N) */
 
 
-	for (layer=0; layer < N_SOILLAYERS; layer++)
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
-		if ((cs->soil1c[layer] != 0 && fabs(cs->soil1c[layer]) < CRIT_PREC) || (ns->soil1n[layer] != 0 && fabs(ns->soil1n[layer])  < CRIT_PREC))
+		if ((cs->soil1c[layer] != 0 && fabs(cs->soil1c[layer]) < CRIT_PREC) || (ns->soil1n[layer] != 0 && fabs(ns->soil1n[layer]) < CRIT_PREC))
 		{
-			cs->HRsoil1_snk  += cs->soil1c[layer];
-			ns->Nprec_snk      += ns->soil1n[layer];
+			cs->HRsoil1_snk += cs->soil1c[layer];
+			ns->Nprec_snk += ns->soil1n[layer];
 			cs->soil1c[layer] = 0.0;
 			ns->soil1n[layer] = 0.0;
 		}
-		if ((cs->soil2c[layer] != 0 && fabs(cs->soil2c[layer]) < CRIT_PREC) || (ns->soil2n[layer] != 0 && fabs(ns->soil2n[layer])  < CRIT_PREC))
+		if ((cs->soil2c[layer] != 0 && fabs(cs->soil2c[layer]) < CRIT_PREC) || (ns->soil2n[layer] != 0 && fabs(ns->soil2n[layer]) < CRIT_PREC))
 		{
-			cs->HRsoil2_snk  += cs->soil2c[layer];
-			ns->Nprec_snk      += ns->soil2n[layer];
+			cs->HRsoil2_snk += cs->soil2c[layer];
+			ns->Nprec_snk += ns->soil2n[layer];
 			cs->soil2c[layer] = 0.0;
-			ns->soil2n[layer] = 0.0;		}
-		if ((cs->soil3c[layer] != 0 && fabs(cs->soil3c[layer]) < CRIT_PREC) || (ns->soil3n[layer] != 0 && fabs(ns->soil3n[layer])  < CRIT_PREC))
+			ns->soil2n[layer] = 0.0;
+		}
+		if ((cs->soil3c[layer] != 0 && fabs(cs->soil3c[layer]) < CRIT_PREC) || (ns->soil3n[layer] != 0 && fabs(ns->soil3n[layer]) < CRIT_PREC))
 		{
-			cs->HRsoil3_snk  += cs->soil3c[layer];
-			ns->Nprec_snk      += ns->soil3n[layer];
+			cs->HRsoil3_snk += cs->soil3c[layer];
+			ns->Nprec_snk += ns->soil3n[layer];
 			cs->soil3c[layer] = 0.0;
-			ns->soil3n[layer] = 0.0;		}
-		if ((cs->soil4c[layer] != 0 && fabs(cs->soil4c[layer]) < CRIT_PREC) || (ns->soil4n[layer] != 0 && fabs(ns->soil4n[layer])  < CRIT_PREC))
+			ns->soil3n[layer] = 0.0;
+		}
+		if ((cs->soil4c[layer] != 0 && fabs(cs->soil4c[layer]) < CRIT_PREC) || (ns->soil4n[layer] != 0 && fabs(ns->soil4n[layer]) < CRIT_PREC))
 		{
-			cs->HRsoil4_snk  += cs->soil4c[layer];
-			ns->Nprec_snk      += ns->soil4n[layer];
+			cs->HRsoil4_snk += cs->soil4c[layer];
+			ns->Nprec_snk += ns->soil4n[layer];
 			cs->soil4c[layer] = 0.0;
 			ns->soil4n[layer] = 0.0;
 		}
 
 
-		if ((cs->litr1c[layer] != 0 && fabs(cs->litr1c[layer]) < CRIT_PREC) || (ns->litr1n[layer] != 0 && fabs(ns->litr1n[layer])  < CRIT_PREC))
+		if ((cs->litr1c[layer] != 0 && fabs(cs->litr1c[layer]) < CRIT_PREC) || (ns->litr1n[layer] != 0 && fabs(ns->litr1n[layer]) < CRIT_PREC))
 		{
 			cs->HRlitr1_snk += cs->litr1c[layer];
 			ns->Nprec_snk += ns->litr1n[layer];
 			cs->litr1c[layer] = 0.0;
 			ns->litr1n[layer] = 0.0;
 		}
-		if ((cs->litr2c[layer] != 0 && fabs(cs->litr2c[layer]) < CRIT_PREC) || (ns->litr2n[layer] != 0 && fabs(ns->litr2n[layer])  < CRIT_PREC))
+		if ((cs->litr2c[layer] != 0 && fabs(cs->litr2c[layer]) < CRIT_PREC) || (ns->litr2n[layer] != 0 && fabs(ns->litr2n[layer]) < CRIT_PREC))
 		{
 			cs->HRlitr2_snk += cs->litr2c[layer];
 			ns->Nprec_snk += ns->litr2n[layer];
 			cs->litr2c[layer] = 0.0;
 			ns->litr2n[layer] = 0.0;
 		}
-		if ((cs->litr3c[layer] != 0 && fabs(cs->litr3c[layer]) < CRIT_PREC) || (ns->litr3n[layer] != 0 && ns->litr3n[layer] < 0 && fabs(ns->litr3n[layer])  < CRIT_PREC))
+		if ((cs->litr3c[layer] != 0 && fabs(cs->litr3c[layer]) < CRIT_PREC) || (ns->litr3n[layer] != 0 && ns->litr3n[layer] < 0 && fabs(ns->litr3n[layer]) < CRIT_PREC))
 		{
 			cs->HRlitr4_snk += cs->litr3c[layer]; /* NO LITR3C HR SINK */
 			ns->Nprec_snk += ns->litr3n[layer];
 			cs->litr3c[layer] = 0.0;
 			ns->litr3n[layer] = 0.0;
 		}
-		if ((cs->litr4c[layer] != 0 && fabs(cs->litr4c[layer]) < CRIT_PREC) || (ns->litr4n[layer] != 0 && fabs(ns->litr4n[layer])  < CRIT_PREC))
+		if ((cs->litr4c[layer] != 0 && fabs(cs->litr4c[layer]) < CRIT_PREC) || (ns->litr4n[layer] != 0 && fabs(ns->litr4n[layer]) < CRIT_PREC))
 		{
 			cs->HRlitr4_snk += cs->litr4c[layer];
 			ns->Nprec_snk += ns->litr4n[layer];
 			cs->litr4c[layer] = 0.0;
 			ns->litr4n[layer] = 0.0;
-		}	
+		}
 
-		if ((cs->cwdc[layer] != 0 && fabs(cs->cwdc[layer]) < CRIT_PREC) || (ns->cwdn[layer] != 0 && fabs(ns->cwdn[layer])  < CRIT_PREC))
+		if ((cs->cwdc[layer] != 0 && fabs(cs->cwdc[layer]) < CRIT_PREC) || (ns->cwdn[layer] != 0 && fabs(ns->cwdn[layer]) < CRIT_PREC))
 		{
 			cs->HRlitr4_snk += cs->cwdc[layer];
 			ns->Nprec_snk += ns->cwdn[layer];
 			cs->cwdc[layer] = 0.0;
 			ns->cwdn[layer] = 0.0;
-		}	
-		
+		}
+
 	}
 
 
 	if (fabs(ns->retransn) < CRIT_PREC && ns->retransn != 0)
 	{
-		ns->Nprec_snk        += ns->retransn;
-		ns->retransn        = 0.0;
+		ns->Nprec_snk += ns->retransn;
+		ns->retransn = 0.0;
 	}
 	/* additional tests for soil mineral N */
-	
-	for (layer = 0; layer < N_SOILLAYERS;layer++)
+
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
 		if (fabs(ns->NH4[layer]) < CRIT_PREC_RIG && ns->NH4[layer] != 0)
 		{
-			ns->Nprec_snk         += ns->NH4[layer];
+			ns->Nprec_snk += ns->NH4[layer];
 			ns->NH4[layer] = 0.0;
 		}
 
 		if (fabs(ns->NO3[layer]) < CRIT_PREC_RIG && ns->NO3[layer] != 0)
 		{
-			ns->Nprec_snk         += ns->NO3[layer];
+			ns->Nprec_snk += ns->NO3[layer];
 			ns->NO3[layer] = 0.0;
 		}
-	
+
 	}
 
 
 
-	
+
 	/* WATER STATE VARIABLES */
 
 	/* multilayer soil */
-	for (layer = 0; layer < N_SOILLAYERS; layer ++)
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
 		if (ws->soilw[layer] < 0 && fabs(ws->soilw[layer]) < CRIT_PREC)
 		{
@@ -470,7 +474,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 		ws->snoww = 0.0;
 	}
 
-	
+
 	if (ws->canopyw < 0 && fabs(ws->canopyw) < CRIT_PREC)
 	{
 		ws->EVPcanopyw_snk += ws->canopyw;
@@ -482,6 +486,31 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
 		ws->pondEVP_snk += ws->pondw;
 		ws->pondw = 0.0;
 	}
-	
+
+	/* transfer value: NH4, NO3, DOC, DON - > content_array  etc.*/
+	if (!errorCode && check_soilcontent(-1, 0, sprop, cs, ns, soilInfo))
+	{
+		printf("ERROR in check_soilcontent.c for groundwater_preproc.c\n");
+		errorCode = 1;
+	}
+
+	if (GWlayer > DATA_GAP && GWlayer < N_SOILLAYERS)
+	{ 
+		for (dm = 0; dm < N_DISSOLVMATER; dm++)
+		{
+			if (soilInfo->content_soil[dm][CFlayer] == 0)
+			{
+				soilInfo->content_CAPILcf[dm] = 0;
+				soilInfo->content_NORMcf[dm] = 0;
+			}
+			if (soilInfo->content_soil[dm][GWlayer] == 0)
+			{
+				soilInfo->content_SATgw[dm] = 0;
+				soilInfo->content_CAPILgw[dm] = 0;
+				soilInfo->content_NORMgw[dm] = 0;
+
+			}
+		}
+	}
 	return(errorCode);
 }	

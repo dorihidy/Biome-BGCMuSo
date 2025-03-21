@@ -30,7 +30,7 @@ int mgm_init(file init, control_struct* ctrl,
 	         fertilizing_struct* FRZ, grazing_struct* GRZ, harvesting_struct* HRV, mowing_struct* MOW, planting_struct* PLT, ploughing_struct* PLG, 
 			 thinning_struct* THN, irrigating_struct* IRG, mulching_struct* MUL, CWDextract_struct* CWE);
 int simctrl_init(file init, control_struct* ctrl, epconst_struct* epc, soilprop_struct* sprop, planting_struct* PLT);
-int wstate_init(file init, const siteconst_struct* sitec, const soilprop_struct* sprop, wstate_struct* ws);
+int wstate_init(file init, control_struct* ctrl, const siteconst_struct* sitec, const soilprop_struct* sprop, wstate_struct* ws);
 int cnstate_init(file init, const epconst_struct* epc, const soilprop_struct* sprop, const siteconst_struct* sitec, 
 	             cstate_struct* cs, cinit_struct* cinit, nstate_struct* ns);
 int output_init(file init, int transient, harvesting_struct* HRV, output_struct* output);
@@ -42,7 +42,7 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 int GSI_calculation(const metarr_struct* metarr, const siteconst_struct* sitec, epconst_struct* epc, 
 	                phenarray_struct* phenarr, control_struct* ctrl);
 
-int conduct_limit_factors(file logfile, const control_struct* ctrl, const soilprop_struct* sprop, const epconst_struct* epc, epvar_struct* epv);
+int conductLimit_information(file logfile, const control_struct* ctrl, const epconst_struct* epc, epvar_struct* epv);
 
 int prephenology(file logfile, const epconst_struct* epc, const metarr_struct* metarr, 
 	             planting_struct* PLT, harvesting_struct* HRV, control_struct* ctrl, phenarray_struct* phenarr);

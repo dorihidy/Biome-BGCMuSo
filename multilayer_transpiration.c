@@ -1,6 +1,6 @@
 /* 
 multilayer_transpiration.c
-Calculation of part-transpiration (regarding to the different layers of the soil) calculation based on the layer's soil water content and GWtransp
+Calculation of part-transpiration (regarding to the different layers of the soil) calculation based on the layer's soil water content and TRPfromGW
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
@@ -38,30 +38,37 @@ int multilayer_transpiration(control_struct* ctrl, const siteconst_struct* sitec
 	Coupling an Advanced Land Surface-Hydrology Model with the PMM5 Modeling System Part I - MonWRev.pdf*/
 	
 
+	#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+	#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+
 	/* internal variables */
-	int layer, n_ROOTlayers, GWlayer;
+	int layer, n_ROOTlayers, GWlayer, CFlayer;
 	double TRPsoilw_SUM, soilw_wp, ratio, upperBoundary;
 	double TRPinGWlayer, depthNORM, depthCF;
 	double TRPdemandNORM, TRPdemandCF, TRPdemandSAT, soilw_availNORM, soilw_availCF;
+	double ratioNORM, diffNORM, diffCAPIL, ratioCAPIL, soilwAVAIL_NORMcf, soilwAVAIL_CAPILcf;
 	
 	int errorCode=0;
 
 	n_ROOTlayers = (int)epv->n_rootlayers;
 	GWlayer      = (int)sprop->GWlayer;
+	CFlayer      = (int)sprop->CFlayer;
 
-	TRPsoilw_SUM=soilw_wp= TRPinGWlayer=0;
+	TRPsoilw_SUM=soilw_wp= TRPinGWlayer= depthNORM= depthCF=0;
 
 	/* determination of GW variables */
-	if (GWlayer > 0)
-		depthNORM = sitec->soillayer_depth[GWlayer - 1] + sprop->dz_zoneNORM;
-	else
-		depthNORM = sprop->dz_zoneNORM;
+	if (GWlayer != DATA_GAP)
+	{ 
+		if (GWlayer > 0)
+			depthNORM = sitec->soillayer_depth[GWlayer - 1] + sprop->dz_NORMgw;
+		else
+			depthNORM = sprop->dz_NORMgw;
 
-	depthCF = depthNORM + sprop->dz_zoneCAPIL;
+		depthCF = depthNORM + sprop->dz_CAPILgw;
+	}
 
-
-
-	/* calculation of actual transpiration based on demand */
+	/* *****************************************************************************************************************/
+	/* 0. calculation of actual transpiration based on demand */
 	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
 		/* actual soil water content at theoretical lower limit of water content: hygroscopic water point */
@@ -71,11 +78,12 @@ int multilayer_transpiration(control_struct* ctrl, const siteconst_struct* sitec
 		ws->soilw_avail[layer] = (ws->soilw[layer] - soilw_wp);
 	}
 	
-		/* *****************************************************************************************************************/
+	
 	/* 1. PART-transpiration: first approximation tanspiration from every soil layer equally */
 
 	for (layer = epv->germ_layer; layer < n_ROOTlayers; layer++)
 	{		
+	
 		
 		/* transpiration based on rootlenght proportion */
 		wf->TRPsoilw_demand[layer] = wf->potTRPsoilw * epv->rootlengthProp[layer]; 
@@ -121,7 +129,7 @@ int multilayer_transpiration(control_struct* ctrl, const siteconst_struct* sitec
 
 			
 			/* if transpiration demand is greater than theoretical lower limit of water content: wilting point -> limited transpiration flux)  */
-			if (wf->TRPsoilw_demand[layer] > ws->soilw_avail[layer])
+			if (wf->TRPsoilw_demand[layer] > ws->soilw_avail[layer]*ratio)
 			{
 				/* theoretical limit */
 				if (ws->soilw_avail[layer] > CRIT_PREC)
@@ -159,11 +167,11 @@ int multilayer_transpiration(control_struct* ctrl, const siteconst_struct* sitec
 					/* rootDepth in capillZone */
 					if (epv->rootDepth < depthCF)
 					{ 
-						TRPdemandNORM = wf->TRPsoilw_demand[layer] * sprop->dz_zoneNORM / (epv->rootDepth - upperBoundary);
+						TRPdemandNORM = wf->TRPsoilw_demand[layer] * sprop->dz_NORMgw / (epv->rootDepth - upperBoundary);
 						TRPdemandCF   = wf->TRPsoilw_demand[layer] - TRPdemandNORM;
 						TRPdemandSAT  = 0;
 						/* control */
-						if (sprop->dz_zoneNORM / (epv->rootDepth - upperBoundary) < 0 || sprop->dz_zoneNORM / (epv->rootDepth - upperBoundary) > 1)
+						if (sprop->dz_NORMgw / (epv->rootDepth - upperBoundary) < 0 || sprop->dz_NORMgw / (epv->rootDepth - upperBoundary) > 1)
 						{
 							printf("\n");
 							printf("ERROR in transpiration calculation in multilayer_transpiration.c:\n");
@@ -175,18 +183,18 @@ int multilayer_transpiration(control_struct* ctrl, const siteconst_struct* sitec
 						/* rootDepth in satZone */
 						if (epv->rootDepth < sitec->soillayer_depth[GWlayer])
 						{
-							TRPdemandNORM = wf->TRPsoilw_demand[layer] * sprop->dz_zoneNORM / (epv->rootDepth - upperBoundary);
-							TRPdemandCF   = wf->TRPsoilw_demand[layer] * sprop->dz_zoneCAPIL / (epv->rootDepth - upperBoundary);
+							TRPdemandNORM = wf->TRPsoilw_demand[layer] * sprop->dz_NORMgw / (epv->rootDepth - upperBoundary);
+							TRPdemandCF   = wf->TRPsoilw_demand[layer] * sprop->dz_CAPILgw / (epv->rootDepth - upperBoundary);
 							TRPdemandSAT  = wf->TRPsoilw_demand[layer] - TRPdemandNORM - TRPdemandCF;
 						}
 						/* rootDepth below GWlayer */
 						else
 						{
-							TRPdemandNORM = wf->TRPsoilw_demand[layer] * sprop->dz_zoneNORM / sitec->soillayer_thickness[layer];
-							TRPdemandCF   = wf->TRPsoilw_demand[layer] * sprop->dz_zoneCAPIL   / sitec->soillayer_thickness[layer];
-							TRPdemandSAT  = wf->TRPsoilw_demand[layer] * sprop->dz_zoneSAT  / sitec->soillayer_thickness[layer];
+							TRPdemandNORM = wf->TRPsoilw_demand[layer] * sprop->dz_NORMgw / sitec->soillayer_thickness[layer];
+							TRPdemandCF   = wf->TRPsoilw_demand[layer] * sprop->dz_CAPILgw / sitec->soillayer_thickness[layer];
+							TRPdemandSAT  = wf->TRPsoilw_demand[layer] * sprop->dz_SATgw  / sitec->soillayer_thickness[layer];
 							/* control */
-							if (fabs(TRPdemandNORM+ TRPdemandCF+ TRPdemandSAT - wf->TRPsoilw_demand[layer]) > CRIT_PRECwater)
+							if (fabs(TRPdemandNORM+ TRPdemandCF+ TRPdemandSAT - wf->TRPsoilw_demand[layer]) > CRIT_PREC_lenient)
 							{
 								printf("\n");
 								printf("ERROR in transpiration calculation in multilayer_transpiration.c:\n");
@@ -194,47 +202,119 @@ int multilayer_transpiration(control_struct* ctrl, const siteconst_struct* sitec
 							}
 						}
 					}
-						TRPdemandNORM = wf->TRPsoilw_demand[layer] * sprop->dz_zoneNORM / sitec->soillayer_thickness[GWlayer];
+						TRPdemandNORM = wf->TRPsoilw_demand[layer] * sprop->dz_NORMgw / sitec->soillayer_thickness[GWlayer];
 				}
 
 				/* calculation of transpiration fluxes and water content in normZone */
-				soilw_availNORM = sprop->soilw_zoneNORM - sprop->VWCwp[GWlayer] * sprop->dz_zoneNORM * water_density;
+				soilw_availNORM = sprop->soilw_NORMgw - sprop->VWCwp[GWlayer] * sprop->dz_NORMgw * water_density;
 				if (TRPdemandNORM > soilw_availNORM)
-					wf->GWtransp_zoneNORM = soilw_availNORM;
+					wf->TRPsoilw_NORMgw = soilw_availNORM;
 				else
-					wf->GWtransp_zoneNORM = TRPdemandNORM;
+					wf->TRPsoilw_NORMgw = TRPdemandNORM;
 
-				sprop->soilw_zoneNORM -= wf->GWtransp_zoneNORM;
-				sprop->VWC_zoneNORM    = sprop->soilw_zoneNORM / (sprop->dz_zoneNORM * water_density);
+				sprop->soilw_NORMgw -= wf->TRPsoilw_NORMgw;
+				if (sprop->dz_NORMgw) sprop->VWC_NORMgw = sprop->soilw_NORMgw / (sprop->dz_NORMgw * water_density);
+
 
 				/* calculation of transpiration fluxes and water content in capillone */
-				soilw_availCF   = sprop->soilw_zoneCAPIL   - sprop->VWCwp[GWlayer] * sprop->dz_zoneCAPIL * water_density;
+				soilw_availCF   = sprop->soilw_CAPILgw - sprop->VWCwp[GWlayer] * sprop->dz_CAPILgw * water_density;
 				if (TRPdemandCF > soilw_availCF)
-					wf->GWtransp_zoneCAPIL = soilw_availCF;
+					wf->TRPsoilw_CAPILgw = soilw_availCF;
 				else
-					wf->GWtransp_zoneCAPIL = TRPdemandCF;
+					wf->TRPsoilw_CAPILgw = TRPdemandCF;
 
-				sprop->soilw_zoneCAPIL -= wf->GWtransp_zoneCAPIL;
-				sprop->VWC_zoneNORM = sprop->soilw_zoneCAPIL / (sprop->dz_zoneCAPIL* water_density);
+				sprop->soilw_CAPILgw -= wf->TRPsoilw_CAPILgw;
+				if (sprop->soilw_CAPILgw) sprop->VWC_CAPILgw = sprop->soilw_CAPILgw / (sprop->dz_CAPILgw * water_density);
 
 				/* calculation of transpiration fluxes and water content in satZone */
-				wf->GWtransp[layer] = TRPdemandSAT;
+				wf->TRPfromGW[layer] = TRPdemandSAT;
 			
 				/* udpate water content of GWlayer */
-				wf->TRPsoilw[layer] = wf->GWtransp_zoneCAPIL + wf->GWtransp_zoneNORM;
-				ws->soilw[layer]   -= wf->TRPsoilw[layer];
+				wf->TRPsoilw[layer] = wf->TRPsoilw_CAPILgw + wf->TRPsoilw_NORMgw;
+				ws->soilw[layer]    = sprop->soilw_NORMgw + sprop->soilw_CAPILgw + sprop->soilw_SATgw;
 				epv->VWC[layer]     = ws->soilw[layer] / sitec->soillayer_thickness[layer] / water_density;
 			}
 			else
-				wf->GWtransp[layer] = wf->TRPsoilw_demand[layer];
+				wf->TRPfromGW[layer] = wf->TRPsoilw_demand[layer];
 		}
 
 
 
-		TRPsoilw_SUM += wf->TRPsoilw[layer];
+		TRPsoilw_SUM += wf->TRPsoilw[layer] + wf->TRPfromGW[layer];
 	}
 
 	wf->TRPsoilw_SUM = TRPsoilw_SUM;
+
+	/* if capillary zone exists in unsaturated zone (not in GWlayer) and capillary zone is in the top soil layer */
+	if (sprop->dz_CAPILcf && wf->TRPsoilw[CFlayer] > 0)
+	{
+		soilwAVAIL_NORMcf = MAX(0, sprop->soilw_NORMcf - sprop->VWCwp[CFlayer] * sprop->dz_NORMcf * water_density);
+		soilwAVAIL_CAPILcf = MAX(0, sprop->soilw_CAPILcf - sprop->VWCwp[CFlayer] * sprop->dz_CAPILcf * water_density);
+
+		if (soilwAVAIL_CAPILcf)
+		{
+			ratioNORM = soilwAVAIL_NORMcf / (soilwAVAIL_NORMcf + soilwAVAIL_CAPILcf);
+			ratioCAPIL = soilwAVAIL_CAPILcf / (soilwAVAIL_NORMcf + soilwAVAIL_CAPILcf);
+		}
+		else
+		{
+			ratioNORM = sprop->dz_NORMcf / (sprop->dz_CAPILcf + sprop->dz_NORMcf);
+			ratioCAPIL = sprop->dz_CAPILcf / (sprop->dz_CAPILcf + sprop->dz_NORMcf);
+		}
+		if (fabs(1 - ratioNORM - ratioCAPIL) > CRIT_PREC)
+		{
+			printf("\n");
+			printf("ERROR in ratio calculation in multilayer_transpiration.c\n");
+			errorCode = 1;
+		}
+
+
+		diffNORM = wf->TRPsoilw[CFlayer] * ratioNORM;
+
+		/* NORM zone: minimum value: wilting point */
+		if (soilwAVAIL_NORMcf)
+		{ 
+			soilw_wp = sprop->VWCwp[CFlayer] * sprop->dz_NORMcf * water_density;
+			if (sprop->soilw_NORMcf - diffNORM - soilw_wp < 0)
+			{
+				if (fabs(sprop->soilw_NORMcf - diffNORM - soilw_wp) > CRIT_PREC)
+				{
+					printf("ERROR in content_NORMgw calculation in multilayer_transpiration.c\n");
+					errorCode = 1;
+				}
+				else
+					diffNORM = sprop->soilw_NORMcf - soilw_wp;
+			}
+			sprop->soilw_NORMcf -= diffNORM;
+			if (sprop->dz_NORMcf) sprop->VWC_NORMcf = sprop->soilw_NORMcf / (sprop->dz_NORMcf * water_density);
+		}
+
+
+
+		diffCAPIL = wf->TRPsoilw[CFlayer] - diffNORM;
+
+		/* CAPIL zone: minimum value: wilting point  */
+		if (soilwAVAIL_CAPILcf)
+		{
+			soilw_wp = sprop->VWCwp[CFlayer] * sprop->dz_CAPILcf * water_density;
+			if (sprop->soilw_CAPILcf - diffCAPIL - soilw_wp < 0)
+			{
+				if (fabs(sprop->soilw_CAPILcf - diffCAPIL - soilw_wp) > CRIT_PREC)
+				{
+					printf("ERROR in content_CAPILgw calculation in multilayer_transpiration.c\n");
+					errorCode = 1;
+				}
+				else
+					diffCAPIL = sprop->soilw_CAPILcf - soilw_wp;
+			}
+			sprop->soilw_CAPILcf -= diffCAPIL;
+			if (sprop->dz_CAPILcf) sprop->VWC_CAPILcf = sprop->soilw_CAPILcf / (sprop->dz_CAPILcf * water_density);
+
+		}
+		wf->TRPsoilwNORMcf = diffNORM;
+		wf->TRPsoilwCAPILcf = diffCAPIL;
+
+	}
 
 	/* control */
 	if (wf->TRPsoilw_SUM - wf->potTRPsoilw > CRIT_PREC)

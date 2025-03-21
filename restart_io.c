@@ -23,13 +23,14 @@ Missoula, MT 59812
 #include "bgc_constants.h"
 
 int restart_input(const control_struct* ctrl, const epconst_struct* epc, const siteconst_struct* sitec,
-	wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, epvar_struct* epv, soilprop_struct* sprop, soilInfo_struct* soilInfo, restart_data_struct* restart)
+	wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, epvar_struct* epv, soilprop_struct* sprop, restart_data_struct* restart)
 {
 	int errorCode=0;
 	int layer;
-	double soilw_sat;
+	double soilw_sat,soilw_hw;
 	
-	
+
+
 	/* 1. water: special case to initalize soil water from INI file - WSATE section (read_restart = 2) */
 	if (ctrl->read_restart == 1)
 	{
@@ -37,11 +38,13 @@ int restart_input(const control_struct* ctrl, const epconst_struct* epc, const s
 		{ 
 			ws->soilw[layer]                  = restart->soilw[layer];
 			soilw_sat = sprop->VWCsat[layer] * sitec->soillayer_thickness[layer] * water_density;
+			soilw_hw = sprop->VWChw[layer] * sitec->soillayer_thickness[layer] * water_density;
 			if (soilw_sat < ws->soilw[layer]) ws->soilw[layer] = soilw_sat;
+			if (soilw_hw > ws->soilw[layer]) ws->soilw[layer] = soilw_hw;
+	
 		}
 		ws->snoww                             = restart->snoww;
 	}
-
 
 
 	ws->canopyw                           = restart->canopyw;
@@ -199,49 +202,60 @@ int restart_input(const control_struct* ctrl, const epconst_struct* epc, const s
 
 	/* 4. litter*/
 
-	cs->litrc_above     = restart->litrc_above;
-	cs->cwdc_above      = restart->cwdc_above;
 
+	/* if no user-defined data from INI file CN_state block, restart data is used */
 	for (layer=0; layer < N_SOILLAYERS; layer++)
 	{
 		
- 		cs->litr1c[layer]                 = restart->litr1c[layer];
-		cs->litr2c[layer]                 = restart->litr2c[layer];
-		cs->litr3c[layer]                 = restart->litr3c[layer];
-		cs->litr4c[layer]                 = restart->litr4c[layer];
-		cs->soil1c[layer]                 = restart->soil1c[layer];
-		cs->soil2c[layer]                 = restart->soil2c[layer];
-		cs->soil3c[layer]                 = restart->soil3c[layer];
-		cs->soil4c[layer]                 = restart->soil4c[layer];
-		cs->cwdc[layer]                   = restart->cwdc[layer];
+		cs->litr1c[layer] = restart->litr1c[layer];
+		ns->litr1n[layer] = restart->litr1n[layer];
+		cs->litr2c[layer] = restart->litr2c[layer];
+		ns->litr2n[layer] = restart->litr2n[layer];
+		cs->litr3c[layer] = restart->litr3c[layer];
+		ns->litr3n[layer] = restart->litr3n[layer];
+		cs->litr4c[layer] = restart->litr4c[layer];
+		ns->litr4n[layer] = restart->litr4n[layer];
+		cs->cwdc[layer] = restart->cwdc[layer];
+		ns->cwdn[layer] = restart->cwdn[layer];
 
- 		ns->litr1n[layer]                 = restart->litr1n[layer];
-		ns->litr2n[layer]                 = restart->litr2n[layer];
-		ns->litr3n[layer]                 = restart->litr3n[layer];
-		ns->litr4n[layer]                 = restart->litr4n[layer];
-		ns->soil1n[layer]                 = restart->soil1n[layer];
-		ns->soil2n[layer]                 = restart->soil2n[layer];
-		ns->soil3n[layer]                 = restart->soil3n[layer];
-		ns->soil4n[layer]                 = restart->soil4n[layer];
-		ns->cwdn[layer]                   = restart->cwdn[layer];
-		
-		ns->NH4[layer]      = restart->NH4[layer];
-		ns->NO3[layer]      = restart->NO3[layer];
+		/* aboveground buomass estimation */
+		cs->litrCabove[layer] = restart->litrCabove[layer];
+		cs->litrCbelow[layer] = restart->litrCbelow[layer];
+		cs->cwdCabove[layer] = restart->cwdCabove[layer];
+		cs->cwdCbelow[layer] = restart->cwdCbelow[layer];
+
+		cs->soil1c[layer] = restart->soil1c[layer];
+		ns->soil1n[layer] = restart->soil1n[layer];
+		cs->soil2c[layer] = restart->soil2c[layer];
+		ns->soil2n[layer] = restart->soil2n[layer];
+		cs->soil3c[layer] = restart->soil3c[layer];
+		ns->soil3n[layer] = restart->soil3n[layer];
+		cs->soil4c[layer] = restart->soil4c[layer];
+		ns->soil4n[layer] = restart->soil4n[layer];
+
+		/* in case of ammonium and nitrate, user can set their values also in case of using restart file*/
+		if (ns->NH4[layer] == 0) ns->NH4[layer] = restart->NH4[layer];	
+		if (ns->NO3[layer] == 0) ns->NO3[layer] = restart->NO3[layer];
+
+
 	}
 
-	/* 4. ecophysiological variables */
-	epv->annmax_leafc                     = restart->annmax_leafc;
-	epv->annmax_frootc                    = restart->annmax_frootc;
-	epv->annmax_yieldc                    = restart->annmax_yieldc;
-	epv->annmax_softstemc                 = restart->annmax_softstemc;
-	epv->annmax_livestemc                 = restart->annmax_livestemc;
-	epv->annmax_livecrootc                = restart->annmax_livecrootc;
 
 	
+	/* 4. ecophysiological variables */
+	epv->annmax_leafc = restart->annmax_leafc;
+	epv->annmax_frootc = restart->annmax_frootc;
+	epv->annmax_yieldc = restart->annmax_yieldc;
+	epv->annmax_softstemc = restart->annmax_softstemc;
+	epv->annmax_livestemc = restart->annmax_livestemc;
+	epv->annmax_livecrootc = restart->annmax_livecrootc;
+
+
+
 	return(errorCode);
 }
 
-int restart_output(const wstate_struct* ws, const cstate_struct* cs, const nstate_struct* ns, const epvar_struct* epv, const soilprop_struct* sprop, const soilInfo_struct* soilInfo, restart_data_struct* restart)
+int restart_output(const wstate_struct* ws, const cstate_struct* cs, const nstate_struct* ns, const epvar_struct* epv, restart_data_struct* restart)
 {
 	int errorCode=0;
 	int layer;
@@ -262,7 +276,7 @@ int restart_output(const wstate_struct* ws, const cstate_struct* cs, const nstat
 	restart->frootc 						  = cs->frootc;
 	restart->frootc_storage 				  = cs->frootc_storage;
 	restart->frootc_transfer				  = cs->frootc_transfer;
-	restart->yield 						  = cs->yieldc;
+	restart->yield 					     	  = cs->yieldc;
 	restart->yieldc_storage 				  = cs->yieldc_storage;
 	restart->yieldc_transfer				  = cs->yieldc_transfer;
 	restart->softstemc 						  = cs->softstemc;
@@ -338,8 +352,6 @@ int restart_output(const wstate_struct* ws, const cstate_struct* cs, const nstat
 	/* 3. multilayer litter and soil */
 
 	
-	restart->litrc_above     = cs->litrc_above;
-	restart->cwdc_above      = cs->cwdc_above;
 
 	for (layer=0; layer < N_SOILLAYERS; layer++)
 	{
@@ -352,6 +364,12 @@ int restart_output(const wstate_struct* ws, const cstate_struct* cs, const nstat
 		restart->litr3c[layer]  = cs->litr3c[layer];
 		restart->litr4c[layer]  = cs->litr4c[layer];
 		restart->cwdc[layer]	= cs->cwdc[layer];
+
+		/* aboveground buomass estimation */
+		restart->litrCabove[layer] = cs->litrCabove[layer];
+		restart->litrCbelow[layer] = cs->litrCbelow[layer];
+		restart->cwdCabove[layer] = cs->cwdCabove[layer];
+		restart->cwdCbelow[layer] = cs->cwdCbelow[layer];
 
 		restart->soil1n[layer] 	= ns->soil1n[layer];
 		restart->soil2n[layer]  = ns->soil2n[layer];
@@ -376,6 +394,7 @@ int restart_output(const wstate_struct* ws, const cstate_struct* cs, const nstat
 	restart->annmax_softstemc  				  = epv->annmax_softstemc;
 	restart->annmax_livestemc				  = epv->annmax_livestemc;
 	restart->annmax_livecrootc  			  = epv->annmax_livecrootc;
+
 
 
 	return(errorCode);

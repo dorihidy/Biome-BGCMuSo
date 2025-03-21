@@ -28,12 +28,12 @@ int groundwater_init(groundwaterINIT_struct* GWS, control_struct* ctrl)
 	int errorCode=0;
 	file GWD_file;	
 
-	int dataread, leap;
-	int ndata = 0;
+	int dataread, leap, ndata;
+
 	char junk_head[1024];
 
-	int p1,p2,p3, maxGWnum, nmgm;
-	double p4,p5,p6,p7;
+	int p1,p2,p3, maxGWnum, nmgm, n_GWparam;
+	double p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14;
 	char tempvar;
 
 	int* GWyear_array;			
@@ -42,11 +42,19 @@ int groundwater_init(groundwaterINIT_struct* GWS, control_struct* ctrl)
 	double* GWdepth_array;
 	double* GW_NH4ppm_array;
 	double* GW_NO3ppm_array;
-	double* GW_DOCppm_array;
+	double* GW_DON1ppm_array;
+	double* GW_DON2ppm_array;
+	double* GW_DON3ppm_array;
+	double* GW_DON4ppm_array;
+	double* GW_DOC1ppm_array;
+	double* GW_DOC2ppm_array;
+	double* GW_DOC3ppm_array;
+	double* GW_DOC4ppm_array;
 
 	int* mondays=0;
 	int* enddays=0;
 
+	ndata = leap = 0;
 	nmgm=0;
 	maxGWnum=ctrl->simyears* nDAYS_OF_YEAR;
 	GWS->GWnum = 0;
@@ -66,7 +74,7 @@ int groundwater_init(groundwaterINIT_struct* GWS, control_struct* ctrl)
 		}
 		else                     /* spinup and transient run */        
 		{ 	
-			strcpy(GWD_file.name, "groundwater_spinup.txt");
+			strcpy(GWD_file.name, "groundwater_transient.txt");
 			if (!file_open(&GWD_file,'j',1)) GWS->GWnum = 1;	
 		}
 	}
@@ -109,17 +117,31 @@ int groundwater_init(groundwaterINIT_struct* GWS, control_struct* ctrl)
         GWdepth_array   = (double*) malloc(maxGWnum*sizeof(double)); 
 		GW_NH4ppm_array = (double*) malloc(maxGWnum * sizeof(double));
 		GW_NO3ppm_array = (double*) malloc(maxGWnum * sizeof(double));
-		GW_DOCppm_array = (double*) malloc(maxGWnum * sizeof(double));
+		GW_DON1ppm_array = (double*)malloc(maxGWnum * sizeof(double));
+		GW_DON2ppm_array = (double*)malloc(maxGWnum * sizeof(double));
+		GW_DON3ppm_array = (double*)malloc(maxGWnum * sizeof(double));
+		GW_DON4ppm_array = (double*)malloc(maxGWnum * sizeof(double));
+		GW_DOC1ppm_array = (double*) malloc(maxGWnum * sizeof(double));
+		GW_DOC2ppm_array = (double*)malloc(maxGWnum * sizeof(double));
+		GW_DOC3ppm_array = (double*)malloc(maxGWnum * sizeof(double));
+		GW_DOC4ppm_array = (double*)malloc(maxGWnum * sizeof(double));
 
 		
 		ndata=0;
 		while (!errorCode && !(dataread = scan_array (GWD_file, &p1, 'i', 0, 0)))
 		{
-			dataread = fscanf(GWD_file.ptr, "%c %d %c %d %lf %lf %lf %lf[^\n]", &tempvar,&p2, &tempvar, &p3,&p4,&p5,&p6,&p7);
+			n_GWparam = 15;
+			dataread = fscanf(GWD_file.ptr, "%c %d %c %d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf[^\n]", &tempvar,&p2, &tempvar, &p3,&p4,&p5,&p6,&p7,&p8,&p9,&p10,&p11,&p12,&p13,&p14);
 
 			if (ndata == 0 && p1 > ctrl->simstartyear)
 			{
 				printf("ERROR in groundwater data: missing data for the first simulation year(s) \n");
+				errorCode = 1;
+			}
+
+			if (dataread != n_GWparam)
+			{
+				printf("ERROR reading GROUNDWATER data from groundwater file  file\n");
 				errorCode = 1;
 			}
 				
@@ -131,7 +153,14 @@ int groundwater_init(groundwaterINIT_struct* GWS, control_struct* ctrl)
 				GWdepth_array[ndata]    = p4;
 				GW_NH4ppm_array[ndata]  = p5;
 				GW_NO3ppm_array[ndata]  = p6;
-				GW_DOCppm_array[ndata]  = p7;
+				GW_DON1ppm_array[ndata]  = p7;
+				GW_DON2ppm_array[ndata] = p8;
+				GW_DON3ppm_array[ndata] = p9;
+				GW_DON4ppm_array[ndata] = p10;
+				GW_DOC1ppm_array[ndata] = p11;
+				GW_DOC2ppm_array[ndata] = p12;
+				GW_DOC3ppm_array[ndata] = p13;
+				GW_DOC4ppm_array[ndata] = p14;
 
 				if (!errorCode && leapControl(GWyear_array[ndata], enddays, mondays, &leap))
 				{
@@ -172,7 +201,15 @@ int groundwater_init(groundwaterINIT_struct* GWS, control_struct* ctrl)
 		GWS->GWdepth_array     = (double*) malloc(GWS->GWnum * sizeof(double)); 
 		GWS->GW_NH4ppm_array   = (double*) malloc(GWS->GWnum * sizeof(double));
 		GWS->GW_NO3ppm_array   = (double*) malloc(GWS->GWnum * sizeof(double));
-		GWS->GW_DOCppm_array   = (double*) malloc(GWS->GWnum * sizeof(double));
+		GWS->GW_DON1ppm_array = (double*)malloc(GWS->GWnum * sizeof(double));
+		GWS->GW_DON2ppm_array = (double*)malloc(GWS->GWnum * sizeof(double));
+		GWS->GW_DON3ppm_array = (double*)malloc(GWS->GWnum * sizeof(double));
+		GWS->GW_DON4ppm_array = (double*)malloc(GWS->GWnum * sizeof(double));
+		GWS->GW_DOC1ppm_array = (double*) malloc(GWS->GWnum * sizeof(double));
+		GWS->GW_DOC2ppm_array = (double*)malloc(GWS->GWnum * sizeof(double));
+		GWS->GW_DOC3ppm_array = (double*)malloc(GWS->GWnum * sizeof(double));
+		GWS->GW_DOC4ppm_array = (double*)malloc(GWS->GWnum * sizeof(double));
+
 
 		for (nmgm = 0; nmgm < GWS->GWnum; nmgm++)
 		{
@@ -183,25 +220,16 @@ int groundwater_init(groundwaterINIT_struct* GWS, control_struct* ctrl)
 
 			GWS->GW_NH4ppm_array[nmgm]   = GW_NH4ppm_array[nmgm];
 			GWS->GW_NO3ppm_array[nmgm]   = GW_NO3ppm_array[nmgm];
-			GWS->GW_DOCppm_array[nmgm]   = GW_DOCppm_array[nmgm];
+			GWS->GW_DON1ppm_array[nmgm] = GW_DON1ppm_array[nmgm];
+			GWS->GW_DON2ppm_array[nmgm] = GW_DON2ppm_array[nmgm];
+			GWS->GW_DON3ppm_array[nmgm] = GW_DON3ppm_array[nmgm];
+			GWS->GW_DON4ppm_array[nmgm] = GW_DON4ppm_array[nmgm];
+			GWS->GW_DOC1ppm_array[nmgm] = GW_DOC1ppm_array[nmgm];
+			GWS->GW_DOC2ppm_array[nmgm] = GW_DOC2ppm_array[nmgm];
+			GWS->GW_DOC3ppm_array[nmgm] = GW_DOC3ppm_array[nmgm];
+			GWS->GW_DOC4ppm_array[nmgm] = GW_DOC4ppm_array[nmgm];
 
 
-			if ((GWS->GW_NH4ppm_array[nmgm] == DATA_GAP && (GWS->GW_NO3ppm_array[nmgm] != DATA_GAP || GWS->GW_DOCppm_array[nmgm] != DATA_GAP)) ||
-				(GWS->GW_NO3ppm_array[nmgm] == DATA_GAP && (GWS->GW_DOCppm_array[nmgm] != DATA_GAP || GWS->GW_NO3ppm_array[nmgm] != DATA_GAP)) ||
-				(GWS->GW_DOCppm_array[nmgm] == DATA_GAP && (GWS->GW_NH4ppm_array[nmgm] != DATA_GAP || GWS->GW_NO3ppm_array[nmgm] != DATA_GAP)))
-			{
-				printf("ERROR concentration of GW (all or none should be DATA_GAP) groundwater_init.c\n");
-				errorCode = 1;
-			}
-
-			if (nmgm == 0)
-			{
-				/* GW-concentration data from file (GWconcFROMfile_flag = 1) or assuming pre-defined value (GWconcFROMfile_flag = 0) */
-				if (GWS->GW_NH4ppm_array[nmgm] != DATA_GAP)
-					ctrl->GWconcFROMfile_flag = 1;
-				else
-					ctrl->GWconcFROMfile_flag = 0;
-			}
 		}
 
 		if (nmgm > maxGWnum)
@@ -218,7 +246,14 @@ int groundwater_init(groundwaterINIT_struct* GWS, control_struct* ctrl)
         free(GWdepth_array);
 		free(GW_NH4ppm_array);
 		free(GW_NO3ppm_array);
-		free(GW_DOCppm_array);
+		free(GW_DON1ppm_array);
+		free(GW_DON2ppm_array);
+		free(GW_DON3ppm_array);
+		free(GW_DON4ppm_array);
+		free(GW_DOC1ppm_array);
+		free(GW_DOC2ppm_array);
+		free(GW_DOC3ppm_array);
+		free(GW_DOC4ppm_array);
 
 		fclose(GWD_file.ptr);
 	}	

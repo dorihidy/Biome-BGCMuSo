@@ -78,7 +78,6 @@ int photosynthesis(const control_struct* ctrl, const epconst_struct* epc, const 
 	This keeps the occurrence of new growth consistent with the treatment of litterfall and allocation */
 
 	/* new stressfactor of photosynthesis */
-
 	
 	epv->assim_WScoeff = epv->m_WS + (1-epv->m_WS)*(1-epc->photoSTRESSeffect);
 
@@ -350,7 +349,8 @@ int farquhar(const control_struct* ctrl, const metvar_struct* metv, psn_struct* 
 	     (lnc)  X  (flnr)  X  (fnr)  X   (act)     =    (Vmax)
 	*/
 	psn->Vmax = Vmax = psn->lnc * psn->flnr * fnr * act;
-	
+
+
 	/* calculate Jmax = f(Vmax), reference:
 	Wullschleger, S.D., 1993.  Biochemical limitations to carbon assimilation
 		in C3 plants - A retrospective analysis of the A/Ci curves from

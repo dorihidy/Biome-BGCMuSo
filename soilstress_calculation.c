@@ -21,6 +21,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_func.h"    
 
 int soilstress_calculation(const control_struct* ctrl, const epconst_struct* epc, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf)
+
 {
 	int layer;
 	double m_vwcR_layer, m_WS_avg, m_NS_avg, m_WSanoxic_avg, m_WSdrought_avg;
@@ -49,7 +50,7 @@ int soilstress_calculation(const control_struct* ctrl, const epconst_struct* epc
 						if (epv->VWC[layer] <= sprop->VWCwp[layer])
 							m_vwcR_layer = 0;	
 						else
-							m_vwcR_layer = pow((epv->VWC[layer] - sprop->VWCwp[layer]) / (epv->VWC_WScrit1[layer] - sprop->VWCwp[layer]), sprop->curvature_WS);
+							m_vwcR_layer = pow((epv->VWC[layer] - sprop->VWCwp[layer]) / (epv->VWC_WScrit1[layer] - sprop->VWCwp[layer]), sprop->curvatureWS[layer]);
 
 							
 					}	
@@ -71,7 +72,7 @@ int soilstress_calculation(const control_struct* ctrl, const epconst_struct* epc
 							if (fabs(sprop->VWCsat[layer] - epv->VWC_WScrit2[layer]) > CRIT_PREC)
 								m_vwcR_layer  = (sprop->VWCsat[layer] - epv->VWC[layer])/(sprop->VWCsat[layer] - epv->VWC_WScrit2[layer]);	
 							else
-								m_vwcR_layer  = 1;
+								m_vwcR_layer  = 0;
 						}
 						else
 							m_vwcR_layer  = 1;
@@ -92,7 +93,7 @@ int soilstress_calculation(const control_struct* ctrl, const epconst_struct* epc
 
 
 				/* if all layers are saturated or below WP -> full stress */
-				if ((epv->VWC[layer] >= epv->VWC_WScrit2[layer] || fabs(epv->VWC[layer] - epv->VWC_WScrit2[layer]) < CRIT_PRECwater || epv->VWC[layer] < sprop->VWCwp[layer]) && epv->rootlengthProp[layer] > 0)
+				if ((epv->VWC[layer] >= epv->VWC_WScrit2[layer] || fabs(epv->VWC[layer] - epv->VWC_WScrit2[layer]) < CRIT_PREC_lenient || epv->VWC[layer] < sprop->VWCwp[layer]) && epv->rootlengthProp[layer] > 0)
 				{
 					epv->nlayer_fullWS += 1;
 				}
@@ -126,7 +127,7 @@ int soilstress_calculation(const control_struct* ctrl, const epconst_struct* epc
 					}
 
 					/* if all layers are saturated or below WP -> full stress */
-					if ((fabs(epv->VWC[layer] - epv->VWC_WScrit2[layer]) < CRIT_PRECwater || epv->VWC[layer] < sprop->VWCwp[layer]) && epv->rootlengthProp[layer] > 0)
+					if ((fabs(epv->VWC[layer] - epv->VWC_WScrit2[layer]) < CRIT_PREC_lenient || epv->VWC[layer] < sprop->VWCwp[layer]) && epv->rootlengthProp[layer] > 0)
 					{
 						epv->nlayer_fullWS += 1;
 					}

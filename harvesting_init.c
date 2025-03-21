@@ -36,7 +36,7 @@ int harvesting_init(file init, const control_struct* ctrl, harvesting_struct* HR
 	int nmgm = 0;
 
 	int p1,p2,p3;
-	double p4,p5;
+	double p4, p5, p6, p7,p8;
 	char tempvar;
 
 	int n_HRVparam, maxHRV_num;
@@ -44,8 +44,11 @@ int harvesting_init(file init, const control_struct* ctrl, harvesting_struct* HR
 	int* HRVyear_array;						
 	int* HRVmonth_array;						
 	int* HRVday_array;							
-	double* snagprop_array;					
-	double* transportHRV_array;		
+	double* propStemResidue_array;
+	double* propRootResidue_array;
+	double* transportHRVleaf_array;
+	double* transportHRVstem_array;
+	double* transportHRVyield_array;
 
 	maxHRV_num=1000;
 
@@ -82,11 +85,14 @@ int harvesting_init(file init, const control_struct* ctrl, harvesting_struct* HR
 	if (!errorCode && HRV->HRV_num)
 	{
 		/* allocate space for the temporary MGM array */
-		HRVyear_array         = (int*) malloc(maxHRV_num*sizeof(double));  
-		HRVmonth_array        = (int*) malloc(maxHRV_num*sizeof(double)); 
-		HRVday_array          = (int*) malloc(maxHRV_num*sizeof(double)); 
-		snagprop_array        = (double*) malloc(maxHRV_num*sizeof(double)); 
-		transportHRV_array    = (double*) malloc(maxHRV_num*sizeof(double)); 
+		HRVyear_array          = (int*) malloc(maxHRV_num*sizeof(double));  
+		HRVmonth_array         = (int*) malloc(maxHRV_num*sizeof(double)); 
+		HRVday_array           = (int*) malloc(maxHRV_num*sizeof(double)); 
+		propStemResidue_array  = (double*) malloc(maxHRV_num*sizeof(double)); 
+		propRootResidue_array  = (double*)malloc(maxHRV_num * sizeof(double));
+		transportHRVleaf_array = (double*) malloc(maxHRV_num*sizeof(double)); 
+		transportHRVstem_array = (double*)malloc(maxHRV_num * sizeof(double));
+		transportHRVyield_array = (double*)malloc(maxHRV_num * sizeof(double));
 		
 		if (!errorCode && scan_value(init, HRV_filename, 's'))
 		{
@@ -113,8 +119,8 @@ int harvesting_init(file init, const control_struct* ctrl, harvesting_struct* HR
 	
 		while (!errorCode && !(mgmread = scan_array (HRV_file, &p1, 'i', 0, 0)))
 		{
-			n_HRVparam = 6;
-			mgmread = fscanf(HRV_file.ptr, "%c%d%c%d%lf%lf%*[^\n]",&tempvar,&p2,&tempvar,&p3,&p4,&p5);
+			n_HRVparam = 9;
+			mgmread = fscanf(HRV_file.ptr, "%c%d%c%d%lf%lf%lf%lf%lf%*[^\n]",&tempvar,&p2,&tempvar,&p3,&p4,&p5,&p6,&p7, &p8);
 			if (mgmread != n_HRVparam)
 			{
 				printf("ERROR reading HARVESTING parameters from HARVESTING file  file\n");
@@ -126,9 +132,11 @@ int harvesting_init(file init, const control_struct* ctrl, harvesting_struct* HR
 				HRVyear_array[nmgm]         = p1;
 				HRVmonth_array[nmgm]        = p2;
 				HRVday_array[nmgm]          = p3;
-				snagprop_array[nmgm]        = p4;
-				transportHRV_array[nmgm]    = p5;
-
+				propStemResidue_array[nmgm]   = p4;
+				propRootResidue_array[nmgm]   = p5;
+				transportHRVleaf_array[nmgm]  = p6;
+				transportHRVstem_array[nmgm]  = p7;
+				transportHRVyield_array[nmgm] = p8;
 				nmgm += 1;
 			}
 		}
@@ -137,19 +145,25 @@ int harvesting_init(file init, const control_struct* ctrl, harvesting_struct* HR
 		nmgm = 0;
 			
 		
-		HRV->HRVyear_array         = (int*) malloc(HRV->HRV_num*sizeof(double));  
-		HRV->HRVmonth_array        = (int*) malloc(HRV->HRV_num*sizeof(double)); 
-		HRV->HRVday_array          = (int*) malloc(HRV->HRV_num*sizeof(double)); 
-		HRV->snagprop_array        = (double*) malloc(HRV->HRV_num*sizeof(double)); 
-		HRV->transportHRV_array    = (double*) malloc(HRV->HRV_num*sizeof(double)); 
+		HRV->HRVyear_array           = (int*) malloc(HRV->HRV_num*sizeof(double));  
+		HRV->HRVmonth_array          = (int*) malloc(HRV->HRV_num*sizeof(double)); 
+		HRV->HRVday_array            = (int*) malloc(HRV->HRV_num*sizeof(double)); 
+		HRV->propStemResidue_array   = (double*) malloc(HRV->HRV_num*sizeof(double)); 
+		HRV->propRootResidue_array   = (double*)malloc(HRV->HRV_num * sizeof(double));
+		HRV->transportHRVleaf_array  = (double*) malloc(HRV->HRV_num*sizeof(double)); 
+		HRV->transportHRVstem_array  = (double*)malloc(HRV->HRV_num * sizeof(double));
+		HRV->transportHRVyield_array = (double*)malloc(HRV->HRV_num * sizeof(double));
 
 		for (nmgm = 0; nmgm < HRV->HRV_num; nmgm++)
 		{		
-			HRV->HRVyear_array[nmgm]         = HRVyear_array[nmgm];
-			HRV->HRVmonth_array[nmgm]        = HRVmonth_array[nmgm] ;
-			HRV->HRVday_array[nmgm]          = HRVday_array[nmgm];
-			HRV->snagprop_array[nmgm]        = snagprop_array[nmgm] ;
-			HRV->transportHRV_array[nmgm]    = transportHRV_array[nmgm];
+			HRV->HRVyear_array[nmgm]           = HRVyear_array[nmgm];
+			HRV->HRVmonth_array[nmgm]          = HRVmonth_array[nmgm] ;
+			HRV->HRVday_array[nmgm]            = HRVday_array[nmgm];
+			HRV->propStemResidue_array[nmgm]   = propStemResidue_array[nmgm] ;
+			HRV->propRootResidue_array[nmgm]   = propRootResidue_array[nmgm];
+			HRV->transportHRVleaf_array[nmgm]  = transportHRVleaf_array[nmgm];
+			HRV->transportHRVstem_array[nmgm]  = transportHRVstem_array[nmgm];
+			HRV->transportHRVyield_array[nmgm] = transportHRVyield_array[nmgm];
 		}
 
 		/* close HARVESTING file and free temporary memory*/
@@ -158,8 +172,11 @@ int harvesting_init(file init, const control_struct* ctrl, harvesting_struct* HR
 		free(HRVyear_array);						
 		free(HRVmonth_array);						
 		free(HRVday_array);							
-		free(snagprop_array);					
-		free(transportHRV_array);		
+		free(propStemResidue_array);	
+		free(propRootResidue_array);
+		free(transportHRVleaf_array);
+		free(transportHRVstem_array);
+		free(transportHRVyield_array);
 	}
 	else
 	{
