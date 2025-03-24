@@ -31,6 +31,7 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 	double PLGdepth, PLGcoeff, NH4_SUM, NO3_SUM, soilw_SUM, tsoilSUM, sand_SUM, silt_SUM;	 
 	double litr1c_SUM, litr2c_SUM, litr3c_SUM, litr4c_SUM, litr1n_SUM, litr2n_SUM, litr3n_SUM, litr4n_SUM;
 	double soil1c_SUM, soil2c_SUM, soil3c_SUM, soil4c_SUM, soil1n_SUM, soil2n_SUM, soil3n_SUM, soil4n_SUM;
+	double litrCold[N_SOILLAYERS], litrCnew[N_SOILLAYERS];
 	int md, year;
 	
 	int errorCode = 0;
@@ -84,6 +85,7 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 	{
 		for (layer = 0; layer<PLGlayer; layer++)
 		{
+			
 			tsoilSUM += metv->tsoil[layer] * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
 
 			soilw_SUM     += ws->soilw[layer];
@@ -107,6 +109,8 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 			soil2n_SUM += ns->soil2n[layer];
 			soil3n_SUM += ns->soil3n[layer];
 			soil4n_SUM += ns->soil4n[layer];
+
+			litrCold[layer] = cs->litr1c[layer] + cs->litr2c[layer] + cs->litr3c[layer] + cs->litr4c[layer];
 
 		}
 
@@ -141,6 +145,37 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 			ns->soil2n[layer]  = soil2n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
 			ns->soil3n[layer]  = soil3n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
 			ns->soil4n[layer]  = soil4n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1]; 
+
+			litrCnew[layer] = cs->litr1c[layer] + cs->litr2c[layer] + cs->litr3c[layer] + cs->litr4c[layer];
+
+			/* update of litrCabove and litrCbelow */
+			if (cs->litrCabove_total + cs->litrCbelow_total)
+			{
+				if (litrCold[layer])
+				{
+					cs->litrCabove[layer] = cs->litrCabove[layer] * (litrCnew[layer] / litrCold[layer]);
+					cs->litrCbelow[layer] = cs->litrCbelow[layer] * (litrCnew[layer] / litrCold[layer]);
+				}
+				else
+				{
+					if (cs->litrCabove[layer] + cs->litrCbelow[layer])
+					{
+						cs->litrCabove[layer] += litrCnew[layer] * (cs->litrCabove[layer] / (cs->litrCabove[layer] + cs->litrCbelow[layer]));
+						cs->litrCbelow[layer] += litrCnew[layer] * (cs->litrCbelow[layer] / (cs->litrCabove[layer] + cs->litrCbelow[layer]));
+					}
+					else
+					{
+						cs->litrCabove[layer] += litrCnew[layer] * (cs->litrCabove_total / (cs->litrCabove_total + cs->litrCbelow_total));
+						cs->litrCbelow[layer] += litrCnew[layer] * (cs->litrCbelow_total / (cs->litrCabove_total + cs->litrCbelow_total));
+					}
+				}
+			}
+			else
+			{
+				printf("\n");
+				printf("ERROR in ploughing.c: no litter in soil\n");
+				errorCode = 1;
+			}
 
 		}
 
