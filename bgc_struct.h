@@ -1850,8 +1850,8 @@ typedef struct
     double heatsum_limit2;			/* upper limit of heatsum to calculate heatsum index */
 	double Tmin_limit1;				/* lower limit of Tmin to calculate Tmin index */
 	double Tmin_limit2;				/* upper limit of Tmin to calculate Tmin index  */
-	double vpd_limit1;				/* lower limit of Tmin to calculate vpd index  */
-	double vpd_limit2;				/* upper limit of Tmin to calculate vpd index  */
+	double vpd_limit1;				/* lower limit of VPD to calculate vpd index  */
+	double vpd_limit2;				/* upper limit of VPD to calculate vpd index  */
 	double dayl_limit1;				/* lower limit of dayl to calculate vpd index  */
 	double dayl_limit2;				/* upper limit of dayl to calculate vpd index  */
 	int n_moving_avg;				/* moving average (calculated from indicatiors to avoid the effects of single extreme events)*/

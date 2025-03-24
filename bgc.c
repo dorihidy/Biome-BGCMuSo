@@ -796,7 +796,10 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=515;
 			}
 			
-	
+			if (yday == 234)
+			{
+				int balus = 6;
+			}
 			/* conductance calculation */
 			if (!errorCode && conduct_calc(&ctrl, &metv, &epc, &epv, simyr))
 			{

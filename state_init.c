@@ -227,11 +227,10 @@ int cnstate_init(file init, const epconst_struct* epc, const soilprop_struct* sp
 
 
 	/* calculate the litter nitrogen pool initial values for cellulose and and lignin pools, 
-	using the leaf litter C:N as the basis for determining N content in all litter components  */
+	using the leaf litter C:N as the basis for determining N content in all litter components - except of litr1n (reading below)  */
 	
 	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
-		ns->litr1n[layer] = cs->litr1c[layer] / epc->leaflitr_cn;
 		ns->litr2n[layer] = cs->litr2c[layer] / epc->leaflitr_cn;
 		ns->litr3n[layer] = cs->litr3c[layer] / epc->leaflitr_cn;
 		ns->litr4n[layer] = cs->litr4c[layer] / epc->leaflitr_cn;
@@ -301,7 +300,7 @@ int cnstate_init(file init, const epconst_struct* epc, const soilprop_struct* sp
 	for (layer=0; layer<N_SOILLAYERS; layer++)
 	{
 		if (layer==N_SOILLAYERS-1) scanflag=1;
-		if (!errorCode && scan_array(init, &trash, 'd', scanflag, 1))
+		if (!errorCode && scan_array(init, &(ns->litr1n[layer]), 'd', scanflag, 1))
 		{
 			printf("ERROR reading litter nitrogen in labile pool layer %i, cnstate_init.c\n", layer);
 			errorCode=21316;
@@ -317,6 +316,7 @@ int cnstate_init(file init, const epconst_struct* epc, const soilprop_struct* sp
 			printf("ERROR reading soil mineral nitrogen (NH4 pool) in layer %i, cnstate_init.c\n", layer);
 			errorCode=21317;
 		}
+		ns->NH4[layer] = (NH4_ppm[layer] / multi_ppm) * (sprop->BD[layer] * g_per_cm3_to_kg_per_m3 * sitec->soillayer_thickness[layer]);
 	}
 
 	scanflag=0; 
@@ -328,7 +328,6 @@ int cnstate_init(file init, const epconst_struct* epc, const soilprop_struct* sp
 			printf("ERROR reading soil mineral nitrogen (NO3 pool) in layer %i, cnstate_init.c\n", layer);
 			errorCode=21318;
 		}
-		ns->NH4[layer] = (NH4_ppm[layer] / multi_ppm) * (sprop->BD[layer] * g_per_cm3_to_kg_per_m3 * sitec->soillayer_thickness[layer]);
 		ns->NO3[layer] = (NO3_ppm[layer] / multi_ppm) * (sprop->BD[layer] * g_per_cm3_to_kg_per_m3 * sitec->soillayer_thickness[layer]);
 
 	}
