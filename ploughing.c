@@ -31,9 +31,10 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 	double PLGdepth, PLGcoeff, NH4_SUM, NO3_SUM, soilw_SUM, tsoilSUM, sand_SUM, silt_SUM;	 
 	double litr1c_SUM, litr2c_SUM, litr3c_SUM, litr4c_SUM, litr1n_SUM, litr2n_SUM, litr3n_SUM, litr4n_SUM;
 	double soil1c_SUM, soil2c_SUM, soil3c_SUM, soil4c_SUM, soil1n_SUM, soil2n_SUM, soil3n_SUM, soil4n_SUM;
-	int md, year;
+	int md, year, flag;
 	
 	int errorCode = 0;
+	flag = 0;
 
 	year = ctrl->simstartyear + ctrl->simyr;
 	md = PLG->mgmdPLG-1;
@@ -55,25 +56,22 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 		{
 			/* decrease of plant material caused by ploughing: difference between plant material before and after harvesting */
 			PLGcoeff      = 1.0;  
-		
-			/* ploughing layer from depth */
-			layer = 1;
-			PLGlayer = 0;
 			PLGdepth = PLG->PLGdepths_array[md];
-
-			if (PLGdepth > sitec->soillayer_depth[0])
+			
+			/* ploughing layer from depth */
+			layer = 0;
+			while (layer < N_SOILLAYERS && flag == 0)
 			{
-				while (PLGlayer== 0 && layer < N_SOILLAYERS)
+				if (PLGdepth <= sitec->soillayer_depth[layer])
 				{
-					if ((PLGdepth > sitec->soillayer_depth[layer-1]) && (PLGdepth <= sitec->soillayer_depth[layer])) layer += 1;
-					PLGlayer  = layer;
+
+					flag = 1;
+					PLGlayer = layer;
 				}
-				if (PLGlayer == 0)
-				{
-					printf("ERROR in ploughing depth calculation (ploughing.c)\n");
-					errorCode=1;
-				}
+				layer += 1;
+				
 			}
+
 		}
 	}
 	/**********************************************************************************************/
@@ -143,10 +141,18 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 			ns->soil3n[layer]  = soil3n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
 			ns->soil4n[layer]  = soil4n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1]; 
 
-			/* update of litrCabove and litrCbelow */
-			cs->litrCbelow[layer] = cs->litr1c[layer] + cs->litr2c[layer] + cs->litr3c[layer] + cs->litr4c[layer];
-			cs->litrCabove[layer] = 0;
+	
 
+		}
+
+		/* update of litrCabove and litrCbelow */
+		cs->litrCabove_total = 0;
+		cs->litrCbelow_total = 0;
+		for (layer = 0; layer < N_SOILLAYERS; layer++)
+		{		
+			cs->litrCabove[layer] = 0;
+			cs->litrCbelow[layer] = cs->litr1c[layer] + cs->litr2c[layer] + cs->litr3c[layer] + cs->litr4c[layer];
+			cs->litrCbelow_total += cs->litrCbelow[layer];
 		}
 
 		/* update TSOIL values */

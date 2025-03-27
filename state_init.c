@@ -93,7 +93,6 @@ int cnstate_init(file init, const epconst_struct* epc, const soilprop_struct* sp
 	int alloc_softstem, alloc_yield, alloc_livestem, alloc_livecroot; 
 	char key1[] = "CN_STATE";
 	char keyword[STRINGSIZE];
-	double trash;
 	double NH4_ppm[N_SOILLAYERS];
 	double NO3_ppm[N_SOILLAYERS];
 
