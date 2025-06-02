@@ -45,7 +45,7 @@ int multilayer_transpiration(control_struct* ctrl, const siteconst_struct* sitec
 	int layer, n_ROOTlayers, GWlayer, CFlayer;
 	double TRPsoilw_SUM, soilw_wp, ratio, upperBoundary;
 	double TRPinGWlayer, depthNORM, depthCF;
-	double TRPdemandNORM, TRPdemandCF, TRPdemandSAT, soilw_availNORM, soilw_availCF;
+	double TRPdemandNORM, TRPdemandCF, TRPdemandSAT, soilwAVAILNORM, soilwAVAILCF;
 	double ratioNORM, diffNORM, diffCAPIL, ratioCAPIL, soilwAVAIL_NORMcf, soilwAVAIL_CAPILcf;
 	
 	int errorCode=0;
@@ -75,7 +75,7 @@ int multilayer_transpiration(control_struct* ctrl, const siteconst_struct* sitec
 		soilw_wp = sprop->VWCwp[layer] * sitec->soillayer_thickness[layer] * water_density;
 
 		/* TRP_lack: control parameter to avoid negative soil water content (due to overestimated transpiration + dry soil) */
-		ws->soilw_avail[layer] = (ws->soilw[layer] - soilw_wp);
+		ws->soilwAVAIL[layer] = (ws->soilw[layer] - soilw_wp);
 	}
 	
 	
@@ -97,7 +97,7 @@ int multilayer_transpiration(control_struct* ctrl, const siteconst_struct* sitec
 		/* layers without groundwater */
 		if (sprop->GWlayer == DATA_GAP || layer < sprop->GWlayer)
 		{
-			/* soilw_avail in last rooting layer: only proportion of rooting depth*/
+			/* soilwAVAIL in last rooting layer: only proportion of rooting depth*/
 			if (layer < epv->n_rootlayers - 1 || epv->n_rootlayers == 1)
 				ratio = 1;
 			else
@@ -129,17 +129,17 @@ int multilayer_transpiration(control_struct* ctrl, const siteconst_struct* sitec
 
 			
 			/* if transpiration demand is greater than theoretical lower limit of water content: wilting point -> limited transpiration flux)  */
-			if (wf->TRPsoilw_demand[layer] > ws->soilw_avail[layer]*ratio)
+			if (wf->TRPsoilw_demand[layer] > ws->soilwAVAIL[layer]*ratio)
 			{
 				/* theoretical limit */
-				if (ws->soilw_avail[layer] > CRIT_PREC)
-					wf->TRPsoilw[layer] = ws->soilw_avail[layer] * ratio;
+				if (ws->soilwAVAIL[layer] > CRIT_PREC)
+					wf->TRPsoilw[layer] = ws->soilwAVAIL[layer] * ratio;
 				else
 					wf->TRPsoilw[layer] = 0;
 
 
 				/* limitTRP_flag: writing in log file (only at first time) */
-				if (wf->TRPsoilw_demand[layer] - ws->soilw_avail[layer] > CRIT_PREC && !ctrl->limitTRP_flag) ctrl->limitTRP_flag = 1;
+				if (wf->TRPsoilw_demand[layer] - ws->soilwAVAIL[layer] > CRIT_PREC && !ctrl->limitTRP_flag) ctrl->limitTRP_flag = 1;
 			}
 			else
 				wf->TRPsoilw[layer] = wf->TRPsoilw_demand[layer];
@@ -206,9 +206,9 @@ int multilayer_transpiration(control_struct* ctrl, const siteconst_struct* sitec
 				}
 
 				/* calculation of transpiration fluxes and water content in normZone */
-				soilw_availNORM = sprop->soilw_NORMgw - sprop->VWCwp[GWlayer] * sprop->dz_NORMgw * water_density;
-				if (TRPdemandNORM > soilw_availNORM)
-					wf->TRPsoilw_NORMgw = soilw_availNORM;
+				soilwAVAILNORM = sprop->soilw_NORMgw - sprop->VWCwp[GWlayer] * sprop->dz_NORMgw * water_density;
+				if (TRPdemandNORM > soilwAVAILNORM)
+					wf->TRPsoilw_NORMgw = soilwAVAILNORM;
 				else
 					wf->TRPsoilw_NORMgw = TRPdemandNORM;
 
@@ -217,9 +217,9 @@ int multilayer_transpiration(control_struct* ctrl, const siteconst_struct* sitec
 
 
 				/* calculation of transpiration fluxes and water content in capillone */
-				soilw_availCF   = sprop->soilw_CAPILgw - sprop->VWCwp[GWlayer] * sprop->dz_CAPILgw * water_density;
-				if (TRPdemandCF > soilw_availCF)
-					wf->TRPsoilw_CAPILgw = soilw_availCF;
+				soilwAVAILCF   = sprop->soilw_CAPILgw - sprop->VWCwp[GWlayer] * sprop->dz_CAPILgw * water_density;
+				if (TRPdemandCF > soilwAVAILCF)
+					wf->TRPsoilw_CAPILgw = soilwAVAILCF;
 				else
 					wf->TRPsoilw_CAPILgw = TRPdemandCF;
 

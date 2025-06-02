@@ -29,6 +29,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 {
 	int errorCode = 0;
 	int layer, CFlayer, GWlayer, dm;
+	double litrClayer;
 	CFlayer = (int)sprop->CFlayer;
 	GWlayer = (int)sprop->GWlayer;
 
@@ -44,14 +45,18 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->leafc;
 		ns->litr1n[0] += ns->leafn;
+		cs->litrCabove[0] += cs->leafc;
 		cs->leafc = 0.0;
 		ns->leafn = 0.0;
+
+
 	}
 
 	if ((cs->leafc_storage != 0 && fabs(cs->leafc_storage) < CRIT_PREC_RIG) || (ns->leafn_storage != 0 && fabs(ns->leafn_storage) < CRIT_PREC_RIG))
 	{
 		cs->litr1c[0] += cs->leafc_storage;
 		ns->litr1n[0] += ns->leafn_storage;
+		cs->litrCabove[0] += cs->leafc_storage;
 		cs->leafc_storage = 0.0;
 		ns->leafn_storage = 0.0;
 	}
@@ -60,6 +65,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->leafc_transfer;
 		ns->litr1n[0] += ns->leafn_transfer;
+		cs->litrCabove[0] += cs->leafc_transfer;
 		cs->leafc_transfer = 0.0;
 		ns->leafn_transfer = 0.0;
 	}
@@ -69,6 +75,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->frootc;
 		ns->litr1n[0] += ns->frootn;
+		cs->litrCbelow[0] += cs->frootc;
 		cs->frootc = 0.0;
 		ns->frootn = 0.0;
 	}
@@ -77,6 +84,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->frootc_storage;
 		ns->litr1n[0] += ns->frootn_storage;
+		cs->litrCbelow[0] += cs->frootc_storage;
 		cs->frootc_storage = 0.0;
 		ns->frootn_storage = 0.0;
 	}
@@ -85,6 +93,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->frootc_transfer;
 		ns->litr1n[0] += ns->frootn_transfer;
+		cs->litrCbelow[0] += cs->frootc_transfer;
 		cs->frootc_transfer = 0.0;
 		ns->frootn_transfer = 0.0;
 	}
@@ -94,6 +103,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->yieldc;
 		ns->litr1n[0] += ns->yieldn;
+		cs->litrCabove[0] += cs->yieldc;
 		cs->yieldc = 0.0;
 		ns->yieldn = 0.0;
 	}
@@ -102,6 +112,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->yieldc_storage;
 		ns->litr1n[0] += ns->yieldn_storage;
+		cs->litrCabove[0] += cs->yieldc_storage;
 		cs->yieldc_storage = 0.0;
 		ns->yieldn_storage = 0.0;
 	}
@@ -110,6 +121,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->yieldc_transfer;
 		ns->litr1n[0] += ns->yieldn_transfer;
+		cs->litrCabove[0] += cs->yieldc_transfer;
 		cs->yieldc_transfer = 0.0;
 		ns->yieldn_transfer = 0.0;
 	}
@@ -119,6 +131,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->softstemc;
 		ns->litr1n[0] += ns->softstemn;
+		cs->litrCabove[0] += cs->softstemc;
 		cs->softstemc = 0.0;
 		ns->softstemn = 0.0;
 	}
@@ -128,6 +141,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->softstemc_storage;
 		ns->litr1n[0] += ns->softstemn_storage;
+		cs->litrCabove[0] += cs->softstemc_storage;
 		cs->softstemc_storage = 0.0;
 		ns->softstemn_storage = 0.0;
 	}
@@ -136,6 +150,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->softstemc_transfer;
 		ns->litr1n[0] += ns->softstemn_transfer;
+		cs->litrCabove[0] += cs->softstemc_transfer;
 		cs->softstemc_transfer = 0.0;
 		ns->softstemn_transfer = 0.0;
 	}
@@ -145,6 +160,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->livestemc;
 		ns->litr1n[0] += ns->livestemn;
+		cs->litrCabove[0] += cs->livestemc;
 		cs->livestemc = 0.0;
 		ns->livestemn = 0.0;
 	}
@@ -153,6 +169,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->livestemc_storage;
 		ns->litr1n[0] += ns->livestemn_storage;
+		cs->litrCabove[0] += cs->livestemc_storage;
 		cs->livestemc_storage = 0.0;
 		ns->livestemn_storage = 0.0;
 	}
@@ -161,6 +178,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->livestemc_transfer;
 		ns->litr1n[0] += ns->livestemn_transfer;
+		cs->litrCabove[0] += cs->livestemc_transfer;
 		cs->livestemc_transfer = 0.0;
 		ns->livestemn_transfer = 0.0;
 	}
@@ -170,6 +188,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->deadstemc;
 		ns->litr1n[0] += ns->deadstemn;
+		cs->litrCabove[0] += cs->deadstemc;
 		cs->deadstemc = 0.0;
 		ns->deadstemn = 0.0;
 	}
@@ -178,6 +197,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->deadstemc_storage;
 		ns->litr1n[0] += ns->deadstemn_storage;
+		cs->litrCabove[0] += cs->deadstemc_storage;
 		cs->deadstemc_storage = 0.0;
 		ns->deadstemn_storage = 0.0;
 	}
@@ -186,6 +206,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->deadstemc_transfer;
 		ns->litr1n[0] += ns->deadstemn_transfer;
+		cs->litrCabove[0] += cs->deadstemc_transfer;
 		cs->deadstemc_transfer = 0.0;
 		ns->deadstemn_transfer = 0.0;
 	}
@@ -195,6 +216,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->livecrootc;
 		ns->litr1n[0] += ns->livecrootn;
+		cs->litrCbelow[0] += cs->livecrootc;
 		cs->livecrootc = 0.0;
 		ns->livecrootn = 0.0;
 	}
@@ -203,6 +225,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->livecrootc_storage;
 		ns->litr1n[0] += ns->livecrootn_storage;
+		cs->litrCbelow[0] += cs->livecrootc_storage;
 		cs->livecrootc_storage = 0.0;
 		ns->livecrootn_storage = 0.0;
 	}
@@ -211,6 +234,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->livecrootc_transfer;
 		ns->litr1n[0] += ns->livecrootn_transfer;
+		cs->litrCbelow[0] += cs->livecrootc_transfer;
 		cs->livecrootc_transfer = 0.0;
 		ns->livecrootn_transfer = 0.0;
 	}
@@ -220,6 +244,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->deadcrootc;
 		ns->litr1n[0] += ns->deadcrootn;
+		cs->litrCbelow[0] += cs->deadcrootc;
 		cs->deadcrootc = 0.0;
 		ns->deadcrootn = 0.0;
 	}
@@ -228,6 +253,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->deadcrootc_storage;
 		ns->litr1n[0] += ns->deadcrootn_storage;
+		cs->litrCbelow[0] += cs->deadcrootc_storage;
 		cs->deadcrootc_storage = 0.0;
 		ns->deadcrootn_storage = 0.0;
 	}
@@ -236,6 +262,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->deadcrootc_transfer;
 		ns->litr1n[0] += ns->deadcrootn_transfer;
+		cs->litrCbelow[0] += cs->deadcrootc_transfer;
 		cs->deadcrootc_transfer = 0.0;
 		ns->deadcrootn_transfer = 0.0;
 	}
@@ -244,6 +271,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	if (fabs(cs->gresp_transfer) < CRIT_PREC && cs->gresp_transfer != 0)
 	{
 		cs->litr1c[0] += cs->gresp_transfer;
+		cs->litrCabove[0] += cs->gresp_transfer;
 		cs->gresp_transfer = 0.0;
 
 	}
@@ -251,6 +279,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	if (fabs(cs->cpool) < CRIT_PREC && cs->cpool != 0)
 	{
 		cs->litr1c[0] += cs->cpool;
+		cs->litrCabove[0] += cs->cpool;
 		cs->cpool = 0.0;
 
 	}
@@ -258,6 +287,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	if (fabs(cs->NSCnw) < CRIT_PREC && cs->NSCnw != 0)
 	{
 		cs->litr1c[0] += cs->NSCnw;
+		cs->litrCabove[0] += cs->NSCnw;
 		cs->NSCnw = 0.0;
 
 	}
@@ -265,6 +295,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	if (fabs(cs->NSCw) < CRIT_PREC && cs->NSCw != 0)
 	{
 		cs->litr1c[0] += cs->NSCw;
+		cs->litrCabove[0] += cs->NSCw;
 		cs->NSCw = 0.0;
 
 	}
@@ -272,6 +303,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	if (fabs(cs->SCnw) < CRIT_PREC && cs->SCnw != 0)
 	{
 		cs->litr1c[0] += cs->SCnw;
+		cs->litrCabove[0] += cs->SCnw;
 		cs->SCnw = 0.0;
 
 	}
@@ -279,6 +311,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	if (fabs(cs->SCw) < CRIT_PREC && cs->SCw != 0)
 	{
 		cs->litr1c[0] += cs->SCw;
+		cs->litrCabove[0] += cs->SCw;
 		cs->SCw = 0.0;
 
 	}
@@ -288,6 +321,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->STDBc_leaf;
 		ns->litr1n[0] += ns->STDBn_leaf;
+		cs->litrCabove[0] += cs->STDBc_leaf;
 		cs->STDBc_leaf = 0.0;
 		ns->STDBn_leaf = 0.0;
 	}
@@ -296,6 +330,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->STDBc_froot;
 		ns->litr1n[0] += ns->STDBn_froot;
+		cs->litrCbelow[0] += cs->STDBc_froot;
 		cs->STDBc_froot = 0.0;
 		ns->STDBn_froot = 0.0;
 	}
@@ -304,6 +339,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->STDBc_softstem;
 		ns->litr1n[0] += ns->STDBn_softstem;
+		cs->litrCabove[0] += cs->STDBc_softstem;
 		cs->STDBc_softstem = 0.0;
 		ns->STDBn_softstem = 0.0;
 	}
@@ -312,6 +348,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->STDBc_yield;
 		ns->litr1n[0] += ns->STDBn_yield;
+		cs->litrCabove[0] += cs->STDBc_yield;
 		cs->STDBc_yield = 0.0;
 		ns->STDBn_yield = 0.0;
 	}
@@ -323,6 +360,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->CTDBc_leaf;
 		ns->litr1n[0] += ns->CTDBn_leaf;
+		cs->litrCabove[0] += cs->CTDBc_leaf;
 		cs->CTDBc_leaf = 0.0;
 		ns->CTDBn_leaf = 0.0;
 	}
@@ -331,6 +369,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->CTDBc_froot;
 		ns->litr1n[0] += ns->CTDBn_froot;
+		cs->litrCbelow[0] += cs->CTDBc_froot;
 		cs->CTDBc_froot = 0.0;
 		ns->CTDBn_froot = 0.0;
 	}
@@ -339,6 +378,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->CTDBc_softstem;
 		ns->litr1n[0] += ns->CTDBn_softstem;
+		cs->litrCabove[0] += cs->CTDBc_softstem;
 		cs->CTDBc_softstem = 0.0;
 		ns->CTDBn_softstem = 0.0;
 	}
@@ -347,6 +387,7 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 	{
 		cs->litr1c[0] += cs->CTDBc_yield;
 		ns->litr1n[0] += ns->CTDBn_yield;
+		cs->litrCabove[0] += cs->CTDBc_yield;
 		cs->CTDBc_yield = 0.0;
 		ns->CTDBn_yield = 0.0;
 	}
@@ -393,6 +434,24 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 		{
 			cs->HRlitr1_snk += cs->litr1c[layer];
 			ns->Nprec_snk += ns->litr1n[layer];
+
+			litrClayer = cs->litrCabove[layer] + cs->litrCbelow[layer];
+			cs->litrCabove[layer] -= cs->litr1c[layer] * (cs->litrCabove[layer] / litrClayer);
+			cs->litrCbelow[layer] -= cs->litr1c[layer] * (cs->litrCabove[layer] / litrClayer);
+
+			if (cs->litrCabove[layer] < 0 || cs->litrCbelow[layer] < 0 || (cs->litrCabove[layer] && cs->litrCabove[layer] / cs->litrCabove[layer] != 1) || (cs->litrCbelow[layer] && cs->litrCbelow[layer] / cs->litrCbelow[layer] != 1))
+			{
+				if (fabs(cs->litrCabove[layer]) < CRIT_PREC) cs->litrCabove[layer] = 0;
+				if (fabs(cs->litrCbelow[layer]) < CRIT_PREC) cs->litrCbelow[layer] = 0;
+
+				if (cs->litrCabove[layer] < 0 || cs->litrCbelow[layer] < 0 || (cs->litrCabove[layer] && cs->litrCabove[layer] / cs->litrCabove[layer] != 1) || (cs->litrCbelow[layer] && cs->litrCbelow[layer] / cs->litrCbelow[layer] != 1))
+				{
+					printf("\n");
+					printf("ERROR: negative above/below litr in precision_control.c\n");
+					errorCode = 1;
+				}
+			}
+
 			cs->litr1c[layer] = 0.0;
 			ns->litr1n[layer] = 0.0;
 		}
@@ -400,6 +459,24 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 		{
 			cs->HRlitr2_snk += cs->litr2c[layer];
 			ns->Nprec_snk += ns->litr2n[layer];
+
+			litrClayer = cs->litrCabove[layer] + cs->litrCbelow[layer];
+			cs->litrCabove[layer] -= cs->litr2c[layer] * (cs->litrCabove[layer] / litrClayer);
+			cs->litrCbelow[layer] -= cs->litr2c[layer] * (cs->litrCbelow[layer] / litrClayer);
+
+			if (cs->litrCabove[layer] < 0 || cs->litrCbelow[layer] < 0 || (cs->litrCabove[layer] && cs->litrCabove[layer] / cs->litrCabove[layer] != 1) || (cs->litrCbelow[layer] && cs->litrCbelow[layer] / cs->litrCbelow[layer] != 1))
+			{
+				if (fabs(cs->litrCabove[layer]) < CRIT_PREC) cs->litrCabove[layer] = 0;
+				if (fabs(cs->litrCbelow[layer]) < CRIT_PREC) cs->litrCbelow[layer] = 0;
+
+				if (cs->litrCabove[layer] < 0 || cs->litrCbelow[layer] < 0 || (cs->litrCabove[layer] && cs->litrCabove[layer] / cs->litrCabove[layer] != 1) || (cs->litrCbelow[layer] && cs->litrCbelow[layer] / cs->litrCbelow[layer] != 1))
+
+				{
+					printf("\n");
+					printf("ERROR: negative above/below litr in precision_control.c\n");
+					errorCode = 1;
+				}
+			}
 			cs->litr2c[layer] = 0.0;
 			ns->litr2n[layer] = 0.0;
 		}
@@ -407,6 +484,24 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 		{
 			cs->HRlitr4_snk += cs->litr3c[layer]; /* NO LITR3C HR SINK */
 			ns->Nprec_snk += ns->litr3n[layer];
+
+			litrClayer = cs->litrCabove[layer] + cs->litrCbelow[layer];
+			cs->litrCabove[layer] -= cs->litr3c[layer] * (cs->litrCabove[layer] / litrClayer);
+			cs->litrCbelow[layer] -= cs->litr3c[layer] * (cs->litrCbelow[layer] / litrClayer);
+
+			if (cs->litrCabove[layer] < 0 || cs->litrCbelow[layer] < 0 || (cs->litrCabove[layer] && cs->litrCabove[layer] / cs->litrCabove[layer] != 1) || (cs->litrCbelow[layer] && cs->litrCbelow[layer] / cs->litrCbelow[layer] != 1))
+			{
+				if (fabs(cs->litrCabove[layer]) < CRIT_PREC) cs->litrCabove[layer] = 0;
+				if (fabs(cs->litrCbelow[layer]) < CRIT_PREC) cs->litrCbelow[layer] = 0;
+
+				if (cs->litrCabove[layer] < 0 || cs->litrCbelow[layer] < 0 || (cs->litrCabove[layer] && cs->litrCabove[layer] / cs->litrCabove[layer] != 1) || (cs->litrCbelow[layer] && cs->litrCbelow[layer] / cs->litrCbelow[layer] != 1))
+				{
+					printf("\n");
+					printf("ERROR: negative above/below litr in precision_control.c\n");
+					errorCode = 1;
+				}
+			}
+
 			cs->litr3c[layer] = 0.0;
 			ns->litr3n[layer] = 0.0;
 		}
@@ -414,6 +509,24 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 		{
 			cs->HRlitr4_snk += cs->litr4c[layer];
 			ns->Nprec_snk += ns->litr4n[layer];
+
+			litrClayer = cs->litrCabove[layer] + cs->litrCbelow[layer];
+			cs->litrCabove[layer] -= cs->litr4c[layer] * (cs->litrCabove[layer] / litrClayer);
+			cs->litrCbelow[layer] -= cs->litr4c[layer] * (cs->litrCbelow[layer] / litrClayer);
+
+			if (cs->litrCabove[layer] < 0 || cs->litrCbelow[layer] < 0 || (cs->litrCabove[layer] && cs->litrCabove[layer] / cs->litrCabove[layer] != 1) || (cs->litrCbelow[layer] && cs->litrCbelow[layer] / cs->litrCbelow[layer] != 1))
+			{
+				if (fabs(cs->litrCabove[layer]) < CRIT_PREC) cs->litrCabove[layer] = 0;
+				if (fabs(cs->litrCbelow[layer]) < CRIT_PREC) cs->litrCbelow[layer] = 0;
+
+				if (cs->litrCabove[layer] < 0 || cs->litrCbelow[layer] < 0 || (cs->litrCabove[layer] && cs->litrCabove[layer] / cs->litrCabove[layer] != 1) || (cs->litrCbelow[layer] && cs->litrCbelow[layer] / cs->litrCbelow[layer] != 1))
+				{
+					printf("\n");
+					printf("ERROR: negative above/below litr in precision_control.c\n");
+					errorCode = 1;
+				}
+			}
+
 			cs->litr4c[layer] = 0.0;
 			ns->litr4n[layer] = 0.0;
 		}
@@ -424,6 +537,8 @@ int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, s
 			ns->Nprec_snk += ns->cwdn[layer];
 			cs->cwdc[layer] = 0.0;
 			ns->cwdn[layer] = 0.0;
+			cs->cwdCabove[layer] = 0.0;
+			cs->cwdCbelow[layer] = 0.0;
 		}
 
 	}

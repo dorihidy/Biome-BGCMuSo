@@ -24,9 +24,9 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 int daymet(const control_struct* ctrl,const metarr_struct* metarr, const epconst_struct* epc, metvar_struct* metv, double snoww)
 {
 	/* generates daily meteorological variables from the metarray struct */
-	double Tmax,Tmin,Tavg,TavgRA11,TavgRA30,TavgRA10,Tday,tdiff, tsoil_top;
+	double Tmax,Tmin,Tavg,TavgRA11,TavgRA30,TavgRA10,Tday,tdiff, Tsoil_top;
 	int errorCode=0;
-	static double tACCLIM_pre;
+	static double Tacclim_pre;
 
 
 	/* convert prcp from cm --> kg/m2 */
@@ -40,7 +40,7 @@ int daymet(const control_struct* ctrl,const metarr_struct* metarr, const epconst
 
 	metv->Tday			= Tday	= metarr->Tday_array[ctrl->metday];
 
-	metv->tnight		= (Tday + Tmin) / 2.0;
+	metv->Tnight		= (Tday + Tmin) / 2.0;
 	metv->TavgRA11	    = TavgRA11 = metarr->TavgRA11_array[ctrl->metday];
 	metv->TavgRA30	    = TavgRA30 = metarr->TavgRA30_array[ctrl->metday];
 	metv->TavgRA10	    = TavgRA10 = metarr->TavgRA10_array[ctrl->metday];
@@ -55,23 +55,23 @@ int daymet(const control_struct* ctrl,const metarr_struct* metarr, const epconst
 
 	if (!ctrl->metday)
 	{
-		metv->tACCLIM            = metv->Tday;
-		tACCLIM_pre = metv->Tday;
+		metv->Tacclim            = metv->Tday;
+		Tacclim_pre = metv->Tday;
 	}
 	else
 	{
 		if (epc->tau)
-			metv->tACCLIM = tACCLIM_pre + ((metv->Tday - tACCLIM_pre) / epc->tau);
+			metv->Tacclim = Tacclim_pre + ((metv->Tday - Tacclim_pre) / epc->tau);
 		else
-			metv->tACCLIM = metv->Tday; 
+			metv->Tacclim = metv->Tday; 
 		
-		tACCLIM_pre = metv->tACCLIM;
+		Tacclim_pre = metv->Tacclim;
 	
 	}
 
 	
 	/* **********************************************************************************/
-	/* new estimation of tsoil - on the first day original method is used */
+	/* new estimation of Tsoil - on the first day original method is used */
 	
 	/* ORIGINAL: for this version, an 11-day running weighted average of daily average temperature is used as the soil temperature at 10 cm.
 	For days 1-10, a 1-10 day running weighted average is used instead.The tail of the running average is weighted linearly from 1 to 11.
@@ -79,24 +79,24 @@ int daymet(const control_struct* ctrl,const metarr_struct* metarr, const epconst
 
 	if (ctrl->metday < 1)
 	{
-		tsoil_top = metv->TavgRA11;
+		Tsoil_top = metv->TavgRA11;
 		/* soil temperature correction using difference from annual average tair */
-		tdiff =  metv->annTavg - tsoil_top;
+		tdiff =  metv->annTavg - Tsoil_top;
 		
 		if (snoww)
 		{
-			tsoil_top += 0.2 * tdiff;
+			Tsoil_top += 0.2 * tdiff;
 		}
 		else
 		{
-			tsoil_top += 0.1 * tdiff;
+			Tsoil_top += 0.1 * tdiff;
 		}
 
-		metv->tsoil_surface     = tsoil_top;
+		metv->Tsoil_surface     = Tsoil_top;
 	}
 
 	/* 3 m below the ground surface (last layer) is specified by the annual mean surface air temperature */
-	metv->tsoil[N_SOILLAYERS-1] = metv->annTavgRA;
+	metv->Tsoil[N_SOILLAYERS-1] = metv->annTavgRA;
 	
 
 	

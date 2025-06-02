@@ -29,8 +29,8 @@ int CH4flux_estimation(const soilprop_struct* sprop, int layer, double VWC, doub
 
 	/* -------------------------------------- CH4 flux --------------------------------------------------*/
 
-	/* function of C:N ratio of soil */
- 	f_BD = sprop->pBD1_CH4 * exp(-1* sprop->pBD2_CH4 * sprop->BD[layer]);
+	/* function of C:N ratio of soil, unit change in BD: from kg/m3 to g/cm3 */
+ 	f_BD = sprop->pBD1_CH4 * exp(-1* sprop->pBD2_CH4 * (sprop->BD[layer] / g_per_cm3_to_kg_per_m3));
 	
 	/* function of VWC using water filled pore space */
 	WFPS = VWC / sprop->VWCsat[layer];

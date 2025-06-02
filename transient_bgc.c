@@ -480,9 +480,9 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 			}	
 
 			/* soil temperature calculations */
-			if (!errorCode && multilayer_tsoil(&ctrl, &epc, &sitec, &sprop, &epv, yday, ws.snoww, &metv))
+			if (!errorCode && multilayer_Tsoil(&ctrl, &epc, &sitec, &sprop, &epv, yday, ws.snoww, &metv))
 			{
-				printf("ERROR in multilayer_tsoil.c from transient_bgc.c\n");
+				printf("ERROR in multilayer_Tsoil.c from transient_bgc.c\n");
 				errorCode=5080;
 			}
 			
@@ -923,11 +923,12 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 	fprintf(bgcout->log_file.ptr, "Maximum rooting depth [m2/m2]:                           %12.2f\n",epv.annmax_rootDepth);
 	fprintf(bgcout->log_file.ptr, "Aboveground litter carbon content [kgC/m2/year]:         %12.2f\n",cs.litrCabove_total);
 	fprintf(bgcout->log_file.ptr, "Aboveground CWD carbon content [kgC/m2/year]:            %12.2f\n",cs.cwdCabove_total);
-	fprintf(bgcout->log_file.ptr, "Soil carbon content (in 0-30 cm soil layer) [%%]:        %12.2f\n",summary.SOCpercent_top30);
+	fprintf(bgcout->log_file.ptr, "Soil carbon content (in 0-30 cm soil layer) [%%]:         %12.2f\n",summary.SOCpercent_top30);
 	fprintf(bgcout->log_file.ptr, "Total litter carbon content [kgC/m2/year]:               %12.2f\n",summary.litrC_total);
 	fprintf(bgcout->log_file.ptr, "Total soil carbon content [kgC/m2/year]:                 %12.2f\n",summary.soilC_total);
-	fprintf(bgcout->log_file.ptr, "Averaged available soil ammonium content (0-30 cm) [ppm]:%12.2f\n",summary.NH4dissolv_top30ppm);
-	fprintf(bgcout->log_file.ptr, "Averaged available soil nitrate content (0-30 cm) [ppm]: %12.2f\n",summary.NO3dissolv_top30ppm);
+	fprintf(bgcout->log_file.ptr, "Total stable soil carbon content [kgC/m2/year]:          %12.2f\n", cs.soil4c_total);
+	fprintf(bgcout->log_file.ptr, "Averaged available soil ammonium content (0-30 cm) [ppm]:%12.2f\n",summary.NH4ppmAVAIL_top30);
+	fprintf(bgcout->log_file.ptr, "Averaged available soil nitrate content (0-30 cm) [ppm]: %12.2f\n",summary.NO3ppmAVAIL_top30);
 	fprintf(bgcout->log_file.ptr, "Averaged soil water content  [m3/m3]:                    %12.2f\n",epv.VWC_avg);
 	fprintf(bgcout->log_file.ptr, " \n");
 	fprintf(bgcout->log_file.ptr, "10-base logarithm of the maximum carbon balance diff.:   %12.1f\n",CbalanceERR);

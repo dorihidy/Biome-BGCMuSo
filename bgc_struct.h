@@ -211,20 +211,21 @@ typedef struct
 	double vpd;								 /* (Pa)    vapor pressure deficit - INPUT */
 	double co2;								 /* (ppm)   atmospheric concentration of CO2 - INPUT */
 	double dayl;							 /* (s)     daylength - INPUT */
-	double tACCLIM;							 /* (Celsius) acclimation temperature */
-	double tnight;							 /* (Celsius) nightime average air temperature */
+	double Tacclim;							 /* (Celsius) acclimation temperature */
+	double Tnight;							 /* (Celsius) nightime average air temperature */
 	double TavgRA11;						 /* (Celsius)  11-day running average air temperature (linear weighted) */
 	double TavgRA10;						 /* (Celsius)  10-day running average air temperature */
 	double TavgRA30;						 /* (Celsius)  30-day running average air temperature */
 	double tempradF;				         /* (dimless) soil temperature factor of radiation and air temperature  */
 	double tempradFra;				        /* (dimless) 5-day running avg soil temperature factor  */
-	double tsoil_surface;				   	 /* (Celsius)  surface temperature  */
-	double tsoil_top_change;				 /* (Celsius)  change of surface soil temperature based on empirical function for Tair changing */		
-	double tsoil_avg;						 /* (Celsius)  average soil temperature */
-	double tsoil[N_SOILLAYERS];				 /* (Celsius)  daily soil layer temperature */
+	double Tsoil_surface;				   	 /* (Celsius)  surface temperature  */
+	double Tsoil_top_change;				 /* (Celsius)  change of surface soil temperature based on empirical function for Tair changing */		
+	double Tsoil_avg;						 /* (Celsius)  average soil temperature */
+	double Tsoil[N_SOILLAYERS];				 /* (Celsius)  daily soil layer temperature */
 	double swRADnet;						 /* (W/m2) net short-wave radiation */
 	double lwRADnet;						 /* (W/m2) net outgoing long-wave-radation */
 	double RADnet;                           /* (W/m2) daylight average net radiation flux */
+	double RADnet2;                           /* (W/m2) daylight average net radiation flux */
 	double RADnet_per_plaisun;				 /* (W/m2) daylight average net radiation flux per unit sunlit proj LAI */
 	double RADnet_per_plaishade;			 /* (W/m2) daylight average net radiation flux per unit sunshade proj LAI */
 	double swavgfd;							 /* (W/m2) daylight average shortwave flux */
@@ -281,7 +282,7 @@ typedef struct
 	double FLsrc_W;			     /* SUM of water from flooding */
 	double EVPsurface1cum;              /* cumulated soil evaporation in first evaporation phase (no limit) */
 	double EVPsurface2cum;              /* cumulated soil evaporation in second evaporation phase (DSR limit) */
-	double soilw_avail[N_SOILLAYERS];/* transpiration lack in a given layer */
+	double soilwAVAIL[N_SOILLAYERS];/* transpiration lack in a given layer */
 	double GW_waterlogging;          /* amount of water above the surface (negative GWD data) */
     double WbalanceERR;              /* SUM of water balance error  */
 	double inW;						 /* SUM of nitrogen input */
@@ -1883,10 +1884,10 @@ typedef struct
 	double critWFPS_denitr;		    /*  (prop) critical WFPS value for denitrification */
 	double N2Oratio_denitr;         /*  (dimless) texture dependence of N2O:N2 ratio of denitrification */
 	double efolding_depth;          /* (m) e-folding depth of decomposition rate's depth scalar (Koven et al. 2013) */
-	double SOIL1_dissolv_prop;      /* (prop) fraction of dissolved part of SOIL1 organic matter */
-	double SOIL2_dissolv_prop;      /* (prop) fraction of dissolved part of SOIL2 organic matter  */
-	double SOIL3_dissolv_prop;      /* (prop) fraction of dissolved part of SOIL3 organic matter */
-	double SOIL4_dissolv_prop;      /* (prop) fraction of dissolved part of SOIL4 organic matter */
+	double SOIL1dissolv_prop;      /* (prop) fraction of dissolved part of SOIL1 organic matter */
+	double SOIL2dissolv_prop;      /* (prop) fraction of dissolved part of SOIL2 organic matter  */
+	double SOIL3dissolv_prop;      /* (prop) fraction of dissolved part of SOIL3 organic matter */
+	double SOIL4dissolv_prop;      /* (prop) fraction of dissolved part of SOIL4 organic matter */
 	double minWFPS_nitrif;			/* (prop) minimum WFPS for scalar function of nitrification calculation */
 	double opt1WFPS_nitrif;         /* (prop) lower optimum WFPS for scalar function of nitrification calculation */
 	double opt2WFPS_nitrif;         /* (prop) higher optimum  WFPS for scalar function of nitrification calculation */
@@ -1954,7 +1955,7 @@ typedef struct
 	double pH[N_SOILLAYERS];							/* (%) soil pH in the given soil layer */
 	double RCN_mes;								        /* (m) measured runoff curve number */
 	double soilB_mes[N_SOILLAYERS];							/* (dimless) Clapp-Hornberger "b" parameter */
-	double BD_mes[N_SOILLAYERS];					    /* (g/cm3)  measured bulk density */
+	double BDgPERcm3_mes[N_SOILLAYERS];					    /* (g/cm3)  measured bulk density */
 	double VWCsat_mes[N_SOILLAYERS];					/* (m3/m3)  measured soil water content at saturation*/
 	double VWCfc_mes[N_SOILLAYERS];						/* (m3/m3)  measured soil water content at field capacity*/
 	double VWCwp_mes[N_SOILLAYERS];						/* (m3/m3)  measured soil water content at wilting point*/
@@ -2517,8 +2518,8 @@ typedef struct
 	double soilC_total;					/* (kgC/m2)  total soil C */
 	double soilN_total;					/* (kgN/m2)  total soil N */
 	double sminN_total;					/* (kgN/m2)  total soil mineralized N */
-	double sminNdissolv_total;			/* (kgN/m2)  available total soil mineralized N */
-	double sminNdissolv_RZmax;			/* (kgN/m2)  available soil mineralized N in maximal rooting zone */
+	double sminNavail_total;			/* (kgN/m2)  dissolved total soil mineralized N */
+	double sminNavail_RZmax;			/* (kgN/m2)  dissolved soil mineralized N in maximal rooting zone */
 	double sminN_RZmax;			    	/* (kgN/m2)  soil mineralized N in rooting zone */
 	double NO3_RZmax;			    	/* (kgN/m2)  soil mineralized N in rooting zone */
 	double NH4_RZmax;			    	/* (kgN/m2)  soil mineralized N in rooting zone */
@@ -2530,16 +2531,9 @@ typedef struct
 	double soilN_RZmax;			    	/* (kgN/m2)  soil nitrogen content in rooting zone */
 	double litrC_RZmax;			    	/* (kgC/m2)  litter carbon content in rooting zone */
 	double litrN_RZmax;			    	/* (kgN/m2)  litter nitrogen content in rooting zone */
-	double SOCpercent_top10;			/* (%)  soil organic C content in 0-10 cm */
-	double SOC_top30;					/* (kgC/m2)  soil organic C content in 0-30 cm */
-	double SON_top30;					/* (kgC/m2)  soil organic N content in 0-30 cm */
 	double totalC;						/* (kgC/m2)  total of vegc, litrc, and soilc */
 	double totalN;						/* (kgC/m2)  total of vegn, litrn, and soiln */
-	double SOCpercent_top30;			/* (%)  soil organic matter C content in 0-30 cm [carbon/soil] */
-	double SONpercent_top30;			/* (%)  soil organic matter N content in 0-30 cm [nitrogen/soil] */
-	double NH4dissolv_top30ppm;				/* (ppm)  available soil NH4-N content in 0-30 cm */
-	double NO3dissolv_top30ppm;				/* (ppm)  available soil NO3-N content in 0-30 cm */
-	double sminN_top30avail;			/* (ppm)  available soil mineralized N-content in 0-30 cm */
+
 	double leafc_LandD;                 /* (kgC/m2)  live and dead leaf carbon content */
 	double frootc_LandD;                /* (kgC/m2)  live and dead froot carbon content */
 	double yield_LandD;                 /* (kgC/m2)  live and dead yield carbon content */
@@ -2547,7 +2541,7 @@ typedef struct
 	double NH4_ppm[N_SOILLAYERS];	/* (ppm)  soil ammonium content in ppm */
 	double NO3_ppm[N_SOILLAYERS];	/* (ppm)  soil nitrate content in ppm */
 	double orgN_ppm[N_SOILLAYERS];	/* (ppm)  soil organic N content in ppm */
-	double sminNdissolv[N_SOILLAYERS];	/* (kgN/m2)  soil available N content */
+	double sminNavail[N_SOILLAYERS];	/* (kgN/m2)  soil available N content */
 	double SOCpercent[N_SOILLAYERS];	/* (%)  soil organic matter C content [carbon/soil] */
 	
 	double tally1;                      /* (kgC/m2) tally of total soil C during successive met cycles (metcyle=1) for comparison */
@@ -2616,7 +2610,59 @@ typedef struct
 	double GWrecharge_NO3;
 	double GWrecharge_orgN;
 
-	
+
+	double BD_top5;
+	double BD_top10;
+	double BD_top15;
+	double BD_top20;
+	double BD_top25;
+	double BD_top30;
+
+	double SOC_top5;
+	double SOC_top10;
+	double SOC_top15;
+	double SOC_top20;
+	double SOC_top25;
+	double SOC_top30;
+
+	double SOC4_top5;
+	double SOC4_top10;
+	double SOC4_top15;
+	double SOC4_top20;
+	double SOC4_top25;
+	double SOC4_top30;
+
+	double VWC_top5;
+	double VWC_top10;
+	double VWC_top15;
+	double VWC_top20;
+	double VWC_top25;
+	double VWC_top30;
+
+	double Tsoil_top5;
+	double Tsoil_top10;
+	double Tsoil_top15;
+	double Tsoil_top20;
+	double Tsoil_top25;
+	double Tsoil_top30;
+
+	double SOCpercent_top5;
+	double SOCpercent_top10;
+	double SOCpercent_top15;
+	double SOCpercent_top20;
+	double SOCpercent_top25;
+	double SOCpercent_top30;
+
+	double SOC4percent_top5;
+	double SOC4percent_top10;
+	double SOC4percent_top15;
+	double SOC4percent_top20;
+	double SOC4percent_top25;
+	double SOC4percent_top30;
+
+	double NH4ppmAVAIL_top30;				/* (ppm)  available soil NH4-N content in 0-30 cm */
+	double NO3ppmAVAIL_top30;				/* (ppm)  available soil NO3-N content in 0-30 cm */
+	double sminNppmAVAIL_top30;			/* (ppm)  available soil mineralized N-content in 0-30 cm */
 
 	
 } summary_struct;

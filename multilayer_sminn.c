@@ -30,7 +30,7 @@ int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv,const sitec
 	int layer=0;
 	int GWlayer, CFlayer, dm;
 	double NH4_prop,SR_layer, NO3avail, NO3avail_ppm;
-	double pH, tsoil, WFPS, net_miner,NH4dissolv, N2OfluxNITRIF,NH4_to_nitrif;
+	double pH, Tsoil, WFPS, net_miner,NH4dissolv, N2OfluxNITRIF,NH4_to_nitrif;
 	double weight;
 	double sminn_layer[N_SOILLAYERS];
 	double sminn_to_soilCTRL, sminn_to_npoolCTRL, ndep_to_sminnCTRL, nfix_to_sminnCTRL;
@@ -149,10 +149,10 @@ int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv,const sitec
 
 		WFPS = epv->WFPS[layer];
 		NH4dissolv = ns->NH4[layer] * sprop->NH4_mobilen_prop;
-		tsoil = metv->tsoil[layer];
+		Tsoil = metv->Tsoil[layer];
 		pH = sprop->pH[layer];
 
-		if (!errorCode && nitrification(layer, sprop, net_miner, tsoil, pH, WFPS, NH4dissolv, epv, &N2OfluxNITRIF, &NH4_to_nitrif))
+		if (!errorCode && nitrification(layer, sprop, net_miner, Tsoil, pH, WFPS, NH4dissolv, epv, &N2OfluxNITRIF, &NH4_to_nitrif))
 		{
 			printf("\n");
 			printf("ERROR in nitrification.c for multilayer_sminn.c \n");
@@ -168,7 +168,7 @@ int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv,const sitec
 		NO3avail = ns->NO3[layer] - nf->NO3_to_npool[layer];
 		if (nf->NO3_to_soilSUM[layer] > 0) NO3avail -= nf->NO3_to_soilSUM[layer];
 
-		NO3avail_ppm = ns->NO3[layer] / (sprop->BD[layer] * g_per_cm3_to_kg_per_m3 * sitec->soillayer_thickness[layer]) * multi_ppm;
+		NO3avail_ppm = ns->NO3[layer] / (sprop->BD[layer]  * sitec->soillayer_thickness[layer]) * multi_ppm;
 
 
 		SR_layer = (cf->soil1_hr[layer] + cf->soil2_hr[layer] + cf->soil3_hr[layer] + cf->soil4_hr[layer]) * kg_to_g;
@@ -469,7 +469,7 @@ int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv,const sitec
 	return (errorCode);
 }
 
-int nitrification(int layer, const soilprop_struct* sprop, double net_miner, double tsoil, double pH, double WFPS, double NH4dissolv, 
+int nitrification(int layer, const soilprop_struct* sprop, double net_miner, double Tsoil, double pH, double WFPS, double NH4dissolv, 
 	                  epvar_struct* epv, double* N2OfluxNITRIF, double* NH4_to_nitrif)
 {
 	int errorCode = 0;
@@ -482,19 +482,19 @@ int nitrification(int layer, const soilprop_struct* sprop, double net_miner, dou
 				
 	if (sprop->Tp1_nitrif == DATA_GAP)
 	{
-		/* no decomp processes for tsoil < -10.0 C */
-		if (tsoil < sprop->Tmin_decomp)	
+		/* no decomp processes for Tsoil < -10.0 C */
+		if (Tsoil < sprop->Tmin_decomp)	
 				epv->ts_nitrif[layer] = 0.0;
 		else
-			epv->ts_nitrif[layer] = exp(sprop->Tp2_nitrif*((1.0/sprop->Tp3_nitrif)-(1.0/((tsoil+Celsius2Kelvin)-sprop->Tp4_nitrif))));
+			epv->ts_nitrif[layer] = exp(sprop->Tp2_nitrif*((1.0/sprop->Tp3_nitrif)-(1.0/((Tsoil+Celsius2Kelvin)-sprop->Tp4_nitrif))));
 	}
 	else
 	{
-		/* no decomp processes for tsoil < -10.0 C */
-		if (tsoil < sprop->Tp1_nitrif)	
+		/* no decomp processes for Tsoil < -10.0 C */
+		if (Tsoil < sprop->Tp1_nitrif)	
 				epv->ts_nitrif[layer] = 0.0;
 		else
-			epv->ts_nitrif[layer] = sprop->Tp1_nitrif/(1+pow(fabs((tsoil-sprop->Tp4_nitrif)/sprop->Tp2_nitrif),sprop->Tp3_nitrif));
+			epv->ts_nitrif[layer] = sprop->Tp1_nitrif/(1+pow(fabs((Tsoil-sprop->Tp4_nitrif)/sprop->Tp2_nitrif),sprop->Tp3_nitrif));
 			
 	}
 

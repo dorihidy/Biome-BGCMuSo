@@ -29,7 +29,7 @@ int aboveANDbelow(soilprop_struct* sprop, epvar_struct* epv, cstate_struct* cs, 
 	
 	int layer, errorCode; 
 	double litrINabove, litrINbelow, litrOUTabove, cwdINabove, cwdINbelow, cwdOUTabove, litrC, cwdC;
-
+	double cwdcAratio;
 
 	errorCode = 0;
 	litrINabove=litrINbelow= litrOUTabove = cwdINabove = cwdINbelow = cwdOUTabove = litrC = cwdC = 0;
@@ -47,6 +47,10 @@ int aboveANDbelow(soilprop_struct* sprop, epvar_struct* epv, cstate_struct* cs, 
 	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{ 
 	
+		if (cs->cwdCabove[layer] + cs->cwdCbelow[layer])
+			cwdcAratio = cs->cwdCabove[layer] / (cs->cwdCabove[layer] + cs->cwdCbelow[layer]);
+		else
+			cwdcAratio = 0.5;
 
 		litrINabove = (cf->leafc_to_litr1c + cf->leafc_to_litr2c + cf->leafc_to_litr3c + cf->leafc_to_litr4c +
 			cf->softstemc_to_litr1c + cf->softstemc_to_litr2c + cf->softstemc_to_litr3c + cf->softstemc_to_litr4c +
@@ -59,12 +63,14 @@ int aboveANDbelow(soilprop_struct* sprop, epvar_struct* epv, cstate_struct* cs, 
 			cf->m_gresp_storage_to_litr1c + cf->m_gresp_transfer_to_litr1c +
 			cf->GRZ_to_litr1c + cf->GRZ_to_litr2c + cf->GRZ_to_litr3c + cf->GRZ_to_litr4c +
 			cf->FRZ_to_litr1c + cf->FRZ_to_litr2c + cf->FRZ_to_litr3c + cf->FRZ_to_litr4c +
-			cf->STDBc_leaf_to_litr + cf->STDBc_softstem_to_litr + cf->STDBc_yield_to_litr + cf->CTDBc_leaf_to_litr + cf->CTDBc_softstem_to_litr + cf->CTDBc_yield_to_litr) * sprop->PROPlayerDC[layer];
+			cf->STDBc_leaf_to_litr + cf->STDBc_softstem_to_litr + cf->STDBc_yield_to_litr + cf->CTDBc_leaf_to_litr + cf->CTDBc_softstem_to_litr + cf->CTDBc_yield_to_litr) * sprop->PROPlayerDC[layer] +
+			(cf->cwdc_to_litr2c[layer] + cf->cwdc_to_litr3c[layer] + cf->cwdc_to_litr4c[layer]) * cwdcAratio;
 
 		litrINbelow = (cf->m_frootc_storage_to_litr1c + cf->m_frootc_transfer_to_litr1c) * sprop->PROPlayerDC[layer] +
 		              (cf->frootc_to_litr1c + cf->frootc_to_litr2c + cf->frootc_to_litr3c + cf->frootc_to_litr4c +
 			           cf->m_frootc_to_litr1c + cf->m_frootc_to_litr2c + cf->m_frootc_to_litr3c + cf->m_frootc_to_litr4c +
-					   cf->STDBc_froot_to_litr + cf->CTDBc_froot_to_litr) * epv->rootlengthProp[layer];
+					   cf->STDBc_froot_to_litr + cf->CTDBc_froot_to_litr) * epv->rootlengthProp[layer] +
+			           (cf->cwdc_to_litr2c[layer] + cf->cwdc_to_litr3c[layer] + cf->cwdc_to_litr4c[layer]) * (1-cwdcAratio);
 
 		cwdINabove = (cf->m_livestemc_to_cwdc + cf->m_deadstemc_to_cwdc + cf->CTDBc_cstem_to_cwd) * sprop->PROPlayerDC[layer];
 
@@ -92,14 +98,7 @@ int aboveANDbelow(soilprop_struct* sprop, epvar_struct* epv, cstate_struct* cs, 
 				}
 			}
 
-			if (cs->cwdCabove[layer] + cs->cwdCbelow[layer])
-			{
-				cwdOUTabove = (cf->cwdc_to_litr2c[layer] + cf->cwdc_to_litr3c[layer] + cf->cwdc_to_litr4c[layer] + cf->m_cwdc_to_fire[layer]) * (cs->cwdCabove[layer] / (cs->cwdCabove[layer] + cs->cwdCbelow[layer]));
-			}
-			else
-			{
-				if (cwdINabove + cwdINbelow) cwdOUTabove = (cf->cwdc_to_litr2c[layer] + cf->cwdc_to_litr3c[layer] + cf->cwdc_to_litr4c[layer] + cf->m_cwdc_to_fire[layer]) * (cwdINabove / (cwdINabove + cwdINbelow));
-			}
+			cwdOUTabove = (cf->cwdc_to_litr2c[layer] + cf->cwdc_to_litr3c[layer] + cf->cwdc_to_litr4c[layer] + cf->m_cwdc_to_fire[layer]) * cwdcAratio;
 
 		}
 		else
@@ -120,17 +119,21 @@ int aboveANDbelow(soilprop_struct* sprop, epvar_struct* epv, cstate_struct* cs, 
 		cs->cwdCabove[layer] += cwdINabove - cwdOUTabove;
 		cs->cwdCbelow[layer] = cs->cwdc[layer] - cs->cwdCabove[layer];
 
-		if (fabs(cs->litrCabove[layer]) < CRIT_PREC) cs->litrCabove[layer] = 0;
-		if (fabs(cs->litrCbelow[layer]) < CRIT_PREC) cs->litrCbelow[layer] = 0;
-		if (fabs(cs->cwdCabove[layer]) < CRIT_PREC) cs->cwdCabove[layer] = 0;
-		if (fabs(cs->cwdCbelow[layer]) < CRIT_PREC) cs->cwdCbelow[layer] = 0;
-
+	
 		/* conrtol */
 		if (cs->litrCabove[layer] < 0 || cs->litrCbelow[layer] < 0 || cs->cwdCabove[layer] < 0 || cs->cwdCbelow[layer] < 0)
 		{
-			printf("\n");
-			printf("ERROR: negative above/below litr in aboveANDbelow.c\n");
-			errorCode = 1;
+			if (fabs(cs->litrCabove[layer]) < CRIT_PREC) cs->litrCabove[layer] = 0;
+			if (fabs(cs->litrCbelow[layer]) < CRIT_PREC) cs->litrCbelow[layer] = 0;
+			if (fabs(cs->cwdCabove[layer]) < CRIT_PREC) cs->cwdCabove[layer] = 0;
+			if (fabs(cs->cwdCbelow[layer]) < CRIT_PREC) cs->cwdCbelow[layer] = 0;
+
+			if (cs->litrCabove[layer] < 0 || cs->litrCbelow[layer] < 0 || cs->cwdCabove[layer] < 0 || cs->cwdCbelow[layer] < 0)
+			{
+				printf("\n");
+				printf("ERROR: negative above/below litr in aboveANDbelow.c\n");
+				errorCode = 1;
+			}
 		}
 
 		if (cs->litrCabove[layer] - (cs->litr1c[layer] + cs->litr2c[layer] + cs->litr3c[layer] + cs->litr4c[layer]) > 0)

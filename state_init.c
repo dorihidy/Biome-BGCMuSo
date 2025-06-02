@@ -315,7 +315,7 @@ int cnstate_init(file init, const epconst_struct* epc, const soilprop_struct* sp
 			printf("ERROR reading soil mineral nitrogen (NH4 pool) in layer %i, cnstate_init.c\n", layer);
 			errorCode=21317;
 		}
-		ns->NH4[layer] = (NH4_ppm[layer] / multi_ppm) * (sprop->BD[layer] * g_per_cm3_to_kg_per_m3 * sitec->soillayer_thickness[layer]);
+		ns->NH4[layer] = (NH4_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer]);
 	}
 
 	scanflag=0; 
@@ -327,7 +327,7 @@ int cnstate_init(file init, const epconst_struct* epc, const soilprop_struct* sp
 			printf("ERROR reading soil mineral nitrogen (NO3 pool) in layer %i, cnstate_init.c\n", layer);
 			errorCode=21318;
 		}
-		ns->NO3[layer] = (NO3_ppm[layer] / multi_ppm) * (sprop->BD[layer] * g_per_cm3_to_kg_per_m3 * sitec->soillayer_thickness[layer]);
+		ns->NO3[layer] = (NO3_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer]);
 
 	}
 

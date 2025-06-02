@@ -27,29 +27,37 @@ int cnw_summary(const epconst_struct* epc, const siteconst_struct* sitec, const 
 	epvar_struct* epv, summary_struct* summary)
 {
 	int errorCode = 0;
-	int layer, GWlayer, dm, N_SOILLAYERS30cm, N_SOILLAYERS10cm;
+	int layer, GWlayer, dm;
 	double GPP, MR, GR, HR, TR, AR, fire;
 	double SR; /* calculating soil respiration */
-	double NPP, NEP, NEE, NBP, disturb_loss, disturb_gain, BD_top30, BD_top10, BD_act, SOC_top10, prop_to_percent;
+	double NPP, NEP, NEE, NBP, disturb_loss, disturb_gain, prop_to_percent;
 	double NPPabove_w, NPPbelow_w, NPPabove_nw, NPPbelow_nw;
 	double Closs_THN_w, Closs_THN_nw, Closs_MOW, Closs_HRV, yieldC_HRV, Closs_PLG, Closs_PLT, Closs_GRZ, Cplus_PLT, Cplus_FRZ, Cplus_GRZ;
 	double Nplus_PLT, Nloss_PLT, Nplus_GRZ, Nplus_FRZ;
 	double Closs_SNSC, STDB_to_litr, CTDB_to_litr;
 	double GRabove_nw, GRbelow_nw, GRabove_w, GRbelow_w, MRabove_nw, MRbelow_nw, MRabove_w, MRbelow_w, MRdef_fluxes, diff;
 	double vegN_above, vegN_below, belowRatio, belowRatio_ctrl, UNSATprop;
-
+	double weight_bottom, depth_bottom, depth_top;
 
 	summary->leafCN = summary->frootCN = summary->yieldN = summary->softstemCN = 0;
-	NPP = NPPabove_w = NPPbelow_w = NPPabove_nw = NPPbelow_nw = belowRatio = belowRatio_ctrl= UNSATprop = 0;
+	NPP = NPPabove_w = NPPbelow_w = NPPabove_nw = NPPbelow_nw = belowRatio = belowRatio_ctrl = UNSATprop = 0;
 
 	/* actual phenological phase */
 	int ap = (int)epv->n_actphen - 1;
 
+	int N_BOUNDARIES;
+
+	N_BOUNDARIES = 6;
 	GWlayer = (int)sprop->GWlayer;
 
-	N_SOILLAYERS30cm = 3;
-	N_SOILLAYERS10cm = 2;
+	double depth[6];
 
+	depth[0] = 0.05;
+	depth[1] = 0.1;
+	depth[2] = 0.15;
+	depth[3] = 0.20;
+	depth[4] = 0.25;
+	depth[5] = 0.30;
 	/************************************************************************************************************************************/
 	/* 1. summarize meteorological and water variables */
 
@@ -81,7 +89,7 @@ int cnw_summary(const epconst_struct* epc, const siteconst_struct* sitec, const 
 
 	summary->Wleach_RZmax = wf->soilwFlux[epv->n_maxrootlayers - 1];
 
-	
+
 	summary->cumWleach_RZmax += summary->Wleach_RZmax;
 	summary->cumNleach_RZmax += summary->sminNleach_RZmax;
 
@@ -252,7 +260,6 @@ int cnw_summary(const epconst_struct* epc, const siteconst_struct* sitec, const 
 	summary->deadwoodDM = (cs->deadstemc + cs->deadcrootc) / epc->deadwoodC_DM;
 
 
-
 	summary->litrC_total = cs->litr1c_total + cs->litr2c_total + cs->litr3c_total + cs->litr4c_total;
 	summary->litrN_total = ns->litr1n_total + ns->litr2n_total + ns->litr3n_total + ns->litr4n_total;
 
@@ -273,10 +280,7 @@ int cnw_summary(const epconst_struct* epc, const siteconst_struct* sitec, const 
 		summary->CNsoil_total = 0;
 
 	summary->sminN_total = ns->NH4_total + ns->NO3_total;
-	summary->sminNdissolv_total = ns->NH4_total * sprop->NH4_mobilen_prop + ns->NO3_total * NO3_mobilen_prop;
-
-
-
+	summary->sminNavail_total = ns->NH4_total * sprop->NH4_mobilen_prop + ns->NO3_total * NO3_mobilen_prop;
 
 
 	vegN_above = ns->leafn + ns->leafn_storage + ns->leafn_transfer +
@@ -288,7 +292,7 @@ int cnw_summary(const epconst_struct* epc, const siteconst_struct* sitec, const 
 
 	vegN_below = ns->frootn + ns->frootn_storage + ns->frootn_transfer +
 		ns->livecrootn + ns->livecrootn_storage + ns->livecrootn_transfer +
-		ns->deadcrootn + ns->deadcrootn_storage + ns->deadcrootn_transfer + 
+		ns->deadcrootn + ns->deadcrootn_storage + ns->deadcrootn_transfer +
 		ns->STDBn_below + ns->CTDBn_below +
 		ns->npool + ns->retransn;
 
@@ -303,9 +307,7 @@ int cnw_summary(const epconst_struct* epc, const siteconst_struct* sitec, const 
 	summary->totalN = summary->vegN + summary->litrN_total + summary->soilN_total + ns->cwdn_total + summary->sminN_total;
 
 	/************************************************************************************************************************************/
-	/* carbon and nitrogen content of top soil layer (10 cm layer depth):
-	   kg (C or N)/m2 -> g (C or N) / kg soil: kgC/m2 = kgCN/0.1m3 = 10 * kgCN/m3 */
-
+	/* 4. rootzone variables */
 
 	prop_to_percent = 100;
 
@@ -316,7 +318,7 @@ int cnw_summary(const epconst_struct* epc, const siteconst_struct* sitec, const 
 	summary->soilN_RZmax = 0;
 	summary->litrC_RZmax = 0;
 	summary->litrN_RZmax = 0;
-	summary->sminNdissolv_RZmax = 0;
+	summary->sminNavail_RZmax = 0;
 
 	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
@@ -324,55 +326,122 @@ int cnw_summary(const epconst_struct* epc, const siteconst_struct* sitec, const 
 		summary->NH4_ppm[layer] = (ns->NH4[layer] / (sprop->BD[layer] * g_per_cm3_to_kg_per_m3 * sitec->soillayer_thickness[layer])) * multi_ppm;
 		summary->NO3_ppm[layer] = (ns->NO3[layer] / (sprop->BD[layer] * g_per_cm3_to_kg_per_m3 * sitec->soillayer_thickness[layer])) * multi_ppm;
 		summary->orgN_ppm[layer] = ((ns->litrN[layer] + ns->soilN[layer] + vegN_below * epv->rootlengthProp[layer]) / (sprop->BD[layer] * g_per_cm3_to_kg_per_m3 * sitec->soillayer_thickness[layer])) * multi_ppm;
-		
-		summary->sminNdissolv[layer] = ns->NH4[layer] * sprop->NH4_mobilen_prop + ns->NO3[layer] * NO3_mobilen_prop;
+
+		summary->sminNavail[layer] = ns->NH4[layer] * sprop->NH4_mobilen_prop + ns->NO3[layer] * NO3_mobilen_prop;
 
 		if (layer < epv->n_maxrootlayers)
 		{
 			summary->sminN_RZmax += (ns->NH4[layer] + ns->NO3[layer]);
 			summary->NO3_RZmax += ns->NO3[layer];
 			summary->NH4_RZmax += ns->NH4[layer];
-			summary->sminNdissolv_RZmax += (ns->NH4[layer] * sprop->NH4_mobilen_prop + ns->NO3[layer]);
+			summary->sminNavail_RZmax += (ns->NH4[layer] * sprop->NH4_mobilen_prop + ns->NO3[layer]);
 			summary->soilC_RZmax += (cs->soilC[layer]);
 			summary->soilN_RZmax += (ns->soilN[layer]);
 			summary->litrC_RZmax += (cs->litrC[layer]);
 			summary->litrN_RZmax += (ns->litrN[layer]);
 		}
-		BD_act = sprop->BD[layer] * g_per_cm3_to_kg_per_m3 * sitec->soillayer_thickness[layer];
-		summary->SOCpercent[layer] = (cs->soil1c[layer] + cs->soil2c[layer] + cs->soil3c[layer] + cs->soil4c[layer]) / BD_act * prop_to_percent;
+		summary->SOCpercent[layer] = (((cs->soil1c[layer] + cs->soil2c[layer] + cs->soil3c[layer] + cs->soil4c[layer]) / sitec->soillayer_thickness[layer]) / (sprop->BD[layer] * g_per_cm3_to_kg_per_m3)) * prop_to_percent;
 	}
 
-	/* g/cm3 to kg/m2 */
-	BD_top30 = 0;
-	BD_top10 = 0;
-	SOC_top10 = 0;
-	for (layer = 0; layer < N_SOILLAYERS30cm; layer++)
-	{
-		if (layer < N_SOILLAYERS10cm)
-		{ 
-			BD_top30 += sprop->BD[layer] * sitec->soillayer_thickness[layer] * g_per_cm3_to_kg_per_m3;
-			summary->SOC_top30 += cs->soil1c[layer] + cs->soil2c[layer] + cs->soil3c[layer] + cs->soil4c[layer];
-			summary->SON_top30 += ns->soil1n[layer] + ns->soil2n[layer] + ns->soil3n[layer] + ns->soil4n[layer];
-			summary->NH4dissolv_top30ppm += (summary->NH4_ppm[layer] * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[N_SOILLAYERS30cm-1]) * sprop->NH4_mobilen_prop;
-			summary->NO3dissolv_top30ppm += summary->NO3_ppm[layer] * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[N_SOILLAYERS30cm-1];
+	/************************************************************************************************************************************/
+   /* 5.top soil layer (5,10,15,20,25,30 cm layer depth):
+   
 
-			BD_top10 += sprop->BD[layer] * sitec->soillayer_thickness[layer] * g_per_cm3_to_kg_per_m3;
-			SOC_top10 += cs->soil1c[layer] + cs->soil2c[layer] + cs->soil3c[layer] + cs->soil4c[layer];
-		}
-		else
-		{
-			BD_top30 += sprop->BD[layer] * sitec->soillayer_thickness[layer] * g_per_cm3_to_kg_per_m3;
-			summary->SOC_top30 += cs->soil1c[layer] + cs->soil2c[layer] + cs->soil3c[layer] + cs->soil4c[layer];
-			summary->SON_top30 += ns->soil1n[layer] + ns->soil2n[layer] + ns->soil3n[layer] + ns->soil4n[layer];
-			summary->NH4dissolv_top30ppm += (summary->NH4_ppm[layer] * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[N_SOILLAYERS30cm - 1]) * sprop->NH4_mobilen_prop;
-			summary->NO3dissolv_top30ppm += summary->NO3_ppm[layer] * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[N_SOILLAYERS30cm - 1];
-		}
-	}
+   /***********************/
+    /* 5.1: Bulk density */
+	summary->BD_top5  = sprop->BD[0] * sitec->soillayer_thickness[0] / depth[0] + sprop->BD[1] * (depth[0] - sitec->soillayer_depth[0]) / depth[0];
+	summary->BD_top10 = sprop->BD[0] * sitec->soillayer_thickness[0] / depth[1] + sprop->BD[1] * sitec->soillayer_thickness[1] / depth[1];
+	summary->BD_top15 = sprop->BD[0] * sitec->soillayer_thickness[0] / depth[2] + sprop->BD[1] * sitec->soillayer_thickness[1] / depth[2] + sprop->BD[2] * (depth[2] - sitec->soillayer_depth[1]) / depth[2];
+	summary->BD_top20 = sprop->BD[0] * sitec->soillayer_thickness[0] / depth[3] + sprop->BD[1] * sitec->soillayer_thickness[1] / depth[3] + sprop->BD[2] * (depth[3] - sitec->soillayer_depth[1]) / depth[3];
+	summary->BD_top25 = sprop->BD[0] * sitec->soillayer_thickness[0] / depth[4] + sprop->BD[1] * sitec->soillayer_thickness[1] / depth[4] + sprop->BD[2] * (depth[4] - sitec->soillayer_depth[1]) / depth[4];
+	summary->BD_top30 = sprop->BD[0] * sitec->soillayer_thickness[0] / depth[5] + sprop->BD[1] * sitec->soillayer_thickness[1] / depth[5] + sprop->BD[2] * sitec->soillayer_thickness[2] / depth[5];
 
-	summary->SOCpercent_top10 = SOC_top10 / BD_top10 * prop_to_percent;
-	summary->SOCpercent_top30 = summary->SOC_top30 / BD_top30 * prop_to_percent;
-	summary->SONpercent_top30 = summary->SON_top30 / BD_top30 * prop_to_percent;
-	summary->sminN_top30avail = summary->NO3dissolv_top30ppm + summary->NH4dissolv_top30ppm;
+	/***********************/
+	/* 5.2: SOC-content: kg (C or N)/m2 -> g (C or N) / kg soil: kgC/m2 = kgCN/0.1m3 = 10 * kgCN/m3 */ 
+	summary->SOC_top5  = cs->soil1c[0] + cs->soil2c[0] + cs->soil3c[0] + cs->soil4c[0] + (cs->soil1c[1] + cs->soil2c[1] + cs->soil3c[1] + cs->soil4c[1]) * (depth[0] - sitec->soillayer_depth[0]) / sitec->soillayer_thickness[1];
+	summary->SOC_top10 = cs->soil1c[0] + cs->soil2c[0] + cs->soil3c[0] + cs->soil4c[0] + (cs->soil1c[1] + cs->soil2c[1] + cs->soil3c[1] + cs->soil4c[1]);
+	summary->SOC_top15 = summary->SOC_top10 + (cs->soil1c[2] + cs->soil2c[2] + cs->soil3c[2] + cs->soil4c[2]) * (depth[2] - sitec->soillayer_depth[1]) / sitec->soillayer_thickness[2];
+	summary->SOC_top20 = summary->SOC_top10 + (cs->soil1c[2] + cs->soil2c[2] + cs->soil3c[2] + cs->soil4c[2]) * (depth[3] - sitec->soillayer_depth[1]) / sitec->soillayer_thickness[2];
+	summary->SOC_top25 = summary->SOC_top10 + (cs->soil1c[2] + cs->soil2c[2] + cs->soil3c[2] + cs->soil4c[2]) * (depth[4] - sitec->soillayer_depth[1]) / sitec->soillayer_thickness[2];
+	summary->SOC_top30 = summary->SOC_top10 + (cs->soil1c[2] + cs->soil2c[2] + cs->soil3c[2] + cs->soil4c[2]);
+
+	summary->SOCpercent_top5  = ((summary->SOC_top5  / depth[0]) / summary->BD_top5) * prop_to_percent;
+	summary->SOCpercent_top10 = ((summary->SOC_top10 / depth[1]) / summary->BD_top10) * prop_to_percent;
+	summary->SOCpercent_top15 = ((summary->SOC_top15 / depth[2]) / summary->BD_top15) * prop_to_percent;
+	summary->SOCpercent_top20 = ((summary->SOC_top10 / depth[3]) / summary->BD_top10) * prop_to_percent;
+	summary->SOCpercent_top25 = ((summary->SOC_top25 / depth[4]) / summary->BD_top25) * prop_to_percent;
+	summary->SOCpercent_top30 = ((summary->SOC_top30 / depth[5]) / summary->BD_top30) * prop_to_percent;
+
+	/***********************/
+    /* 5.3: SOC4-content: kg (C or N)/m2 -> g (C or N) / kg soil: kgC/m2 = kgCN/0.1m3 = 10 * kgCN/m3 */
+	summary->SOC4_top5  = cs->soil4c[0] + cs->soil4c[1] * (depth[0] - sitec->soillayer_depth[0]) / sitec->soillayer_thickness[1];
+	summary->SOC4_top10 = cs->soil4c[0] +  cs->soil4c[1];
+	summary->SOC4_top15 = summary->SOC4_top10 + cs->soil4c[2] * (depth[2] - sitec->soillayer_depth[1]) / sitec->soillayer_thickness[2];
+	summary->SOC4_top20 = summary->SOC4_top10 + cs->soil4c[2] * (depth[3] - sitec->soillayer_depth[1]) / sitec->soillayer_thickness[2];
+	summary->SOC4_top25 = summary->SOC4_top10 + cs->soil4c[2] * (depth[4] - sitec->soillayer_depth[1]) / sitec->soillayer_thickness[2];
+	summary->SOC4_top30 = summary->SOC4_top10 + cs->soil4c[2];
+
+	summary->SOC4percent_top5 =  ((summary->SOC4_top5  / depth[0]) / summary->BD_top5)  * prop_to_percent;
+	summary->SOC4percent_top10 = ((summary->SOC4_top10 / depth[1]) / summary->BD_top10) * prop_to_percent;
+	summary->SOC4percent_top15 = ((summary->SOC4_top15 / depth[2]) / summary->BD_top15) * prop_to_percent;
+	summary->SOC4percent_top20 = ((summary->SOC4_top10 / depth[3]) / summary->BD_top10) * prop_to_percent;
+	summary->SOC4percent_top25 = ((summary->SOC4_top25 / depth[4]) / summary->BD_top25) * prop_to_percent;
+	summary->SOC4percent_top30 = ((summary->SOC4_top30 / depth[5]) / summary->BD_top30) * prop_to_percent;
+
+
+
+
+	/***********************/
+	/* 5.4 NH4 and NO3 */
+	summary->NH4ppmAVAIL_top30 = (summary->NH4_ppm[0] * sitec->soillayer_thickness[0] / 30. + summary->NH4_ppm[1] * sitec->soillayer_thickness[1] / 30. + summary->NH4_ppm[2] * sitec->soillayer_thickness[2] / 30.) * sprop->NH4_mobilen_prop;
+	summary->NO3ppmAVAIL_top30 = (summary->NO3_ppm[0] * sitec->soillayer_thickness[0] / 30. + summary->NO3_ppm[1] * sitec->soillayer_thickness[1] / 30. + summary->NO3_ppm[2] * sitec->soillayer_thickness[2] / 30.) * sprop->NH4_mobilen_prop;
+
+
+	summary->sminNppmAVAIL_top30 = summary->NO3ppmAVAIL_top30 + summary->NH4ppmAVAIL_top30;
+
+	/***********************/
+	/* 5.5: VWC and Tsoil: inverse distance weighting  */
+
+	/* top5cm */
+	depth_top = sitec->soillayer_midpoint[0];
+	depth_bottom = sitec->soillayer_midpoint[1];
+	
+	weight_bottom = (depth[0] - depth_top) / (depth_bottom - depth_top);
+	summary->VWC_top5   = epv->VWC[0]    * (1- weight_bottom) + epv->VWC[1]     * weight_bottom;
+	summary->Tsoil_top5 = metv->Tsoil[0] * (1 - weight_bottom) + metv->Tsoil[1] * weight_bottom;
+
+	/* top10cm and top15cm */
+	depth_top = sitec->soillayer_midpoint[1];
+	depth_bottom = sitec->soillayer_midpoint[2];
+	
+	weight_bottom = (depth[1] - depth_top) / (depth_bottom - depth_top);
+	summary->VWC_top10 = epv->VWC[1] * (1 - weight_bottom) + epv->VWC[2] * weight_bottom;
+	summary->Tsoil_top10 = metv->Tsoil[1] * (1 - weight_bottom) + metv->Tsoil[2] * weight_bottom;
+
+	weight_bottom = (depth[2] - depth_top) / (depth_bottom - depth_top);
+	summary->VWC_top15 = epv->VWC[1] * (1 - weight_bottom) + epv->VWC[2] * weight_bottom;
+	summary->Tsoil_top15 = metv->Tsoil[1] * (1 - weight_bottom) + metv->Tsoil[2] * weight_bottom;
+
+	/* top20cm */
+	summary->VWC_top20   = epv->VWC[2];
+	summary->Tsoil_top20 = metv->Tsoil[2];
+
+	/* top25cm and top30*/
+	depth_top = sitec->soillayer_midpoint[2];
+	depth_bottom = sitec->soillayer_midpoint[3];
+	
+	weight_bottom = (depth[4] - depth_top) / (depth_bottom - depth_top);
+	summary->VWC_top25 = epv->VWC[2] * (1 - weight_bottom) + epv->VWC[3] * weight_bottom;
+	summary->Tsoil_top25 = metv->Tsoil[1] * (1 - weight_bottom) + metv->Tsoil[2] * weight_bottom;
+
+	weight_bottom = (depth[5] - depth_top) / (depth_bottom - depth_top);
+	summary->VWC_top30 = epv->VWC[2] * (1 - weight_bottom) + epv->VWC[3] * weight_bottom;
+	summary->Tsoil_top30 = metv->Tsoil[2] * (1 - weight_bottom) + metv->Tsoil[3] * weight_bottom;
+
+
+
+	/************************************************************************************************************************************/
+	/* 6. calculate total fluxos for NGHG */
 
 	summary->N2Oflux_total = nf->N2OfluxNITRIF_total + nf->N2OfluxDENITR_total + nf->N2OfluxGRZ + nf->N2OfluxFRZ;
 	summary->CH4flux_total = cf->CH4flux_animal + cf->CH4flux_manure + cf->CH4flux_soil;
@@ -382,7 +451,7 @@ int cnw_summary(const epconst_struct* epc, const siteconst_struct* sitec, const 
 	summary->CH4fluxCeq = (summary->CH4flux_total * C_to_CH4 * GWP_CH4) * CO2_to_C;
 
 	/************************************************************************************************************************************/
-	/* 5. calculate daily fluxes (GPP, NPP, NEP, MR, GR, HR) positive for net growth: NPP = gross PSN - Maintenance Resp - growth Resp */
+	/* 7. calculate daily fluxes (GPP, NPP, NEP, MR, GR, HR) positive for net growth: NPP = gross PSN - Maintenance Resp - growth Resp */
 
 	GPP = cf->psnsun_to_cpool + cf->psnshade_to_cpool;
 

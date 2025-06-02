@@ -164,10 +164,10 @@ int phenphase(file logfile, const control_struct* ctrl, const epconst_struct* ep
 		}
 		else
 		{
-			if (metv->tsoil[epv->germ_layer] > epc->base_temp) 
+			if (metv->Tsoil[epv->germ_layer] > epc->base_temp) 
 			{
-				metv->GDD       += (metv->tsoil[epv->germ_layer] - epc->base_temp);
-				metv->GDD_wMOD  += (metv->tsoil[epv->germ_layer] - epc->base_temp) * phen->vern_dev_rate;
+				metv->GDD       += (metv->Tsoil[epv->germ_layer] - epc->base_temp);
+				metv->GDD_wMOD  += (metv->Tsoil[epv->germ_layer] - epc->base_temp) * phen->vern_dev_rate;
 			}
 		}
 	}

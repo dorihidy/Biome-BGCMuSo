@@ -1,6 +1,6 @@
  /* 
 soilCover.c
-CALCULATING the effect of soilCover on the top soil layers: evaporation limitation effect + UNIFORM DISTRIBUTION OF VWC and tsoil 
+CALCULATING the effect of soilCover on the top soil layers: evaporation limitation effect + UNIFORM DISTRIBUTION OF VWC and Tsoil 
 
  *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
@@ -27,17 +27,17 @@ int soilCover(siteconst_struct* sitec, soilprop_struct* sprop, metvar_struct* me
 
 	/* soilCovering parameters */
 	int layer_SCeff, layer, errorCode;
-	double soilw_SUM, tsoilSUM, soilCover;	 
+	double soilw_SUM, TsoilSUM, soilCover;	 
 
 
 	errorCode=0;
-	tsoilSUM=soilw_SUM=0;	 
+	TsoilSUM=soilw_SUM=0;	 
 	
 
 	layer_SCeff = ( int) sprop->pLAY_soilCover;
 
 	/**********************************************************************************************/
-	/* I. CALCULATING the effect of soil cover on the top soil layers: UNIFORM DISTRIBUTION OF tsoil */
+	/* I. CALCULATING the effect of soil cover on the top soil layers: UNIFORM DISTRIBUTION OF Tsoil */
 
 	soilCover = cs->litrCabove_total + cs->cwdCabove_total;
 	epv->SCpercent = sprop->p1_soilCover * pow((soilCover)/sprop->p2_soilCover, sprop->p3_soilCover);
@@ -47,16 +47,16 @@ int soilCover(siteconst_struct* sitec, soilprop_struct* sprop, metvar_struct* me
 	{
  		for (layer = 0; layer<layer_SCeff; layer++)
 		{
-			tsoilSUM += metv->tsoil[layer] * sitec->soillayer_thickness[layer] / (sitec->soillayer_depth[layer_SCeff-1]);
+			TsoilSUM += metv->Tsoil[layer] * sitec->soillayer_thickness[layer] / (sitec->soillayer_depth[layer_SCeff-1]);
 		}
 
 
 		for (layer = 0; layer<layer_SCeff; layer++)
 		{
-			metv->tsoil[layer] = tsoilSUM;
+			metv->Tsoil[layer] = TsoilSUM;
 		}
 
-		metv->tsoil_surface     = metv->tsoil[0];
+		metv->Tsoil_surface     = metv->Tsoil[0];
 	}
 
    return (errorCode);

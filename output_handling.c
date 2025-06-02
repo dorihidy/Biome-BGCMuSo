@@ -310,8 +310,8 @@ int output_handling(int* mondays, int* enddays, control_struct* ctrl, double** o
 		{
 			/* fill the annual output array */
 			for (outv=0 ; outv<ctrl->nannout ; outv++)
-			{				
-				annarr[outv] = (double) *output_map[ctrl->anncodes[outv]];
+			{	
+				annarr[outv] = (double)*output_map[ctrl->anncodes[outv]];
 			}
 					
 			/* write the annual output array to annual output file */

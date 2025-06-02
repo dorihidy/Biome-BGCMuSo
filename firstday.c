@@ -166,8 +166,8 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 	summary->soilC_total = 0;
 	summary->soilN_total = 0;
 	summary->sminN_total = 0;
-	summary->sminNdissolv_total = 0;
-	summary->sminNdissolv_RZmax = 0;
+	summary->sminNavail_total = 0;
+	summary->sminNavail_RZmax = 0;
 	summary->sminN_RZmax = 0;
 	summary->NO3_RZmax = 0;
 	summary->NH4_RZmax = 0;
@@ -179,16 +179,9 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 	summary->soilN_RZmax = 0;
 	summary->litrC_RZmax = 0;
 	summary->litrN_RZmax = 0;
-	summary->SOCpercent_top30 = 0;
-	summary->SOC_top30 = 0;
-	summary->SON_top30 = 0;
 	summary->totalC = 0;
 	summary->totalN = 0;
-	summary->SOCpercent_top30 = 0;
-	summary->SONpercent_top30 = 0;
-	summary->NH4dissolv_top30ppm = 0;
-	summary->NO3dissolv_top30ppm = 0;
-	summary->sminN_top30avail = 0;
+
 	
 	summary->leafc_LandD = 0;
 	summary->frootc_LandD = 0;
@@ -199,7 +192,7 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 	summary->NO3_unsat = 0;
 	summary->orgN_unsat = 0;
 
-	
+
 
 	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
@@ -220,8 +213,9 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 		summary->NH4_ppm[layer] = 0;
 		summary->NO3_ppm[layer] = 0;
 		summary->orgN_ppm[layer] = 0;
-		summary->sminNdissolv[layer] = 0;
+		summary->sminNavail[layer] = 0;
 		summary->SOCpercent[layer] = 0;
+
 
 	}
 
@@ -749,14 +743,14 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 	/* initialization of dissolving coefficent array */
 	soilInfo->dissolv_prop[0] = sprop->NH4_mobilen_prop;
 	soilInfo->dissolv_prop[1] = NO3_mobilen_prop;
-	soilInfo->dissolv_prop[2] = sprop->SOIL1_dissolv_prop;
-	soilInfo->dissolv_prop[3] = sprop->SOIL2_dissolv_prop;
-	soilInfo->dissolv_prop[4] = sprop->SOIL3_dissolv_prop;
-	soilInfo->dissolv_prop[5] = sprop->SOIL4_dissolv_prop;
-	soilInfo->dissolv_prop[6] = sprop->SOIL1_dissolv_prop;
-	soilInfo->dissolv_prop[7] = sprop->SOIL2_dissolv_prop;
-	soilInfo->dissolv_prop[8] = sprop->SOIL3_dissolv_prop;
-	soilInfo->dissolv_prop[9] = sprop->SOIL4_dissolv_prop;
+	soilInfo->dissolv_prop[2] = sprop->SOIL1dissolv_prop;
+	soilInfo->dissolv_prop[3] = sprop->SOIL2dissolv_prop;
+	soilInfo->dissolv_prop[4] = sprop->SOIL3dissolv_prop;
+	soilInfo->dissolv_prop[5] = sprop->SOIL4dissolv_prop;
+	soilInfo->dissolv_prop[6] = sprop->SOIL1dissolv_prop;
+	soilInfo->dissolv_prop[7] = sprop->SOIL2dissolv_prop;
+	soilInfo->dissolv_prop[8] = sprop->SOIL3dissolv_prop;
+	soilInfo->dissolv_prop[9] = sprop->SOIL4dissolv_prop;
 
 	
 	

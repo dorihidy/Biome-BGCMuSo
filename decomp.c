@@ -34,7 +34,7 @@ int decomp(const metvar_struct* metv,const epconst_struct* epc, soilprop_struct*
 	int layer;
 	double ts_decomp, ws_decomp, z_scalar;
 	double rs_decomp, rs_decomp_avg;
-	double tsoil;
+	double Tsoil;
 	double minVWC, maxVWC, opt1VWC, opt2VWC, VWC;
 	double rfl1s1, rfl2s2,rfl4s3,rfs1s2,rfs2s3,rfs3s4;
 	double kl1_base,kl2_base,kl4_base,ks1_base,ks2_base,ks3_base,ks4_base,kfrag_base;
@@ -81,7 +81,7 @@ int decomp(const metvar_struct* metv,const epconst_struct* epc, soilprop_struct*
 		pmnf_l1s1=pmnf_l2s2=pmnf_l4s3=pmnf_s1s2=pmnf_s2s3=pmnf_s3s4=pmnf_s4=0.0;
 		cwdc_to_litr2c=cwdc_to_litr3c =cwdc_to_litr4c=cwdn_to_litr2n=cwdn_to_litr3n =cwdn_to_litr4n=0;
 
-		tsoil = metv->tsoil[layer]; 
+		Tsoil = metv->Tsoil[layer]; 
 	
 		/* 1.1: calculate the rate constant scalar for soil temperature, assuming that the base rate constants are assigned for non-moisture
 		limiting conditions at 25 C. The function used here is taken from Lloyd, J., and J.A. Taylor, 1994. On the temperature dependence of 
@@ -89,25 +89,25 @@ int decomp(const metvar_struct* metv,const epconst_struct* epc, soilprop_struct*
 		This equation is a modification of their eqn. 11, changing the base temperature from 10 C to 25 C, since most of the microcosm studies
 		used to get the base decomp rates were controlled at 25 C. */
 		
-		/* modification by Hidy 2021: new shape of tsoil function - similar to nitrification
+		/* modification by Hidy 2021: new shape of Tsoil function - similar to nitrification
 		                              parameter for no decomp lmitation */
 
 		
 		if (sprop->Tp1_decomp == DATA_GAP)
 		{
-			/* no decomp processes for tsoil < -10.0 C */
-			if (tsoil < sprop->Tmin_decomp)	
+			/* no decomp processes for Tsoil < -10.0 C */
+			if (Tsoil < sprop->Tmin_decomp)	
 					ts_decomp = 0.0;
 			else
-				ts_decomp = exp(sprop->Tp2_decomp*((1.0/sprop->Tp3_decomp)-(1.0/((tsoil+Celsius2Kelvin)-sprop->Tp4_decomp))));
+				ts_decomp = exp(sprop->Tp2_decomp*((1.0/sprop->Tp3_decomp)-(1.0/((Tsoil+Celsius2Kelvin)-sprop->Tp4_decomp))));
 		}
 		else
 		{
-			/* no decomp processes for tsoil < -10.0 C */
-			if (tsoil < sprop->Tmin_decomp)	
+			/* no decomp processes for Tsoil < -10.0 C */
+			if (Tsoil < sprop->Tmin_decomp)	
 					ts_decomp = 0.0;
 			else
-				ts_decomp = sprop->Tp1_decomp/(1+pow(fabs((tsoil-sprop->Tp4_decomp)/sprop->Tp2_decomp),sprop->Tp3_decomp));
+				ts_decomp = sprop->Tp1_decomp/(1+pow(fabs((Tsoil-sprop->Tp4_decomp)/sprop->Tp2_decomp),sprop->Tp3_decomp));
 			
 		}
 
@@ -395,7 +395,7 @@ int decomp(const metvar_struct* metv,const epconst_struct* epc, soilprop_struct*
 		/* CH4 FLUX - only from the first layer */
 		if (layer == 0)
 		{ 
-			if (!errorCode && CH4flux_estimation(sprop, layer, epv->VWC[layer], metv->tsoil[layer], &CH4flux))
+			if (!errorCode && CH4flux_estimation(sprop, layer, epv->VWC[layer], metv->Tsoil[layer], &CH4flux))
 			{
 				printf("\n");
 				printf("ERROR in CH4flux_estimation.c for decomp.c\n");

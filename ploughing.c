@@ -28,7 +28,7 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 
 	/* ploughing parameters */
 	int PLGlayer, layer;
-	double PLGdepth, PLGcoeff, NH4_SUM, NO3_SUM, soilw_SUM, tsoilSUM, sand_SUM, silt_SUM;	 
+	double PLGdepth, PLGcoeff, NH4_SUM, NO3_SUM, soilw_SUM, TsoilSUM, sand_SUM, silt_SUM;	 
 	double litr1c_SUM, litr2c_SUM, litr3c_SUM, litr4c_SUM, litr1n_SUM, litr2n_SUM, litr3n_SUM, litr4n_SUM;
 	double soil1c_SUM, soil2c_SUM, soil3c_SUM, soil4c_SUM, soil1n_SUM, soil2n_SUM, soil3n_SUM, soil4n_SUM;
 	int md, year, flag;
@@ -41,7 +41,7 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 
 	errorCode=0;
 	PLGdepth=0;
-	PLGcoeff=NH4_SUM=NO3_SUM=soilw_SUM=tsoilSUM=sand_SUM=silt_SUM=0;	 
+	PLGcoeff=NH4_SUM=NO3_SUM=soilw_SUM=TsoilSUM=sand_SUM=silt_SUM=0;	 
 	litr1c_SUM=litr2c_SUM=litr3c_SUM=litr4c_SUM=litr1n_SUM=litr2n_SUM=litr3n_SUM=litr4n_SUM=0;
 	soil1c_SUM=soil2c_SUM=soil3c_SUM=soil4c_SUM=soil1n_SUM=soil2n_SUM=soil3n_SUM=soil4n_SUM=0;
 
@@ -83,7 +83,7 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 		for (layer = 0; layer<PLGlayer; layer++)
 		{
 			
-			tsoilSUM += metv->tsoil[layer] * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
+			TsoilSUM += metv->Tsoil[layer] * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
 
 			soilw_SUM     += ws->soilw[layer];
 			NH4_SUM   += ns->NH4[layer];
@@ -112,7 +112,7 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 
 		for (layer = 0; layer<PLGlayer; layer++)
 		{
-			metv->tsoil[layer] = tsoilSUM;
+			metv->Tsoil[layer] = TsoilSUM;
 
 			ws->soilw[layer]   = soilw_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
 			epv->VWC[layer]    = ws->soilw[layer] / (water_density * sitec->soillayer_thickness[layer]);
@@ -148,15 +148,15 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 		/* update of litrCabove and litrCbelow */
 		cs->litrCabove_total = 0;
 		cs->litrCbelow_total = 0;
-		for (layer = 0; layer < N_SOILLAYERS; layer++)
+		for (layer = 0; layer < PLGlayer; layer++)
 		{		
 			cs->litrCabove[layer] = 0;
 			cs->litrCbelow[layer] = cs->litr1c[layer] + cs->litr2c[layer] + cs->litr3c[layer] + cs->litr4c[layer];
 			cs->litrCbelow_total += cs->litrCbelow[layer];
 		}
 
-		/* update TSOIL values */
-		metv->tsoil_surface     = metv->tsoil[0];
+		/* update Tsoil values */
+		metv->Tsoil_surface     = metv->Tsoil[0];
 
 
 		/**********************************************************************************************/

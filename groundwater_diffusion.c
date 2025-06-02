@@ -347,7 +347,7 @@ int groundwater_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar
 				soilw_satNORM = sprop->VWCsat[GWlayer] * sprop->dz_NORMgw * water_density;
 				soilw_satCAPIL = sprop->VWCsat[GWlayer] * sprop->dz_CAPILgw * water_density;
 
-				/*  avoiding downward percolation into NORMgw from above layer and upward diffusion from CAPILgw into above layer in the same time - source of diffusion is NORMgw primaraly  (balus) */
+				/*  avoiding downward percolation into NORMgw from above layer and upward diffusion from CAPILgw into above layer in the same time - source of diffusion is NORMgw primaraly */
 				if (soilwDiffus_act < 0 && wf->soilwPercol[GWlayer - 1] > fabs(soilwDiffus_act))
 				{
 					soilw_hwNORM = sprop->VWChw[GWlayer - 1] * sitec->soillayer_thickness[GWlayer - 1]* water_density;

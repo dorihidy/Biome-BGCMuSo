@@ -282,7 +282,7 @@ int daily_allocation(const control_struct* ctrl, const epconst_struct* epc, cons
 
 
 	/*-----------------------------------------------------------------------------------------------------------------*/
-	/* 4. calculation of spinup N-add and sminNdissolv and potIMMOB */
+	/* 4. calculation of spinup N-add and sminNavail and potIMMOB */
 
 	nf->sminn_to_npool_total = nf->retransn_to_npool_total = plantNalloc = plantCalloc = 0;
 	for (layer=0; layer < N_SOILLAYERS; layer++)

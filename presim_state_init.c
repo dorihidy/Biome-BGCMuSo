@@ -294,7 +294,7 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 	{
 		ws->soilw[layer] = 0;
 		ws->soilw_pre[layer] = 0;
-		ws->soilw_avail[layer] = 0;
+		ws->soilwAVAIL[layer] = 0;
 		cs->cwdc[layer] = 0;
 		cs->litr1c[layer] = 0;
 		cs->litr2c[layer] = 0;
