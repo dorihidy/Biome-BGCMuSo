@@ -136,6 +136,13 @@ int aboveANDbelow(soilprop_struct* sprop, epvar_struct* epv, cstate_struct* cs, 
 			}
 		}
 
+		if ((cs->litrCabove[layer] && cs->litrCabove[layer] / cs->litrCabove[layer] != 1) || (cs->litrCbelow[layer] && cs->litrCbelow[layer] / cs->litrCbelow[layer] != 1))
+		{
+			printf("\n");
+			printf("ERROR: invalid above/below litr in aboveANDbelow.c\n");
+			errorCode = 1;
+		}
+
 		if (cs->litrCabove[layer] - (cs->litr1c[layer] + cs->litr2c[layer] + cs->litr3c[layer] + cs->litr4c[layer]) > 0)
 		{
 			if (cs->litrCabove[layer] - (cs->litr1c[layer] + cs->litr2c[layer] + cs->litr3c[layer] + cs->litr4c[layer]) > CRIT_PREC)

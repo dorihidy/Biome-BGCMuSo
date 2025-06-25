@@ -72,7 +72,8 @@ int check_water_balance(wstate_struct* ws, int first_balance)
 		ws->canopyw_GRZsnk +			/* grazing */
 		ws->runoff_snk     +			/* soil-water submodel */
 		ws->deeppercolation_snk +		/* soil-water submodel .*/
-		ws->pondEVP_snk;
+		ws->pondEVP_snk +
+		ws->Wprec_snk;
 
 	/* sum of current storage */
 	ws->storeW = ws->soilw_SUM + ws->pondw + ws->snoww + ws->canopyw;
@@ -182,7 +183,8 @@ int check_carbon_balance(cstate_struct* cs, int first_balance)
 			   cs->HRsoil1_snk + cs->HRsoil2_snk + cs->HRsoil3_snk + cs->HRsoil4_snk + 
 			   cs->FIREsnk_C +  cs->Cdeepleach_snk + 
 		       cs->GWsnk_C +
-			   cs->GRZsnk_C + cs->THN_transportC + cs->MOW_snkC + cs->HRV_snkC + cs->CWEsnk_C; 
+			   cs->GRZsnk_C + cs->THN_transportC + cs->MOW_snkC + cs->HRV_snkC + cs->CWEsnk_C +
+		       cs->Cprec_snk;
 		
 
 

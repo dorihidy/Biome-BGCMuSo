@@ -56,6 +56,7 @@ int zero_srcsnk(cstate_struct* cs, nstate_struct* ns, wstate_struct* ws, summary
 	ws->EVPsurface1cum = 0.0;
 	ws->EVPsurface2cum = 0.0;
 	ws->GW_waterlogging = 0.0;
+	ws->Wprec_snk = 0.0;
 
 	/* zero the carbon sources and sinks */
 	cs->psnsun_src = 0.0;
@@ -116,6 +117,7 @@ int zero_srcsnk(cstate_struct* cs, nstate_struct* ns, wstate_struct* ws, summary
 	cs->litrCbelow_total = 0;
 	cs->cwdCabove_total = 0;
 	cs->cwdCbelow_total = 0;
+	cs->Cprec_snk = 0;
 
 	ns->Nfix_src = 0.0;
 	ns->Ndep_src = 0.0;

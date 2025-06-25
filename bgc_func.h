@@ -206,6 +206,7 @@ int CWDextract(control_struct* ctrl, const CWDextract_struct* CWE, cstate_struct
 int cutdown2litter(const soilprop_struct* sprop, const epconst_struct* epc, const epvar_struct* epv, cstate_struct* cs, cflux_struct* cf, nstate_struct* ns, nflux_struct* nf);
 
 int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, soilprop_struct* sprop, soilInfo_struct* soilInfo);
+	int precision_reset(int flagLITTER, int layer, cstate_struct* cs, nstate_struct* ns, double* cpool, double* npool, int* errorCode);
 
 int check_water_balance (wstate_struct* ws, int first_balance);
 int check_carbon_balance(cstate_struct* cs, int first_balance);

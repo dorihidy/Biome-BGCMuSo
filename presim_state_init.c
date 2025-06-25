@@ -106,6 +106,7 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 	ws->IRGsrc_W = 0;
 	ws->condIRGsrc = 0;
 	ws->FRZsrc_W = 0;
+	ws->Wprec_snk = 0.0;
 	ws->GW_waterlogging = 0.0;
 	ws->WbalanceERR = 0;
 	ws->inW = 0;
@@ -202,6 +203,7 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 	cs->GWsrc_C = 0;
 	cs->GWsnk_C = 0;
 	cs->FLsrc_C = 0;
+	cs->Cprec_snk = 0;
 	cs->yieldC_HRV = 0.0;
 	cs->frootC_HRV = 0.0;
 	cs->vegCabove_HRV = 0.0;

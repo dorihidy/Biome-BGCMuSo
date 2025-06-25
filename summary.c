@@ -45,9 +45,7 @@ int cnw_summary(const epconst_struct* epc, const siteconst_struct* sitec, const 
 	/* actual phenological phase */
 	int ap = (int)epv->n_actphen - 1;
 
-	int N_BOUNDARIES;
 
-	N_BOUNDARIES = 6;
 	GWlayer = (int)sprop->GWlayer;
 
 	double depth[6];
@@ -344,11 +342,11 @@ int cnw_summary(const epconst_struct* epc, const siteconst_struct* sitec, const 
 	}
 
 	/************************************************************************************************************************************/
-   /* 5.top soil layer (5,10,15,20,25,30 cm layer depth):
+	/* 5.top soil layer (5,10,15,20,25,30 cm layer depth): */
    
 
-   /***********************/
-    /* 5.1: Bulk density */
+	/***********************/
+	/* 5.1: Bulk density */
 	summary->BD_top5  = sprop->BD[0] * sitec->soillayer_thickness[0] / depth[0] + sprop->BD[1] * (depth[0] - sitec->soillayer_depth[0]) / depth[0];
 	summary->BD_top10 = sprop->BD[0] * sitec->soillayer_thickness[0] / depth[1] + sprop->BD[1] * sitec->soillayer_thickness[1] / depth[1];
 	summary->BD_top15 = sprop->BD[0] * sitec->soillayer_thickness[0] / depth[2] + sprop->BD[1] * sitec->soillayer_thickness[1] / depth[2] + sprop->BD[2] * (depth[2] - sitec->soillayer_depth[1]) / depth[2];

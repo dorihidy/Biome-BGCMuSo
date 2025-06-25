@@ -556,7 +556,7 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 	}
 
 	/* calculate conductance limitation factors */	
-	if (!errorCode && conductLimit_calculations( &sprop, &epc, &epv))
+	if (!errorCode && conductLimit_calculations(&sprop, &epc, &epv))
 	{
 		printf("ERROR in call to conductLimit_calculations.c, from bgc.c\n");
 		errorCode=404;
@@ -853,7 +853,7 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=520;
 			}
 			
-	
+
 		
 			/* Daily allocation gets called whether or not this is a current growth day, because the competition between decomp immobilization fluxes 
 			and plant growth N demand is resolved here.  On days with no growth, no allocation occurs, but immobilization fluxes are updated normally */
@@ -985,7 +985,7 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=532;
 			}		
 
-	
+
 			/* calculate summary variables */
 			if (!errorCode && aboveANDbelow(&sprop, &epv, &cs, &cf))
 			{
@@ -1090,8 +1090,7 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 
 			/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 			/* 7. ERROR CHECKING AND SUMMARY VARIABLES  */
-			
-		
+	
 			/* test for very low state variable values and force them to 0.0 to avoid rounding and floating point overflow errors */
 			if (!errorCode && precision_control(&ws, &cs, &ns, &sprop, &soilInfo))
 			{
@@ -1123,7 +1122,7 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=548;
 			}		
 
-
+	
 			/* test for nitrogen balance */
 			if (!errorCode && check_nitrogen_balance(&ns, first_balance))
 			{

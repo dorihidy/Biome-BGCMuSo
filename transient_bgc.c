@@ -904,6 +904,7 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 		printf("Aboveground litter carbon content [kgC/m2]:    %12.1f\n",cs.litrCabove_total);
 		printf("Aboveground CWD carbon content [kgC/m2]:       %12.1f\n",cs.cwdCabove_total);
 		printf("Total soil carbon content [kgC/m2]:            %12.1f\n",summary.soilC_total);
+		printf("Total stable soil carbon content [kgC/m2/year]:%12.1f\n", cs.soil4c_total);
 	}
 
 	if (cs.CbalanceERR != 0) CbalanceERR = log10(cs.CbalanceERR);

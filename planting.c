@@ -136,6 +136,14 @@ int planting(control_struct* ctrl, const siteconst_struct* sitec, const soilprop
 				ns->yieldn_storage = 0;
 			}
 
+
+			if (ns->retransn > 0)
+			{
+				ns->STDBn_froot += ns->retransn;
+				ns->SNSCsnk_N += ns->retransn;
+				ns->retransn = 0;
+			}
+
 			/* 2.2 germination depth and layer */
 			while (!flag_layerIMP)
 			{

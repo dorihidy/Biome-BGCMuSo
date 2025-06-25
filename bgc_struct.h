@@ -225,7 +225,6 @@ typedef struct
 	double swRADnet;						 /* (W/m2) net short-wave radiation */
 	double lwRADnet;						 /* (W/m2) net outgoing long-wave-radation */
 	double RADnet;                           /* (W/m2) daylight average net radiation flux */
-	double RADnet2;                           /* (W/m2) daylight average net radiation flux */
 	double RADnet_per_plaisun;				 /* (W/m2) daylight average net radiation flux per unit sunlit proj LAI */
 	double RADnet_per_plaishade;			 /* (W/m2) daylight average net radiation flux per unit sunshade proj LAI */
 	double swavgfd;							 /* (W/m2) daylight average shortwave flux */
@@ -280,6 +279,7 @@ typedef struct
 	double condIRGsrc;				 /* sum of conditional irrigatied water amount in a year*/	
 	double FRZsrc_W;				 /* SUM of water from fertilization */
 	double FLsrc_W;			     /* SUM of water from flooding */
+	double Wprec_snk;					/* SUM of W lost to precision control */
 	double EVPsurface1cum;              /* cumulated soil evaporation in first evaporation phase (no limit) */
 	double EVPsurface2cum;              /* cumulated soil evaporation in second evaporation phase (DSR limit) */
 	double soilwAVAIL[N_SOILLAYERS];/* transpiration lack in a given layer */
@@ -527,6 +527,7 @@ typedef struct
 	double GWsrc_C;			         /* SUM of carbon plus from goundwater */
 	double GWsnk_C;			         /* SUM of carbon loss to goundwater */
 	double FLsrc_C;			        /* SUM of carbon plus from flooding */
+	double Cprec_snk;					/* SUM of C lost to precision control */
 	double yieldC_HRV;                  /* SUM of carbon content of havested yield */
 	double frootC_HRV;                  /* SUM of carbon content of fine root at harvest */
 	double vegCabove_HRV;               /* SUM of carbon content of havested leaf, stem and yield */

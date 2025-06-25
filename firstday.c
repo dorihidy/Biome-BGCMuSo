@@ -631,7 +631,7 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 		ns->frootn_transfer = 0;
 		ns->yieldn_transfer = 0;
 		ns->softstemn_transfer = 0;
-		ns->retransn += 0;
+		ns->retransn = 0;
 		ns->STDBn_leaf = 0;
 		ns->STDBn_froot = 0;
 		ns->STDBn_yield = 0;
@@ -672,7 +672,7 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 
 
 	/* in case of land-use change: agroecosystem to natural vegetation */
-	if (!ctrl->spinup && !PLT->PLT_num && ctrl->bareground_flag == 0)
+ 	if (!ctrl->spinup && !PLT->PLT_num && ctrl->bareground_flag == 0)
 	{
 		if (!cs->leafc_transfer)
 		{

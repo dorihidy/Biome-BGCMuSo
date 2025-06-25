@@ -131,7 +131,7 @@ int spinup_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 	int* enddays=0;
 	
 	/* spinup control */
-	int ntimesmet, nblock;
+	int nblock;
 	int steady1, steady2, rising, metcycle, spinyears;
 	double t1      = 0;
 	double tally1  = 0.0;

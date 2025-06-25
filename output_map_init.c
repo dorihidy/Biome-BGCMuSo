@@ -97,10 +97,8 @@ int output_map_init(double** output_map, phenology_struct* phen, metvar_struct* 
         output_map[60] = &metv->swRADnet; //%"Net shortwave radiation" $\\left[\\Wm^{-2}\\right]$ "Nettó rövidhullámú sugárzás" $\\left[\\Wm^{-2}\\right]$ "Net shortwave radiation" %
         output_map[61] = &metv->lwRADnet; //%"Net outgoing longwave radiation" $\\left[\\Wm^{-2}\\right]$ "Nettó hosszúhullámú kisugárzás" $\\left[\\Wm^{-2}\\right]$ "Net longwave outgoing radiation" %
         output_map[62] = &metv->RADnet; //%"Daylight average net radiation flux" $\\left[\\Wm^{-2}\\right]$ "Átlagos nappali sugárzási fluxus" $\\left[\\Wm^{-2}\\right]$ "Daylight average net radiation flux" %
-        output_map[63] = &metv->RADnet2; //%"Daylight average net radiation flux" $\\left[\\Wm^{-2}\\right]$ "Átlagos nappali sugárzási fluxus" $\\left[\\Wm^{-2}\\right]$ "Daylight average net radiation flux" %
-
-     //   output_map[63] = &metv->RADnet_per_plaisun; //%"Daylight avg. net radiation flux sunshade proj. leaf area index" $\\left[\\Wm^{-2}\\right]$ "Napos levélfelületi index egységre vetített nappali átlagos nettó sugárzási fluxusa" $\\left[\\Wm^{-2}\\right]$ "Daylight average net radiation flux per unit sunlit proj leaf area index" %
-        output_map[64] = &metv->RADnet_per_plaishade; //%"Daylight avg. net radiation flux sunlit proj. leaf area index" $\\left[\\Wm^{-2}\\right]$ " Árnyékos levélfelületi index egységre vetített nappali átlagos nettó sugárzási fluxus" $\\left[\\Wm^{-2}\\right]$ "Daylight average net radiation flux per unit sunshade proj leaf area index" %
+        output_map[63] = &metv->RADnet_per_plaisun; //%"Daylight avg. net radiation flux sunlit proj. leaf area index" $\\left[\\Wm^{-2}\\right]$ " Napos levélfelületi index egységre vetített nappali átlagos nettó sugárzási fluxus" $\\left[\\Wm^{-2}\\right]$ "Daylight average net radiation flux per unit sunshade proj leaf area index" %
+        output_map[64] = &metv->RADnet_per_plaishade; //%"Daylight avg. net radiation flux sunlit proj. leaf area index" $\\left[\\Wm^{-2}\\right]$ " Napos levélfelületi index egységre vetített nappali átlagos nettó sugárzási fluxus" $\\left[\\Wm^{-2}\\right]$ "Daylight average net radiation flux per unit sunshade proj leaf area index" %
         output_map[65] = &metv->swavgfd; //%"Daylight average shortwave flux" $\\left[\\Wm^{-2}\\right]$ "Átlagos nappali rövidhullámú fluxus" $\\left[\\Wm^{-2}\\right]$ "Daylight average shortwave flux" %
         output_map[66] = &metv->swabs; //%"Canopy absorbed shortwave flux" $\\left[\\Wm^{-2}\\right]$ "A lombkorona által abszorbeált rövidhullámú fluxus" $\\left[\\Wm^{-2}\\right]$ "Canopy absorbed shortwave flux" %
         output_map[67] = &metv->swtrans; //%"Transmitted shortwave flux" $\\left[\\Wm^{-2}\\right]$ "Transzmittált rövidhullámú fluxus" $\\left[\\Wm^{-2}\\right]$ "Transmitted shortwave flux" %
@@ -169,7 +167,7 @@ int output_map_init(double** output_map, phenology_struct* phen, metvar_struct* 
         output_map[129] = &ws->soilwAVAIL[7]; //%"Available soil water 8 (150 - 200 cm)" $\\left[\\kg_{H_{2}O}m^{-2} \\right]$ "A 8. talajréteg (150 - 200 cm) hozzáférhetõ nedvességtartalma" $\\left[\\kg_{H_{2}O}m^{-2} \\right]$ "Available soil water of soil layer 8 (150 - 200 cm)" %
         output_map[130] = &ws->soilwAVAIL[8]; //%"Available soil water 9 (200 - 400 cm)" $\\left[\\kg_{H_{2}O}m^{-2} \\right]$ "A 9. talajréteg (200 - 400 cm) hozzáférhetõ nedvességtartalma" $\\left[\\kg_{H_{2}O}m^{-2} \\right]$ "Available soil water of soil layer 9 (200 - 400 cm)" %
         output_map[131] = &ws->soilwAVAIL[9]; //%"Available soil water 10 (400 - 1000 cm)" $\\left[\\kg_{H_{2}O}m^{-2} \\right]$ "A 10. talajréteg (400-1000 cm) hozzáférhetõ nedvességtartalma" $\\left[\\kg_{H_{2}O}m^{-2} \\right]$ "Available soil water of soil layer 10 (400 - 1000 cm)" %
-	
+        output_map[132] = &ws->Wprec_snk; //%"SUM of W lost to precision control" $\\left[\\kg_{H2O}m^{-2} \\right]$
   
 		output_map[150] = &wf->prcp_to_canopyw; //%"Interception on canopy" $\\left[\\kg_{H_{2}O}m^{-2}day^{-1}} \\right]$ "Intercepció a lombkoronán" $\\left[\\kg_{H_{2}O}m^{-2}nap^{-1}} \\right]$ " Interception on canopy" %
         output_map[151] = &wf->prcp_to_soilSurface; //%"Precipitation entering soilwater pool" $\\left[\\kg_{H_{2}O}m^{-2}day^{-1}} \\right]$ "A talajvíz tározóba jutó csapadék" $\\left[\\kg_{H_{2}O}m^{-2}nap^{-1}} \\right]$ "Precipitation entering soilwater pool" %
@@ -507,6 +505,7 @@ int output_map_init(double** output_map, phenology_struct* phen, metvar_struct* 
         output_map[571] = &cs->FLsrc_C; //%"Flooding as carbon source" $\\left[\\kg_{C}m^{-2} \\right]$" %
         output_map[572] = &cs->CWEsnk_C; //%"C content of CWD-extract (sink)" $\\left[\\kg_{C}m^{-2} \\right]$ "Letörött ágak elszállításakor távozó C" $\\left[\\kg_{C}m^{-2} \\right]$ "C content of CWD-extract (sink)" %
         output_map[573] = &cs->MULsrc_C; //%"C content of mulched material" $\\left[\\kg_{C}m^{-2} \\right]$ "Mulcsként bekerült szerves anyag C-tartalma" $\\left[\\kg_{C}m^{-2} \\right]$ "SUM of C content of mulched material" %
+        output_map[574] = &cs->Cprec_snk; //%"SUM of C lost to precision control" $\\left[\\kg_{H2O}m^{-2} \\right]$
 
 		output_map[600] = &cf->m_leafc_to_litr1c; //%"Mortality C flux from leaf to labile litter" $\\left[\\kg_{C}m^{-2 }day^{-1} \\right]$ "Elhalási C fluxus levélbol könnyen bomló elhalt növényi anyaggá" $\\left[\\kg_{C}m^{-2 }nap^{-1} \\right]$ "Mortality C flux from leaf to labile litter" %
         output_map[601] = &cf->m_leafc_to_litr2c; //%"Mortality C flux from leaf to unshielded cellulose portion of litter" $\\left[\\kg_{C}m^{-2 }day^{-1} \\right]$ "Elhalási C fluxus levélbol hozzáférhetõ cellulózzá" $\\left[\\kg_{C}m^{-2 }nap^{-1} \\right]$ "Mortality C flux from leaf to unshielded cellulose portion of litter" %

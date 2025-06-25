@@ -25,7 +25,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "misc_func.h"
 
 
-int GSI_calculation(const metarr_struct* metarr, const siteconst_struct* sitec, epconst_struct* epc, 
+int GSI_calculation(const metarr_struct* metarr, const siteconst_struct* sitec, const epconst_struct* epc, 
 					phenarray_struct* phenarr, control_struct* ctrl)
 
 {
