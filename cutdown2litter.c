@@ -78,6 +78,10 @@ int cutdown2litter(const soilprop_struct* sprop, const epconst_struct* epc, cons
 						  cf->CTDBc_softstem_to_litr * epc->softstemlitr_flig) * sprop->PROPlayerDC[layer];
 		cs->cwdc[layer]   += (cf->CTDBc_cstem_to_cwd) * sprop->PROPlayerDC[layer];
 
+		/* update of aboveground biomass */
+		cs->litrCabove[layer] += (cf->CTDBc_leaf_to_litr + cf->CTDBc_yield_to_litr + cf->CTDBc_softstem_to_litr) * sprop->PROPlayerDC[layer];
+		cs->cwdCabove[layer] += (cf->CTDBc_cstem_to_cwd) * sprop->PROPlayerDC[layer];
+
 		ns->litr1n[layer] += (nf->CTDBn_leaf_to_litr * epc->leaflitr_flab  + nf->CTDBn_yield_to_litr * epc->yieldlitr_flab  + 
 						  nf->CTDBn_softstem_to_litr * epc->softstemlitr_flab) * sprop->PROPlayerDC[layer];
 		ns->litr2n[layer] += (nf->CTDBn_leaf_to_litr * epc->leaflitr_fucel + nf->CTDBn_yield_to_litr * epc->yieldlitr_fucel + 

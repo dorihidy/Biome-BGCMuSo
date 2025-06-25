@@ -1056,13 +1056,6 @@ int make_zero_flux_struct(const control_struct* ctrl, wflux_struct* wf, cflux_st
 	summary->litfire = 0;
 	summary->CH4flux_total = 0;
 	summary->Cflux_lateral = 0;
-	summary->SOCpercent_top30 = 0;
-	summary->SONpercent_top30 = 0;
-	summary->SOCpercent_top10 = 0;
-	summary->SOC_top30 = 0;
-	summary->SON_top30 = 0;
-	summary->NH4dissolv_top30ppm = 0;
-	summary->NO3dissolv_top30ppm = 0;
 
 	summary->GWdischarge_NH4 = 0;
 	summary->GWdischarge_NO3 = 0;

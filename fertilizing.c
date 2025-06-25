@@ -68,7 +68,7 @@ int fertilizing(const control_struct* ctrl, const siteconst_struct* sitec, soilp
 	FRZ_to_litrc=FRZ_to_litrn=ratio=ratioSUM=0;
 	ha_to_m2 = 1./10000;
 
-	
+	/* meg kell csnálni az urea-t*/
 	/* On management days fertilizer is put on the field */
 	if (FRZ->FRZ_num && md >= 0)
 	{

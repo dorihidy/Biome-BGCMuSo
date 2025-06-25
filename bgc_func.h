@@ -65,7 +65,7 @@ int phenphase(file logfile, const control_struct* ctrl, const epconst_struct* ep
 	int vernalization(const epconst_struct* epc, const metvar_struct* metv, phenology_struct* phen);
 	int photoslow(const epconst_struct* epc, const metvar_struct* metv, phenology_struct* phen);
 
-int multilayer_tsoil(const control_struct* ctrl, const epconst_struct* epc, const siteconst_struct* sitec, const soilprop_struct* sprop, epvar_struct* epv, int yday, double snoww,
+int multilayer_Tsoil(const control_struct* ctrl, const epconst_struct* epc, const siteconst_struct* sitec, const soilprop_struct* sprop, epvar_struct* epv, int yday, double snoww,
 					 metvar_struct* metv);
 int soilCover(siteconst_struct* sitec, soilprop_struct* sprop, metvar_struct* metv,  epvar_struct* epv, cstate_struct* cs);
 
@@ -163,7 +163,7 @@ int mortality(const control_struct* ctrl, const soilprop_struct* sprop, const ep
 
 int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv, const siteconst_struct* sitec, const NdepControl_struct* ndep,
 	                 cstate_struct* cs, cflux_struct* cf, nstate_struct* ns, nflux_struct* nf, soilprop_struct* sprop, epvar_struct* epv, soilInfo_struct* soilInfo);
-	int nitrification(int layer, const soilprop_struct* sprop, double net_miner, double tsoil, double pH, double WFPS, double NH4dissolv, epvar_struct* epv, double* N2OfluxNITRIF, double* NH4_to_nitrif);
+	int nitrification(int layer, const soilprop_struct* sprop, double net_miner, double Tsoil, double pH, double WFPS, double NH4dissolv, epvar_struct* epv, double* N2OfluxNITRIF, double* NH4_to_nitrif);
 	int denitrification(int soiltype, double NO3avail_ppm, double pH, double WFPS, double SR_total,  double* NO3_to_denitr, double* ratioN2_N2O);
 
 int multilayer_leaching(soilprop_struct* sprop, soilInfo_struct* soilInfo, cstate_struct* cs, nstate_struct* ns,  wstate_struct* ws, wflux_struct* wf);
@@ -206,6 +206,7 @@ int CWDextract(control_struct* ctrl, const CWDextract_struct* CWE, cstate_struct
 int cutdown2litter(const soilprop_struct* sprop, const epconst_struct* epc, const epvar_struct* epv, cstate_struct* cs, cflux_struct* cf, nstate_struct* ns, nflux_struct* nf);
 
 int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, soilprop_struct* sprop, soilInfo_struct* soilInfo);
+	int precision_reset(int flagLITTER, int layer, cstate_struct* cs, nstate_struct* ns, double* cpool, double* npool, int* errorCode);
 
 int check_water_balance (wstate_struct* ws, int first_balance);
 int check_carbon_balance(cstate_struct* cs, int first_balance);

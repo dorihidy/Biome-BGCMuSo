@@ -44,7 +44,7 @@ int photosynthesis(const control_struct* ctrl, const epconst_struct* epc, const 
 
 	/* photosynth. acclimation */
 	if (ctrl->phtsyn_acclim_flag == 1)
-		psn_sun->t      = metv->tACCLIM;
+		psn_sun->t      = metv->Tacclim;
 	else
 		psn_sun->t		= metv->Tday;
 

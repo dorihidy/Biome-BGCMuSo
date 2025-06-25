@@ -39,7 +39,7 @@ int metarr_init(point_struct* point, metarr_struct* metarr, const climchange_str
 int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, cinit_struct* cinit, control_struct* ctrl, soilInfo_struct* soilInfo);
 
 
-int GSI_calculation(const metarr_struct* metarr, const siteconst_struct* sitec, epconst_struct* epc, 
+int GSI_calculation(const metarr_struct* metarr, const siteconst_struct* sitec, const epconst_struct* epc, 
 	                phenarray_struct* phenarr, control_struct* ctrl);
 
 int conductLimit_information(file logfile, const control_struct* ctrl, const epconst_struct* epc, epvar_struct* epv);

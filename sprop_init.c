@@ -506,27 +506,27 @@ int sprop_init(file init, soilprop_struct* sprop, control_struct* ctrl)
 	}
 	
 	/* fraction of dissolving coefficients  */
-	if (!errorCode && scan_value(sprop_file, &sprop->SOIL1_dissolv_prop, 'd'))
+	if (!errorCode && scan_value(sprop_file, &sprop->SOIL1dissolv_prop, 'd'))
 	{
-		printf("ERROR reading SOIL1_dissolv_prop: sprop_init.c\n");
+		printf("ERROR reading SOIL1dissolv_prop: sprop_init.c\n");
 		errorCode=208067;
 	}	
 	
-	if (!errorCode && scan_value(sprop_file, &sprop->SOIL2_dissolv_prop, 'd'))
+	if (!errorCode && scan_value(sprop_file, &sprop->SOIL2dissolv_prop, 'd'))
 	{
-		printf("ERROR reading SOIL2_dissolv_prop: sprop_init.c\n");
+		printf("ERROR reading SOIL2dissolv_prop: sprop_init.c\n");
 		errorCode=208068;
 	}
 	
-	if (!errorCode && scan_value(sprop_file, &sprop->SOIL3_dissolv_prop, 'd'))
+	if (!errorCode && scan_value(sprop_file, &sprop->SOIL3dissolv_prop, 'd'))
 	{
-		printf("ERROR reading SOIL3_dissolv_prop: sprop_init.c\n");
+		printf("ERROR reading SOIL3dissolv_prop: sprop_init.c\n");
 		errorCode=208069;
 	}
 	
-	if (!errorCode && scan_value(sprop_file, &sprop->SOIL4_dissolv_prop, 'd'))
+	if (!errorCode && scan_value(sprop_file, &sprop->SOIL4dissolv_prop, 'd'))
 	{
-		printf("ERROR reading SOIL4_dissolv_prop: sprop_init.c\n");
+		printf("ERROR reading SOIL4dissolv_prop: sprop_init.c\n");
 		errorCode=208070;
 	}
 	
@@ -710,7 +710,7 @@ int sprop_init(file init, soilprop_struct* sprop, control_struct* ctrl)
 	for (layer=0; layer<N_SOILLAYERS; layer++)
 	{
 		if (layer==N_SOILLAYERS-1) scanflag=1;
-		if (!errorCode && scan_array(sprop_file, &(sprop->BD_mes[layer]), 'd', scanflag, 1))
+		if (!errorCode && scan_array(sprop_file, &(sprop->BDgPERcm3_mes[layer]), 'd', scanflag, 1))
 		{
 			printf("ERROR reading BD in layer %i, sprop_init.c\n", layer);
 			errorCode=208092;
@@ -912,7 +912,7 @@ int sprop_init(file init, soilprop_struct* sprop, control_struct* ctrl)
 }
 
 int soilb_estimation(double sand, double silt, double* soilB, double* VWCsat,double* VWCfc, double* VWCwp,  
-	                 double* BD, double* RCN, double* p1diffus, double* p2diffus, double* p3diffus, double* curvatureWS, int* soiltype)
+	                 double* BDgcm3, double* RCN, double* p1diffus, double* p2diffus, double* p3diffus, double* curvatureWS, int* soiltype)
 
 {
 
@@ -923,7 +923,7 @@ int soilb_estimation(double sand, double silt, double* soilB, double* VWCsat,dou
 	double VWCsat_array[12]			= {0.4,   0.42,  0.44,  0.46,  0.48,  0.49,		0.5,   0.505,	0.51,	0.515,	0.52,	0.525};
 	double VWCfc_array[12]			= {0.155, 0.190, 0.250, 0.310, 0.360, 0.380,	0.390, 0.405,	0.420,	0.435,	0.445,	0.460};
 	double VWCwp_array[12]			= {0.030, 0.050, 0.090, 0.130, 0.170, 0.190,	0.205, 0.220,	0.240,	0.260,	0.275,	0.290};
-	double BD_array[12]				= {1.6,   1.58,  1.56,  1.54,  1.52,  1.5,		1.48,  1.46,	1.44,	1.42,	1.4,	1.38};
+	double BDgcm3_array[12]				= {1.6,   1.58,  1.56,  1.54,  1.52,  1.5,		1.48,  1.46,	1.44,	1.42,	1.4,	1.38};
 	double RCN_array[12]			= {50,    52,    54,    56,    58,    60,		62,    64,		66,		68,		70,		72};
 	double p1diffus_array[12]       = {0.88,  0.88,  0.88,  0.88,  0.88,  0.88,		0.88,  0.88,	0.88,	0.88,	0.88,	0.88 };
 	double p2diffus_array[12]       = {35.4,  35.4,  35.4,  35.4,  35.4,  35.4,		35.4,  35.4,	35.4,	35.4,	35.4,	35.4 };
@@ -985,7 +985,7 @@ int soilb_estimation(double sand, double silt, double* soilB, double* VWCsat,dou
 		*VWCsat		= VWCsat_array[st];
 		*VWCfc		= VWCfc_array[st];
 		*VWCwp		= VWCwp_array[st];
-		*BD			= BD_array[st];
+		*BDgcm3		= BDgcm3_array[st];
 		*RCN		= RCN_array[st];
 		*p1diffus   = p1diffus_array[st];
 		*p2diffus   = p2diffus_array[st];
@@ -1007,11 +1007,11 @@ int multilayer_soilcalc(control_struct* ctrl,  soilprop_struct* sprop)
 	int layer;
 
 	double sand, silt, clay, PSIfc, PSIwp, PSIsat;
-	double soilB, BD, RCN, CapillFringe, VWCsat, VWCfc, VWCwp, VWChw, hydrCONDUCTsat, hydrDIFFUSsat, hydrCONDUCTfc,hydrDIFFUSfc, p1diffus, p2diffus, p3diffus, curvatureWS;
+	double soilB, BDgcm3, RCN, CapillFringe, VWCsat, VWCfc, VWCwp, VWChw, hydrCONDUCTsat, hydrDIFFUSsat, hydrCONDUCTfc,hydrDIFFUSfc, p1diffus, p2diffus, p3diffus, curvatureWS;
 	int errorCode = 0;
 	int soiltype = 0;
 
-	soilB = BD = RCN = CapillFringe = PSIsat = VWCsat =VWCwp = VWChw = hydrCONDUCTsat = hydrDIFFUSsat = hydrCONDUCTfc =hydrDIFFUSfc = 0;
+	soilB = BDgcm3 = RCN = CapillFringe = PSIsat = VWCsat =VWCwp = VWChw = hydrCONDUCTsat = hydrDIFFUSsat = hydrCONDUCTfc =hydrDIFFUSfc = 0;
 
 	
 	/* -------------------------------------------------------------------------------------------------------------------------------*/
@@ -1059,7 +1059,7 @@ int multilayer_soilcalc(control_struct* ctrl,  soilprop_struct* sprop)
 		}
 
 		/* default values from soil properties */
-		if (soilb_estimation(sand, silt, &soilB, &VWCsat, &VWCfc, &VWCwp,&BD, &RCN, &p1diffus, &p2diffus, &p3diffus, &curvatureWS, &soiltype))
+		if (soilb_estimation(sand, silt, &soilB, &VWCsat, &VWCfc, &VWCwp, &BDgcm3, &RCN, &p1diffus, &p2diffus, &p3diffus, &curvatureWS, &soiltype))
 		{
 			if (!errorCode) 
 			{
@@ -1073,7 +1073,7 @@ int multilayer_soilcalc(control_struct* ctrl,  soilprop_struct* sprop)
 
 		/* using the model soil properties */
 		if (sprop->soilB_mes[layer] != (double)DATA_GAP)  soilB = sprop->soilB_mes[layer];
-		if (sprop->BD_mes[layer] != (double)DATA_GAP)     BD = sprop->BD_mes[layer];
+		if (sprop->BDgPERcm3_mes[layer] != (double)DATA_GAP)     BDgcm3 = sprop->BDgPERcm3_mes[layer];
 		if (sprop->VWCsat_mes[layer] != (double)DATA_GAP) VWCsat = sprop->VWCsat_mes[layer];
 		if (sprop->VWCfc_mes[layer] != (double)DATA_GAP)  VWCfc = sprop->VWCfc_mes[layer];
 		if (sprop->VWCwp_mes[layer] != (double)DATA_GAP)  VWCwp = sprop->VWCwp_mes[layer];
@@ -1103,7 +1103,7 @@ int multilayer_soilcalc(control_struct* ctrl,  soilprop_struct* sprop)
 			
 
 		sprop->soilB[layer]             = soilB;
-		sprop->BD[layer]                = BD;
+		sprop->BD[layer]                = BDgcm3 * g_per_cm3_to_kg_per_m3;
 		sprop->PSIsat[layer]			= PSIsat;
 		sprop->PSIfc[layer]				= PSIfc;
 		sprop->PSIwp[layer]				= PSIwp;

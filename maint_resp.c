@@ -50,11 +50,11 @@ int maint_resp(const control_struct* ctrl, const planting_struct* PLT, const cst
 	double exponent;
 	double n_area_sun, n_area_shade, dlmr_area_sun, dlmr_area_shade;
 	int layer;
-	double tsoil, frootn_layer, livecrootn_layer, q10, froot_MR,livecroot_MR,softstem_MR,livestem_MR;
+	double Tsoil, frootn_layer, livecrootn_layer, q10, froot_MR,livecroot_MR,softstem_MR,livestem_MR;
 
 
 	double MRperN = epc->MRperN;
-	double acclim_const = -0.00794; 	/* 1. calculate the tsoil exponenet regarding to froot_resp in multilayer soil */
+	double acclim_const = -0.00794; 	/* 1. calculate the Tsoil exponenet regarding to froot_resp in multilayer soil */
 
 	froot_MR = livecroot_MR = softstem_MR = livestem_MR = 0;
 
@@ -95,7 +95,7 @@ int maint_resp(const control_struct* ctrl, const planting_struct* PLT, const cst
 		epv->dlmr_area_shade = dlmr_area_shade/(nSEC_IN_DAY * 12.011e-9);
 		
 		/* leaf, night */
-		exponent = (metv->tnight - 20.0) / 10.0;
+		exponent = (metv->Tnight - 20.0) / 10.0;
 		cf->leaf_night_MR = t1 * pow(q10, exponent) * (nSEC_IN_DAY - metv->dayl) / nSEC_IN_DAY;
 	}
 	else /* no leaves on */
@@ -113,10 +113,10 @@ int maint_resp(const control_struct* ctrl, const planting_struct* PLT, const cst
 	{
 		for (layer = epv->germ_layer; layer < epv->n_rootlayers; layer++)
 		{
-			tsoil = metv->tsoil[layer];
+			Tsoil = metv->Tsoil[layer];
 			
 			frootn_layer = ns->frootn * epv->rootlengthProp[layer];
-			exponent = (tsoil - 20.0) / 10.0;
+			exponent = (Tsoil - 20.0) / 10.0;
 			t1 = pow(q10, exponent);
 			froot_MR += frootn_layer * MRperN * t1;
 		}
@@ -166,11 +166,11 @@ int maint_resp(const control_struct* ctrl, const planting_struct* PLT, const cst
 	{
 		for (layer = epv->germ_layer; layer < epv->n_rootlayers; layer++)
 		{
-			tsoil = metv->tsoil[layer];
+			Tsoil = metv->Tsoil[layer];
 
 			livecrootn_layer = ns->livecrootn * epv->rootlengthProp[layer];
 			
-			exponent = (tsoil - 20.0) / 10.0;
+			exponent = (Tsoil - 20.0) / 10.0;
 			t1 = pow(q10, exponent);
 			livecroot_MR += livecrootn_layer * MRperN * t1;
 		}

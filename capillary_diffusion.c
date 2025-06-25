@@ -401,7 +401,7 @@ int capillary_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 
 		if (fabs(soilwDiffus_act) > CRIT_PREC_lenient)
 		{
-			/*  avoiding downward percolation into NORMgw from above layer and upward diffusion from CAPILgw into above layer in the same time - source of diffusion is NORMgw primaraly  (balus) */
+			/*  avoiding downward percolation into NORMgw from above layer and upward diffusion from CAPILgw into above layer in the same time - source of diffusion is NORMgw primaraly  */
 			if (soilwDiffus_act < 0 && wf->soilwPercol[CFlayer - 1] > fabs(soilwDiffus_act))
 			{
 				soilw_hwNORM = sprop->VWChw[CFlayer - 1] * sitec->soillayer_thickness[CFlayer - 1] * water_density;

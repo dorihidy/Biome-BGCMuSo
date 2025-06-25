@@ -224,14 +224,37 @@ int restart_input(const control_struct* ctrl, const epconst_struct* epc, const s
 		cs->cwdCabove[layer] = restart->cwdCabove[layer];
 		cs->cwdCbelow[layer] = restart->cwdCbelow[layer];
 
-		cs->soil1c[layer] = restart->soil1c[layer];
-		ns->soil1n[layer] = restart->soil1n[layer];
-		cs->soil2c[layer] = restart->soil2c[layer];
-		ns->soil2n[layer] = restart->soil2n[layer];
-		cs->soil3c[layer] = restart->soil3c[layer];
-		ns->soil3n[layer] = restart->soil3n[layer];
-		cs->soil4c[layer] = restart->soil4c[layer];
-		ns->soil4n[layer] = restart->soil4n[layer];
+		if (cs->soil1c[layer] == 0)
+		{
+			cs->soil1c[layer] = restart->soil1c[layer];
+			ns->soil1n[layer] = restart->soil1n[layer];
+		}
+		else
+			ns->soil1n[layer] = cs->soil1c[layer] / sprop->soil1_CN;
+
+		if (cs->soil2c[layer] == 0)
+		{
+			cs->soil2c[layer] = restart->soil2c[layer];
+			ns->soil2n[layer] = restart->soil2n[layer];
+		}
+		else
+			ns->soil2n[layer] = cs->soil2c[layer] / sprop->soil2_CN;
+
+		if (cs->soil3c[layer] == 0)
+		{
+			cs->soil3c[layer] = restart->soil3c[layer];
+			ns->soil3n[layer] = restart->soil3n[layer];
+		}
+		else
+			ns->soil3n[layer] = cs->soil3c[layer] / sprop->soil3_CN;
+
+		if (cs->soil4c[layer] == 0)
+		{
+			cs->soil4c[layer] = restart->soil4c[layer];
+			ns->soil4n[layer] = restart->soil4n[layer];
+		}
+		else
+			ns->soil4n[layer] = cs->soil4c[layer] / sprop->soil4_CN;
 
 		/* in case of ammonium and nitrate, user can set their values also in case of using restart file*/
 		if (ns->NH4[layer] == 0) ns->NH4[layer] = restart->NH4[layer];	

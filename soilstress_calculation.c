@@ -152,7 +152,7 @@ int soilstress_calculation(const control_struct* ctrl, const epconst_struct* epc
 				epv->m_WS_layer[layer] = 1;
 				m_WSdrought[layer]     = 1;
 				m_WSanoxic[layer]      = 1;
-				ws->soilw_avail[layer] = 0;
+				ws->soilwAVAIL[layer] = 0;
 		}
 
 		m_WS_avg = 1;

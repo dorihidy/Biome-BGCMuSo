@@ -250,13 +250,16 @@ int radtrans(const control_struct* ctrl, const phenology_struct* phen, const cst
 	/* lwRADnet [W/m2] */
 	lwRADnet = (STEFAN_BOLTZMANN * f_cd * (0.34 - 0.14 * sqrt(e_act)) * ((pow(Tmax_K,4) + pow(Tmin_K,4))/2)) /  W_to_MJperDAY;
 	 
-	/* 2.4. net radiation: difference between net short-wave and net long wave */
-	RADnet = swRADnet - lwRADnet;
+	/* 2.4. net radiation: difference between net short-wave and net long wave, NEW METHOD - based on Jiang et al (2015)  - lower limit: 0  */
 
-	/* 2.5. NEW METHOD - based on Jiang et al (2015) */
-	RADnet = epc->rad_param1 * swRADnet + epc->rad_param2;
+	if (ctrl->radiation_flag == 2)
+		RADnet = swRADnet - lwRADnet;
+	else
+		RADnet = epc->rad_param1 * swRADnet + epc->rad_param2;
+		
+	if (RADnet < 0) RADnet = 0;
 
-	/* 2.6 convert this to the shortwave absorbed per unit LAI in the sunlit and  shaded canopy fractions  */
+	/* 2.5 convert this to the shortwave absorbed per unit LAI in the sunlit and  shaded canopy fractions  */
 	
 	if (epv->projLAI > 0.0 )
 	{

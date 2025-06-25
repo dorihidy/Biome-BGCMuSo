@@ -216,7 +216,12 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 	if (ctrl.radiation_flag == 0)
 		fprintf(bgcout->log_file.ptr, "radiation            - based on SWabs\n");
 	else
-		fprintf(bgcout->log_file.ptr, "radiation            - based on Rn\n");
+	{
+		if (ctrl.radiation_flag == 1)
+			fprintf(bgcout->log_file.ptr, "radiation        - based on Rn based on Jiang et al (2015)\n");
+		else
+			fprintf(bgcout->log_file.ptr, "radiation        - based on Rn (difference between net short wawe and net long wave) \n");
+	}
 
 	if (ctrl.soilstress_flag == 0)
 		fprintf(bgcout->log_file.ptr, "soilstress           - based on VWC\n");
@@ -256,7 +261,13 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 	if (ctrl.phtsyn_acclim_flag == 0)
 		fprintf(bgcout->log_file.ptr, "photosyn. acclim.    - no\n");
 	else
-		fprintf(bgcout->log_file.ptr, "photosyn. acclim.    - yes\n");
+	{
+		if (ctrl.phtsyn_acclim_flag == 1)
+			fprintf(bgcout->log_file.ptr, "photosyn. acclim.    - yes (based on Dyukarev, 2017)\n");
+		else
+			fprintf(bgcout->log_file.ptr, "photosyn. acclim.    - yes (based on Kattge and Knorr, 2007 \n");
+	}
+		
 
 	if (ctrl.resp_acclim_flag == 0)
 		fprintf(bgcout->log_file.ptr, "respiration acclim.  - no\n");
@@ -391,8 +402,8 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 
 	fprintf(bgcout->log_file.ptr, "SOIL PROPERTIES FOR 10 SOIL LAYERS (POTENTIALLY) ESTIMATED BY THE MODEL \n");
 	fprintf(bgcout->log_file.ptr, "Soiltype (based on sand/silt content) :%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s\n",soiltype_name[ctrl.soiltype_array[0]], soiltype_name[ctrl.soiltype_array[1]], soiltype_name[ctrl.soiltype_array[2]], soiltype_name[ctrl.soiltype_array[3]], soiltype_name[ctrl.soiltype_array[4]], soiltype_name[ctrl.soiltype_array[5]], soiltype_name[ctrl.soiltype_array[6]], soiltype_name[ctrl.soiltype_array[7]], soiltype_name[ctrl.soiltype_array[8]], soiltype_name[ctrl.soiltype_array[9]]);
+	fprintf(bgcout->log_file.ptr, "Bulk density [kg/m3]                  :%14.1f%14.1f%14.1f%14.1f%14.1f%14.1f%14.1f%14.1f%14.1f%14.1f\n", sprop.BD[0], sprop.BD[1], sprop.BD[2], sprop.BD[3], sprop.BD[4], sprop.BD[5], sprop.BD[6], sprop.BD[7], sprop.BD[8], sprop.BD[9]);
 	fprintf(bgcout->log_file.ptr, "Clapp-Hornberger b parameter [dimless]:%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f\n",sprop.soilB[0],sprop.soilB[1],sprop.soilB[2],sprop.soilB[3],sprop.soilB[4],sprop.soilB[5],sprop.soilB[6],sprop.soilB[7],sprop.soilB[8],sprop.soilB[9]);
-	fprintf(bgcout->log_file.ptr, "bulk density [g/cm3]:                  %14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f\n",sprop.BD[0],sprop.BD[1],sprop.BD[2],sprop.BD[3],sprop.BD[4],sprop.BD[5],sprop.BD[6],sprop.BD[7],sprop.BD[8],sprop.BD[9]);
 	fprintf(bgcout->log_file.ptr, "VWC at saturation [m3/m3]:             %14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f\n",sprop.VWCsat[0],sprop.VWCsat[1],sprop.VWCsat[2],sprop.VWCsat[3],sprop.VWCsat[4],sprop.VWCsat[5],sprop.VWCsat[6],sprop.VWCsat[7],sprop.VWCsat[8],sprop.VWCsat[9]);
 	fprintf(bgcout->log_file.ptr, "VWC at field capacity [m3/m3]:         %14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f\n",sprop.VWCfc[0],sprop.VWCfc[1],sprop.VWCfc[2],sprop.VWCfc[3],sprop.VWCfc[4],sprop.VWCfc[5],sprop.VWCfc[6],sprop.VWCfc[7],sprop.VWCfc[8],sprop.VWCfc[9]);
 	fprintf(bgcout->log_file.ptr, "VWC at wilting point [m3/m3]:          %14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f\n",sprop.VWCwp[0],sprop.VWCwp[1],sprop.VWCwp[2],sprop.VWCwp[3],sprop.VWCwp[4],sprop.VWCwp[5],sprop.VWCwp[6],sprop.VWCwp[7],sprop.VWCwp[8],sprop.VWCwp[9]);
@@ -545,7 +556,7 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 	}
 
 	/* calculate conductance limitation factors */	
-	if (!errorCode && conductLimit_calculations( &sprop, &epc, &epv))
+	if (!errorCode && conductLimit_calculations(&sprop, &epc, &epv))
 	{
 		printf("ERROR in call to conductLimit_calculations.c, from bgc.c\n");
 		errorCode=404;
@@ -729,9 +740,9 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 	
 			
 			/* soil temperature calculations */
-			if (!errorCode && multilayer_tsoil(&ctrl,&epc, &sitec, &sprop, &epv, yday, ws.snoww, &metv))
+			if (!errorCode && multilayer_Tsoil(&ctrl,&epc, &sitec, &sprop, &epv, yday, ws.snoww, &metv))
 			{
-				printf("ERROR in multilayer_tsoil.c from bgc.c\n");
+				printf("ERROR in multilayer_Tsoil.c from bgc.c\n");
 				errorCode=508;
 			}
 			
@@ -805,6 +816,7 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 			}
 			
 	
+
 			/* begin canopy bio-physical process simulation */
 			/* do canopy ET calculations whenever there is leaf area displayed, since there may be intercepted water on the canopy that needs to be dealt with */
 			if (!errorCode && epv.n_actphen >= epc.n_emerg_phenophase && metv.dayl)
@@ -841,7 +853,7 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=520;
 			}
 			
-	
+
 		
 			/* Daily allocation gets called whether or not this is a current growth day, because the competition between decomp immobilization fluxes 
 			and plant growth N demand is resolved here.  On days with no growth, no allocation occurs, but immobilization fluxes are updated normally */
@@ -973,7 +985,7 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=532;
 			}		
 
-		
+
 			/* calculate summary variables */
 			if (!errorCode && aboveANDbelow(&sprop, &epv, &cs, &cf))
 			{
@@ -1078,8 +1090,7 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 
 			/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 			/* 7. ERROR CHECKING AND SUMMARY VARIABLES  */
-			
-		
+	
 			/* test for very low state variable values and force them to 0.0 to avoid rounding and floating point overflow errors */
 			if (!errorCode && precision_control(&ws, &cs, &ns, &sprop, &soilInfo))
 			{
@@ -1111,7 +1122,7 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=548;
 			}		
 
-
+	
 			/* test for nitrogen balance */
 			if (!errorCode && check_nitrogen_balance(&ns, first_balance))
 			{
@@ -1183,6 +1194,7 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 		printf("Aboveground litter carbon content [kgC/m2]:    %12.1f\n", cs.litrCabove_total);
 		printf("Aboveground CWD carbon content [kgC/m2]:       %12.1f\n", cs.cwdCabove_total);
 		printf("Total soil carbon content [kgC/m2]:            %12.1f\n",summary.soilC_total);
+		printf("Total stable soil carbon content [kgC/m2/year]:%12.1f\n", cs.soil4c_total);
 	}
 
 	if (cs.CbalanceERR != 0) CbalanceERR = log10(cs.CbalanceERR);
@@ -1203,11 +1215,12 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 	fprintf(bgcout->log_file.ptr, "Maximum rooting depth [m2/m2]:                           %12.2f\n",epv.annmax_rootDepth);
 	fprintf(bgcout->log_file.ptr, "Aboveground litter carbon content [kgC/m2/year]:         %12.2f\n",cs.litrCabove_total);
 	fprintf(bgcout->log_file.ptr, "Aboveground CWD carbon content [kgC/m2/year]:            %12.2f\n",cs.cwdCabove_total);
-	fprintf(bgcout->log_file.ptr, "Soil carbon content (in 0-30 cm soil layer) [%%]:        %12.2f\n",summary.SOCpercent_top30);
+	fprintf(bgcout->log_file.ptr, "Soil carbon content (in 0-30 cm soil layer) [%%]:         %12.2f\n",summary.SOCpercent_top30);
 	fprintf(bgcout->log_file.ptr, "Total litter carbon content [kgC/m2/year]:               %12.2f\n",summary.litrC_total);
 	fprintf(bgcout->log_file.ptr, "Total soil carbon content [kgC/m2/year]:                 %12.2f\n",summary.soilC_total);
-	fprintf(bgcout->log_file.ptr, "Averaged available soil ammonium content (0-30 cm) [ppm]:%12.2f\n",summary.NH4dissolv_top30ppm);
-	fprintf(bgcout->log_file.ptr, "Averaged available soil nitrate content (0-30 cm) [ppm]: %12.2f\n",summary.NO3dissolv_top30ppm);
+	fprintf(bgcout->log_file.ptr, "Total stable soil carbon content [kgC/m2/year]:          %12.2f\n", cs.soil4c_total);
+	fprintf(bgcout->log_file.ptr, "Averaged available soil ammonium content (0-30 cm) [ppm]:%12.2f\n",summary.NH4ppmAVAIL_top30);
+	fprintf(bgcout->log_file.ptr, "Averaged available soil nitrate content (0-30 cm) [ppm]: %12.2f\n",summary.NO3ppmAVAIL_top30);
 	fprintf(bgcout->log_file.ptr, "Averaged soil water content  [m3/m3]:                    %12.2f\n",epv.VWC_avg);
 	fprintf(bgcout->log_file.ptr, " \n");
 	fprintf(bgcout->log_file.ptr, "10-base logarithm of the maximum carbon balance diff.:   %12.1f\n",CbalanceERR);

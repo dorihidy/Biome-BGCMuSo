@@ -28,19 +28,20 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 
 	/* ploughing parameters */
 	int PLGlayer, layer;
-	double PLGdepth, PLGcoeff, NH4_SUM, NO3_SUM, soilw_SUM, tsoilSUM, sand_SUM, silt_SUM;	 
+	double PLGdepth, PLGcoeff, NH4_SUM, NO3_SUM, soilw_SUM, TsoilSUM, sand_SUM, silt_SUM;	 
 	double litr1c_SUM, litr2c_SUM, litr3c_SUM, litr4c_SUM, litr1n_SUM, litr2n_SUM, litr3n_SUM, litr4n_SUM;
 	double soil1c_SUM, soil2c_SUM, soil3c_SUM, soil4c_SUM, soil1n_SUM, soil2n_SUM, soil3n_SUM, soil4n_SUM;
-	int md, year;
+	int md, year, flag;
 	
 	int errorCode = 0;
+	flag = 0;
 
 	year = ctrl->simstartyear + ctrl->simyr;
 	md = PLG->mgmdPLG-1;
 
 	errorCode=0;
 	PLGdepth=0;
-	PLGcoeff=NH4_SUM=NO3_SUM=soilw_SUM=tsoilSUM=sand_SUM=silt_SUM=0;	 
+	PLGcoeff=NH4_SUM=NO3_SUM=soilw_SUM=TsoilSUM=sand_SUM=silt_SUM=0;	 
 	litr1c_SUM=litr2c_SUM=litr3c_SUM=litr4c_SUM=litr1n_SUM=litr2n_SUM=litr3n_SUM=litr4n_SUM=0;
 	soil1c_SUM=soil2c_SUM=soil3c_SUM=soil4c_SUM=soil1n_SUM=soil2n_SUM=soil3n_SUM=soil4n_SUM=0;
 
@@ -55,25 +56,22 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 		{
 			/* decrease of plant material caused by ploughing: difference between plant material before and after harvesting */
 			PLGcoeff      = 1.0;  
-		
-			/* ploughing layer from depth */
-			layer = 1;
-			PLGlayer = 0;
 			PLGdepth = PLG->PLGdepths_array[md];
-
-			if (PLGdepth > sitec->soillayer_depth[0])
+			
+			/* ploughing layer from depth */
+			layer = 0;
+			while (layer < N_SOILLAYERS && flag == 0)
 			{
-				while (PLGlayer== 0 && layer < N_SOILLAYERS)
+				if (PLGdepth <= sitec->soillayer_depth[layer])
 				{
-					if ((PLGdepth > sitec->soillayer_depth[layer-1]) && (PLGdepth <= sitec->soillayer_depth[layer])) layer += 1;
-					PLGlayer  = layer;
+
+					flag = 1;
+					PLGlayer = layer;
 				}
-				if (PLGlayer == 0)
-				{
-					printf("ERROR in ploughing depth calculation (ploughing.c)\n");
-					errorCode=1;
-				}
+				layer += 1;
+				
 			}
+
 		}
 	}
 	/**********************************************************************************************/
@@ -82,9 +80,10 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 
 	if (PLGcoeff > 0)
 	{
-		for (layer = 0; layer<PLGlayer; layer++)
+		for (layer = 0; layer<=PLGlayer; layer++)
 		{
-			tsoilSUM += metv->tsoil[layer] * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
+			
+			TsoilSUM += metv->Tsoil[layer] * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
 
 			soilw_SUM     += ws->soilw[layer];
 			NH4_SUM   += ns->NH4[layer];
@@ -110,12 +109,12 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 
 		}
 
-
-		for (layer = 0; layer<PLGlayer; layer++)
+		
+		for (layer = 0; layer<=PLGlayer; layer++)
 		{
-			metv->tsoil[layer] = tsoilSUM;
+			metv->Tsoil[layer] = TsoilSUM;
 
-			ws->soilw[layer]   = soilw_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
+			ws->soilw[layer]   = soilw_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
 			epv->VWC[layer]    = ws->soilw[layer] / (water_density * sitec->soillayer_thickness[layer]);
 
 			sprop->sand[layer] = sand_SUM/PLGdepth;
@@ -123,29 +122,42 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 			sprop->clay[layer] = 100-sprop->sand[layer]-sprop->silt[layer];
 
 
-			ns->NH4[layer]   = NH4_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
-			ns->NO3[layer]   = NO3_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
-			cs->litr1c[layer]  = litr1c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
-			cs->litr2c[layer]  = litr2c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
-			cs->litr3c[layer]  = litr3c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
-			cs->litr4c[layer]  = litr4c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
-			ns->litr1n[layer]  = litr1n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
-			ns->litr2n[layer]  = litr2n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
-			ns->litr3n[layer]  = litr3n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
-			ns->litr4n[layer]  = litr4n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
-			cs->soil1c[layer]  = soil1c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
-			cs->soil2c[layer]  = soil2c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
-			cs->soil3c[layer]  = soil3c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
-			cs->soil4c[layer]  = soil4c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
-			ns->soil1n[layer]  = soil1n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
-			ns->soil2n[layer]  = soil2n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
-			ns->soil3n[layer]  = soil3n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1];
-			ns->soil4n[layer]  = soil4n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer-1]; 
+			ns->NH4[layer]   = NH4_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			ns->NO3[layer]   = NO3_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			cs->litr1c[layer]  = litr1c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			cs->litr2c[layer]  = litr2c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			cs->litr3c[layer]  = litr3c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			cs->litr4c[layer]  = litr4c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			ns->litr1n[layer]  = litr1n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			ns->litr2n[layer]  = litr2n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			ns->litr3n[layer]  = litr3n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			ns->litr4n[layer]  = litr4n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			cs->soil1c[layer]  = soil1c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			cs->soil2c[layer]  = soil2c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			cs->soil3c[layer]  = soil3c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			cs->soil4c[layer]  = soil4c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			ns->soil1n[layer]  = soil1n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			ns->soil2n[layer]  = soil2n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			ns->soil3n[layer]  = soil3n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			ns->soil4n[layer]  = soil4n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer]; 
+			ns->soil4n[layer]  = soil4n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer]; 
+
+	
 
 		}
 
-		/* update TSOIL values */
-		metv->tsoil_surface     = metv->tsoil[0];
+		/* update of litrCabove and litrCbelow */
+		cs->litrCabove_total = 0;
+		cs->litrCbelow_total = 0;
+		for (layer = 0; layer < N_SOILLAYERS; layer++)
+		{		
+			cs->litrCabove[layer] = 0;
+			cs->litrCbelow[layer] = cs->litr1c[layer] + cs->litr2c[layer] + cs->litr3c[layer] + cs->litr4c[layer];
+			cs->litrCbelow_total += cs->litrCbelow[layer];
+		}
+
+		/* update Tsoil values */
+		metv->Tsoil_surface     = metv->Tsoil[0];
 
 
 		/**********************************************************************************************/

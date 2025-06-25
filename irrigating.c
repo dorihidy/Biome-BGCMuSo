@@ -29,7 +29,7 @@ int irrigating(const control_struct* ctrl, const irrigating_struct* IRG, const s
 	
 	int errorCode=0;
 	int condIRG, condIRG_flag, condIRG_startyr, IRGlayer;
-	double critVWCbef, critVWCaft, critSOILWaft, condIRG_amount, VWCact_condIRG, VWCfc_condIRG, VWCwp_condIRG, soilw_condIRG;
+	double critVWCbef, critVWCaft, criTsoilWaft, condIRG_amount, VWCact_condIRG, VWCfc_condIRG, VWCwp_condIRG, soilw_condIRG;
 	double LAIcrit_condIRG;
 	double IRGdepth, diff;
 	int md, year, layer, nl;
@@ -41,7 +41,7 @@ int irrigating(const control_struct* ctrl, const irrigating_struct* IRG, const s
 	
 
 
-	critVWCbef=condIRG_amount=critSOILWaft=VWCact_condIRG=VWCfc_condIRG=VWCwp_condIRG=soilw_condIRG=0;
+	critVWCbef=condIRG_amount=criTsoilWaft=VWCact_condIRG=VWCfc_condIRG=VWCwp_condIRG=soilw_condIRG=0;
 	condIRG=0;
 
 	/* type of conditional irrigation: 1 -based on SWC, 2: - based on SMSI, 12002 - based on SWC but only after 2002, 22002, based on SMSI but only after 2002 */
@@ -155,11 +155,11 @@ int irrigating(const control_struct* ctrl, const irrigating_struct* IRG, const s
 			critVWCaft = VWCwp_condIRG + IRG->aftVWCratio_condIRG * (VWCfc_condIRG - VWCwp_condIRG);
 
 			if (IRG->nLayer_condIRG != DATA_GAP)
-				critSOILWaft = critVWCaft * sitec->soillayer_depth[nl] * water_density;
+				criTsoilWaft = critVWCaft * sitec->soillayer_depth[nl] * water_density;
 			else
-				critSOILWaft = critVWCaft * epv->rootlength * water_density;
+				criTsoilWaft = critVWCaft * epv->rootlength * water_density;
 
-			condIRG_amount = critSOILWaft - soilw_condIRG;
+			condIRG_amount = criTsoilWaft - soilw_condIRG;
 			if (condIRG_amount < 0)
 			{
 				if (ctrl->onscreen && ctrl->spinup == 0) printf("WARNING: too low starting point of cond. IRRIGATION parameter in conditional IRRIGATING\n");
