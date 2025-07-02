@@ -1,12 +1,12 @@
 /* 
 check_soilcontent.c
-transformation of soil content data from normal pools (ns, cs) to multi array
+transformation and checking of soil content data from normal pools (ns, cs) to multi array
 content2pool_flag = 0: NH4, NO3, DOC, DON - > content_array
 content2pool_flag = 1: content_array -> NH4, NO3, DOC, DON
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2021, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*

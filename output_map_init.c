@@ -7,7 +7,7 @@ variables in bgc
 Biome-BGCMuSo v7.0.
 Original code: Copyright 2000, Peter E. Thornton
 Numerical Terradynamic Simulation Group, The University of Montana, USA
-Modified code: Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Modified code: Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -275,7 +275,7 @@ int output_map_init(double** output_map, phenology_struct* phen, metvar_struct* 
         output_map[272] = &wf->soilwDiffus_aboveGWlayer_vs_CAPILgw; //%"Soil water diffusion flux between above-GWlayer and CAPIL zone of GWlayer" $\\left[\\kg_{H_{2}O}m^{-2}day^{-1}} \\right]$
         output_map[273] = &wf->soilwDiffusNORMcf; //%"Soil water diffusion flux of NORM zone in CFlayer" $\\left[\\kg_{H_{2}O}m^{-2}day^{-1}} \\right]$
         output_map[274] = &wf->soilwDiffusCAPILcf; //%"Soil water diffusion flux of CAPIL zone in CFlayer" $\\left[\\kg_{H_{2}O}m^{-2}day^{-1}} \\right]$
-        output_map[275] = &wf->soilwDiffus_aboveCFlayer_vs_NORMcf;  //%"Soil water diffusion flux between above-CFlayer and NORM zone of CFlayer" $\\left[\\kg_{H_{2}O}m^{-2}day^{-1}} \\right]$
+        output_map[275] = &wf->soilwDiffus_aboveCFlayer_vs_NORMcf;  //%"Soil water diffusion fluxF between above-CFlayer and NORM zone of CFlayer" $\\left[\\kg_{H_{2}O}m^{-2}day^{-1}} \\right]$
         output_map[276] = &wf->soilwDiffus_aboveCFlayer_vs_CAPILcf; //%"Soil water diffusion flux between above-CFlayer and CAPIL zone of CFlayer" $\\left[\\kg_{H_{2}O}m^{-2}day^{-1}} \\right]$
         output_map[277] = &wf->soilwPercolDiffus_fromNORM_total; //%"Soil percolation-diffusion mixed flux between NORM zone of CFlayer and non-saturated CF-layers" $\\left[\\kg_{H_{2}O}m^{-2}day^{-1}} \\right]$
         output_map[278] = &wf->GWmovchange; //%"Total soil water change due to the movement of groundwater table" $\\left[\\kg_{H_{2}O}m^{-2}day^{-1}} \\right]$ "Talajvíz mozgásából származó összesített talajnedvesség-változás" $\\left[\\kg_{H_{2}O}m^{-2}nap^{-1}} \\right]$ "Soil water change due to the movement of groundwater table in soil layer 1 (0-3 cm)" %

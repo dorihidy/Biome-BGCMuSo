@@ -12,7 +12,7 @@ output files.
 Biome-BGCMuSo v7.0.
 Original code: Copyright 2000, Peter E. Thornton
 Numerical Terradynamic Simulation Group, The University of Montana, USA
-Modified code: Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Modified code: Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -633,7 +633,7 @@ int spinup_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 			/* set current month to 0 (january) at the beginning of each year */
 			ctrl.curmonth = 0;
 
-	
+			/* deciding wether leap year of not */
 			if (!errorCode && leapControl(ctrl.simstartyear+simyr, enddays, mondays, &leap))
 			{
 				printf("ERROR in call to leapControl.c from spinup_bgc.c\n");
@@ -1024,7 +1024,7 @@ int spinup_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 					errorCode=532;
 				}
 
-				/* calculate summary variables */
+				/* estimate above- and belowground litter */
 				if (!errorCode && aboveANDbelow(&sprop, &epv, &cs, &cf))
 				{
 					printf("ERROR in aboveANDbelow.c from bgc.c\n");

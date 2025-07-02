@@ -701,7 +701,7 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 			}
 
 	
-			/* estimate above- and belowground litter */
+			/* calculate summary variables */
 			if (!errorCode && aboveANDbelow(&sprop, &epv, &cs, &cf))
 			{
 				printf("ERROR in aboveANDbelow.c from bgc.c\n");

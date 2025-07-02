@@ -1,6 +1,6 @@
  /* 
 aboveANDbelow.c
-CALCULATING aboveground and belowground biomass 
+Estimating aboveground and belowground litter for soil layers 
 
  *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.

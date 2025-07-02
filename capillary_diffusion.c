@@ -1,10 +1,10 @@
 /*
-groundwater_diffusion.c
-UPWARD WATER MOVEMENT in groundwater layers
+capillary_diffusion.c
+Calculate diffusion fluxes in  capillary layer
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2024, D. Hidy [dori.hidy@gmail.com]GWdischar
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]GWdischar
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*

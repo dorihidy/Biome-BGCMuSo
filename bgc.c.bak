@@ -580,7 +580,7 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 	}
 	
 
-	/* initialize leaf C and N pools depending on phenology signals for the first metday */
+	
 	errorCode = firstday(&ctrl, &epc, &PLT, &sprop, &sitec, &cinit, &phen, &epv, &soilInfo, &ws, &cs, &ns, &summary, &psn_sun, &psn_shade);
 	if (errorCode)
 	{
