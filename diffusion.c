@@ -29,8 +29,8 @@ int diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv
 	int layer, N_NAGlayers;
 
 	double soilwDiffus_act, DBAR;
-	double VWC0, VWC0_sat, VWC0_eq, VWC0_wp, VWC0_EqFC, VWC1, VWC1_sat, VWC1_eq, VWC1_wp, VWC1_EqFC;
-	double rVWC0, rVWC1, rVWC_limit, VWC0_limit, VWC1_limit;
+	double VWC0, VWC0_sat, VWC0_eq, VWC0_wp, VWC0_hw, VWC0_EqFC, VWC1, VWC1_sat, VWC1_eq, VWC1_wp, VWC1_hw, VWC1_EqFC;
+	double rVWC0, rVWC1, fluxLimit, fl0, fl1;
 
 	double dz0, dz1;
 	double dLk;
@@ -54,6 +54,7 @@ int diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv
 		VWC0_sat = sprop->VWCsat[layer];
 		VWC0_eq = sprop->VWCeq[layer];
 		VWC0_wp = sprop->VWCwp[layer];
+		VWC0_hw = sprop->VWChw[layer];
 		VWC0_EqFC = MAX(VWC0_eq, sprop->VWCfc[layer]);
 
 		dz1 = sitec->soillayer_thickness[layer + 1];
@@ -61,22 +62,22 @@ int diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv
 		VWC1_sat = sprop->VWCsat[layer + 1];
 		VWC1_eq = sprop->VWCeq[layer + 1];
 		VWC1_wp = sprop->VWCwp[layer + 1];
+		VWC1_hw = sprop->VWChw[layer + 1];
 		VWC1_EqFC = MAX(VWC1_eq, sprop->VWCfc[layer+1]);
 			
 		rVWC0 = (VWC0 - VWC0_wp) / (VWC0_EqFC - VWC0_wp);
 		rVWC1 = (VWC1 - VWC1_wp) / (VWC1_EqFC - VWC1_wp);
-		rVWC_limit = (rVWC0 + rVWC1) / 2;
-		VWC0_limit = rVWC_limit * (VWC0_EqFC - VWC0_wp) + VWC0_wp;
-		VWC1_limit = rVWC_limit * (VWC1_EqFC - VWC1_wp) + VWC1_wp;
 
-		if (VWC0_limit > VWC0_sat) VWC0_limit = VWC0_sat;
-		if (VWC1_limit > VWC1_sat) VWC1_limit = VWC1_sat;
+		
+		fl0 = 1.0 / (dz0 * (VWC0_EqFC - VWC0_wp));
+		fl1 = 1.0 / (dz1 * (VWC1_EqFC - VWC1_wp));
+		fluxLimit = (rVWC1 - rVWC0) / (fl0 + fl1) * 1000;
 
 		dLk = DATA_GAP; // only interpreted in GW and CF layers
 
 	
 
-		if (!errorCode && calc_diffus(layer, sprop, dz0, VWC0, VWC0_sat, VWC0_EqFC, VWC0_wp, VWC0_limit, dz1, VWC1, VWC1_sat, VWC1_EqFC, VWC1_wp, VWC1_limit, dLk, &DBAR, &soilwDiffus_act))
+		if (!errorCode && calc_diffus(layer, sprop, dz0, VWC0, VWC0_sat, VWC0_EqFC, VWC0_wp, VWC0_hw, dz1, VWC1, VWC1_sat, VWC1_EqFC, VWC1_wp, VWC1_hw, fluxLimit, dLk, &DBAR, &soilwDiffus_act))
 		{
 			printf("\n");
 			printf("ERROR in calc_diffus.c for diffusion.c\n");
@@ -104,7 +105,7 @@ int diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv
 	
 
 	/* --------------------------------------------------------------------------------------------------------*/
-	/* BOTTOM LAYER IS SPECIAL 	*/
+	/* BOTTOM LAYER IS SPECIAL 	 balus
 
 	if (sprop->GWD == DATA_GAP)
 	{
@@ -113,7 +114,7 @@ int diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv
 		epv->VWC[N_SOILLAYERS - 1] = ws->soilw[N_SOILLAYERS - 1] / sitec->soillayer_thickness[N_SOILLAYERS - 1] / water_density;
 	}
 
-
+	*/
 
 
 

@@ -29,8 +29,8 @@ int groundwater_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar
 	int GWlayer, CFlayer, layer, flagSAT, realCAPILlayer, ll;
 
 	double soilwDiffus_act, DBAR, EXCESS;
-	double VWC0, VWC0_sat, VWC0_eq, VWC0_wp,  VWC0_EqFC, VWC1, VWC1_sat, VWC1_eq, VWC1_wp, VWC1_EqFC;
-	double rVWC0, rVWC1, rVWC_limit, VWC0_limit, VWC1_limit;
+	double VWC0, VWC0_sat, VWC0_eq, VWC0_wp, VWC0_hw, VWC0_EqFC, VWC1, VWC1_sat, VWC1_eq, VWC1_wp, VWC1_hw, VWC1_EqFC;
+	double rVWC0, rVWC1, fluxLimit, fl0, fl1;
 
 	double dz0, dz1, dLk;
 
@@ -61,6 +61,7 @@ int groundwater_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar
 		VWC0_sat = sprop->VWCsat[GWlayer];
 		VWC0_eq = sprop->VWCeq[GWlayer] * sprop->ratioNORMgw + sprop->VWCsat[GWlayer] * sprop->ratioCAPILgw;
 		VWC0_wp = sprop->VWCwp[GWlayer];
+		VWC0_hw = sprop->VWChw[GWlayer];
 		VWC0_EqFC = MAX(VWC0_eq, sprop->VWCfc[GWlayer]);
 
 		soilwNORM_pre = sprop->soilw_NORMgw;
@@ -70,31 +71,26 @@ int groundwater_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar
 		VWC1_sat = sprop->VWCsat[GWlayer];
 		VWC1_eq = sprop->VWCsat[GWlayer];
 		VWC1_wp = sprop->VWCwp[GWlayer];
+		VWC1_hw = sprop->VWCsat[GWlayer]; // special for GWlayer
 		VWC1_EqFC = MAX(VWC1_eq, sprop->VWCfc[GWlayer]);
 
-		/* no limitation of relative VWC */
+		/* no limitation of relative VWC because of groundwater source, only VWC0_eq */
 		rVWC0 = (VWC0 - VWC0_wp) / (VWC0_EqFC - VWC0_wp);
 		rVWC1 = (VWC1 - VWC1_wp) / (VWC1_EqFC - VWC1_wp);
 
-		VWC0_limit = VWC0_eq;
-		VWC1_limit = DATA_GAP;
-
-	
-		if (VWC0_limit > VWC0_sat) VWC0_limit = VWC0_sat;
-		if (VWC1_limit > VWC1_sat) VWC1_limit = VWC1_sat;
+		fluxLimit = (VWC0_eq - VWC0) * dz0 * water_density;
 
 
 		dLk = DATA_GAP;
 
-		if (!errorCode && calc_diffus(GWlayer, sprop, dz0, VWC0, VWC0_sat, VWC0_EqFC, VWC0_wp, VWC0_limit, dz1, VWC1, VWC1_sat, VWC1_EqFC, VWC1_wp, VWC1_limit, dLk, &DBAR, &soilwDiffus_act))
+		if (!errorCode && calc_diffus(GWlayer, sprop, dz0, VWC0, VWC0_sat, VWC0_EqFC, VWC0_wp, VWC0_hw, dz1, VWC1, VWC1_sat, VWC1_EqFC, VWC1_wp, VWC1_hw, fluxLimit, dLk, &DBAR, &soilwDiffus_act))
 		{
 			printf("\n");
 			printf("ERROR in calc_diffus.c for groundwater_diffusion.c\n");
 			errorCode = 1;
 		}
 
-		/* element 9: bottom = SAT */
-		sprop->DBARarray[9] = DBAR;
+		sprop->DBARarray[GWlayer] = DBAR;
 
 		/* udpate of pools and fluxes */
 		if (fabs(soilwDiffus_act) > CRIT_PREC)
@@ -240,6 +236,7 @@ int groundwater_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar
 		VWC0_sat = sprop->VWCsat[GWlayer];
 		VWC0_eq = sprop->VWCeq[GWlayer];
 		VWC0_wp = sprop->VWCwp[GWlayer];
+		VWC0_hw = sprop->VWChw[GWlayer];
 		VWC0_EqFC = MAX(VWC0_eq, sprop->VWCfc[GWlayer]);
 
 		dz1 = sprop->dz_CAPILgw;
@@ -247,29 +244,26 @@ int groundwater_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar
 		VWC1_sat = sprop->VWCsat[GWlayer];
 		VWC1_eq = sprop->VWCsat[GWlayer]; 
 		VWC1_wp = sprop->VWCwp[GWlayer];
+		VWC1_hw = sprop->VWChw[GWlayer];
 		VWC1_EqFC = MAX(VWC1_eq, sprop->VWCfc[GWlayer]);
 
 		rVWC0 = (VWC0 - VWC0_wp) / (VWC0_EqFC - VWC0_wp);
 		rVWC1 = (VWC1 - VWC1_wp) / (VWC1_EqFC - VWC1_wp);
-		rVWC_limit = (rVWC0 + rVWC1) / 2;
-		VWC0_limit = rVWC_limit * (VWC0_eq - VWC0_wp) + VWC0_wp;
-		VWC1_limit = rVWC_limit * (VWC1_eq - VWC1_wp) + VWC1_wp;
 
-	
-		if (VWC0_limit > VWC0_sat) VWC0_limit = VWC0_sat;
-		if (VWC1_limit > VWC1_sat) VWC1_limit = VWC1_sat;
+		fl0 = 1.0 / (dz0 * (VWC0_EqFC - VWC0_wp));
+		fl1 = 1.0 / (dz1 * (VWC1_EqFC - VWC1_wp));
+		fluxLimit = (rVWC1 - rVWC0) / (fl0 + fl1) * 1000;
 		
 		dLk = DATA_GAP; // only interpreted in GW and CF layers
 
-		if (!errorCode && calc_diffus(GWlayer, sprop, dz0, VWC0, VWC0_sat, VWC0_EqFC, VWC0_wp, VWC0_limit, dz1, VWC1, VWC1_sat, VWC1_EqFC, VWC1_wp, VWC1_limit, dLk, &DBAR, &soilwDiffus_act))
+		if (!errorCode && calc_diffus(GWlayer, sprop, dz0, VWC0, VWC0_sat, VWC0_EqFC, VWC0_wp, VWC0_hw, dz1, VWC1, VWC1_sat, VWC1_EqFC, VWC1_wp, VWC1_hw, fluxLimit, dLk, &DBAR, &soilwDiffus_act))
 		{
 			printf("\n");
 			printf("ERROR in calc_diffus.c for groundwater_diffusion.c\n");
 			errorCode = 1;
 		}
 
-		/* element 10: bottom = CAPILgw */
-		sprop->DBARarray[10] = DBAR;
+		sprop->DBARarray[GWlayer] = DBAR;
 
 		/* udpate of pools and fluxes */
 		if (fabs(soilwDiffus_act) > CRIT_PREC)
@@ -306,6 +300,7 @@ int groundwater_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar
 			VWC0_sat = sprop->VWCsat[GWlayer - 1];
 			VWC0_eq = sprop->VWCeq[GWlayer - 1];
 			VWC0_wp = sprop->VWCwp[GWlayer - 1];
+			VWC0_hw = sprop->VWChw[GWlayer - 1];
 			VWC0_EqFC = MAX(VWC0_eq, sprop->VWCfc[GWlayer-1]);
 
 			dz1 = sprop->dz_NORMgw + sprop->dz_CAPILgw;	
@@ -313,19 +308,19 @@ int groundwater_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar
 			VWC1_sat = sprop->VWCsat[GWlayer];
 			VWC1_eq = sprop->VWCeq[GWlayer] * sprop->ratioNORMgw + sprop->VWCsat[GWlayer] * sprop->ratioCAPILgw;
 			VWC1_wp = sprop->VWCwp[GWlayer];
+			VWC1_hw = sprop->VWChw[GWlayer];
 			VWC1_EqFC = MAX(VWC1_eq, sprop->VWCfc[GWlayer]);
 
 			rVWC0 = (VWC0 - VWC0_wp) / (VWC0_EqFC - VWC0_wp);
 			rVWC1 = (VWC1 - VWC1_wp) / (VWC1_EqFC - VWC1_wp);
-			rVWC_limit = (rVWC0 + rVWC1) / 2;
-			VWC0_limit = rVWC_limit * (VWC0_eq - VWC0_wp) + VWC0_wp;
-			VWC1_limit = rVWC_limit * (VWC1_eq - VWC1_wp) + VWC1_wp;
-			if (VWC0_limit > VWC0_sat) VWC0_limit = VWC0_sat;
-			if (VWC1_limit > VWC1_sat) VWC1_limit = VWC1_sat;
+	
+			fl0 = 1.0 / (dz0 * (VWC0_EqFC - VWC0_wp));
+			fl1 = 1.0 / (dz1 * (VWC1_EqFC - VWC1_wp));
+			fluxLimit = (rVWC1 - rVWC0) / (fl0 + fl1) * 1000;
 
 			soilwNORM_pre = sprop->soilw_NORMgw;
 
-			if (!errorCode && calc_diffus(GWlayer, sprop, dz0, VWC0, VWC0_sat, VWC0_EqFC, VWC0_wp, VWC0_limit, dz1, VWC1, VWC1_sat, VWC1_EqFC, VWC1_wp, VWC1_limit, dLk, &DBAR, &soilwDiffus_act))
+			if (!errorCode && calc_diffus(GWlayer, sprop, dz0, VWC0, VWC0_sat, VWC0_EqFC, VWC0_wp, VWC0_hw, dz1, VWC1, VWC1_sat, VWC1_EqFC, VWC1_wp, VWC1_hw, fluxLimit, dLk, &DBAR, &soilwDiffus_act))
 			{
 				printf("\n");
 				printf("ERROR in calc_diffus.c for groundwater_diffusion.c\n");
@@ -333,8 +328,7 @@ int groundwater_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar
 			}
 
 
-			/* element 1: top = noGW */
-			sprop->DBARarray[11] = DBAR;
+			sprop->DBARarray[GWlayer - 1] = DBAR;
 
 			/* udpate of pools and fluxes */
 			if (fabs(soilwDiffus_act) > CRIT_PREC_lenient)
@@ -432,32 +426,35 @@ int groundwater_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar
 			else
 				VWC0_eq = sprop->VWCsat[realCAPILlayer];
 			VWC0_wp = sprop->VWCwp[realCAPILlayer];
+			VWC0_hw = sprop->VWChw[realCAPILlayer];
 			VWC0_EqFC = MAX(VWC0_eq, sprop->VWCfc[realCAPILlayer]);
 
 			dz1 = sprop->dz_SATgw;
 			VWC1 = sprop->VWCsat[GWlayer];
 			VWC1_sat = sprop->VWCsat[GWlayer];
 			VWC1_eq = sprop->VWCsat[GWlayer];
-			VWC1_wp = sprop->VWCwp[GWlayer];
+			VWC1_wp = sprop->VWCwp[GWlayer]; 
+			VWC1_hw = sprop->VWCsat[GWlayer];  // special for GWlayer
 			VWC1_EqFC = MAX(VWC1_eq, sprop->VWCfc[GWlayer]);
 
 			rVWC0 = (VWC0 - VWC0_wp) / (VWC0_EqFC - VWC0_wp);
 			rVWC1 = (VWC1 - VWC1_wp) / (VWC1_EqFC - VWC1_wp);
 
-			VWC0_limit = VWC0_eq;
-			VWC1_limit = DATA_GAP;
+			fluxLimit = (VWC0_eq - VWC0) * dz0 * water_density;
 
 			soilwNORM_pre = sprop->soilw_NORMcf;
 
 			dLk = (sprop->GWD - sitec->soillayer_midpoint[realCAPILlayer]) * m_to_cm;
 
 
-			if (!errorCode && calc_diffus(realCAPILlayer, sprop, dz0, VWC0, VWC0_sat, VWC0_EqFC, VWC0_wp, VWC0_limit, dz1, VWC1, VWC1_sat, VWC1_EqFC, VWC1_wp, VWC1_limit, dLk, &DBAR, &soilwDiffus_act))
+			if (!errorCode && calc_diffus(realCAPILlayer, sprop, dz0, VWC0, VWC0_sat, VWC0_EqFC, VWC0_wp, VWC0_hw, dz1, VWC1, VWC1_sat, VWC1_EqFC, VWC1_wp, VWC1_hw, fluxLimit, dLk, &DBAR, &soilwDiffus_act))
 			{
 				printf("\n");
 				printf("ERROR in calc_diffus.c for groundwater_diffusion.c\n");
 				errorCode = 1;
 			}
+
+			sprop->DBARarray[realCAPILlayer] = DBAR;
 
 			/* update of pools and fluxes */
 			if (fabs(soilwDiffus_act) > CRIT_PREC_lenient)
@@ -489,13 +486,6 @@ int groundwater_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar
 					/* if upper layer is CFlayer - mixed layer is fillin in order to avoid underestimation if upward diffusion: first capillary layer is filled */
 					if (realCAPILlayer == CFlayer)
 					{
-						if (!sprop->dz_CAPILcf)
-						{
-							printf("\n");
-							printf("ERROR in groundwater_diffusion: CAPILcf soilw calculation\n");
-							errorCode = 1;
-						}
-
 						/* if capillary zone is too thin */
 						if (sprop->dz_NORMcf != 0)
 						{

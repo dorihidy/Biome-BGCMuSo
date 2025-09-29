@@ -20,7 +20,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int check_virtualLayer_balance(const control_struct* ctrl, soilInfo_struct* soilInfo, soilprop_struct* sprop, wflux_struct* wf)
+int check_virtualLayer_balance(control_struct* ctrl, soilInfo_struct* soilInfo, soilprop_struct* sprop, wflux_struct* wf)
 {
 
 
@@ -148,61 +148,7 @@ int check_virtualLayer_balance(const control_struct* ctrl, soilInfo_struct* soil
 			if (dm >= N_DISSOLVinorgN && dm < N_DISSOLVN) if (soilInfo->content_CAPILgw[dm + N_DISSOLVorgN] < CRIT_PREC_RIG) soilInfo->content_CAPILgw[dm + N_DISSOLVorgN] = 0;
 		}
 	}
-	/* avoiding CNratio problem */
-	if ((soilInfo->content_NORMcf[2] == 0 && soilInfo->content_NORMcf[6] > CRIT_PREC) || (soilInfo->content_NORMcf[3] == 0 && soilInfo->content_NORMcf[7] > CRIT_PREC) ||
-		(soilInfo->content_NORMcf[4] == 0 && soilInfo->content_NORMcf[8] > CRIT_PREC) || (soilInfo->content_NORMcf[5] == 0 && soilInfo->content_NORMcf[9] > CRIT_PREC))
-	{
-		if (!errorCode)
-		{
-			printf("\n");
-			printf("ERROR: CN ratio problem in NORMcf in check_virtualLayer_balance.c\n");
-			errorCode = 1;
-		}
-	}
 
-	if ((soilInfo->content_CAPILcf[2] == 0 && soilInfo->content_CAPILcf[6] > CRIT_PREC) || (soilInfo->content_CAPILcf[3] == 0 && soilInfo->content_CAPILcf[7] > CRIT_PREC) ||
-		(soilInfo->content_CAPILcf[4] == 0 && soilInfo->content_CAPILcf[8] > CRIT_PREC) || (soilInfo->content_CAPILcf[5] == 0 && soilInfo->content_CAPILcf[9] > CRIT_PREC))
-	{
-		if (!errorCode)
-		{
-			printf("\n");
-			printf("ERROR: CN ratio problem in CAPILcf in check_virtualLayer_balance.c\n");
-			errorCode = 1;
-		}
-	}
-
-	if ((soilInfo->content_NORMgw[2] == 0 && soilInfo->content_NORMgw[6] > CRIT_PREC) || (soilInfo->content_NORMgw[3] == 0 && soilInfo->content_NORMgw[7] > CRIT_PREC) ||
-		(soilInfo->content_NORMgw[4] == 0 && soilInfo->content_NORMgw[8] > CRIT_PREC) || (soilInfo->content_NORMgw[5] == 0 && soilInfo->content_NORMgw[9] > CRIT_PREC))
-	{
-		if (!errorCode)
-		{
-			printf("\n");
-			printf("ERROR: CN ratio problem in NORMgw in check_virtualLayer_balance.c\n");
-			errorCode = 1;
-		}
-	}
-
-	if ((soilInfo->content_CAPILgw[2] == 0 && soilInfo->content_CAPILgw[6] > CRIT_PREC) || (soilInfo->content_CAPILgw[3] == 0 && soilInfo->content_CAPILgw[7] > CRIT_PREC) ||
-		(soilInfo->content_CAPILgw[4] == 0 && soilInfo->content_CAPILgw[8] > CRIT_PREC) || (soilInfo->content_CAPILgw[5] == 0 && soilInfo->content_CAPILgw[9] > CRIT_PREC))
-	{
-		if (!errorCode)
-		{
-			printf("\n");
-			printf("ERROR: CN ratio problem in CAPILgw in check_virtualLayer_balance.c\n");
-			errorCode = 1;
-		}
-	}
-
-	if ((soilInfo->content_CAPILgw[2] > CRIT_PREC && soilInfo->content_CAPILgw[6] == 0) || (soilInfo->content_CAPILgw[3] > CRIT_PREC && soilInfo->content_CAPILgw[7] == 0) ||
-		(soilInfo->content_CAPILgw[4] > CRIT_PREC && soilInfo->content_CAPILgw[8] == 0) || (soilInfo->content_CAPILgw[5] > CRIT_PREC && soilInfo->content_CAPILgw[9] == 0))
-	{
-		if (!errorCode)
-		{
-			printf("\n");
-			printf("ERROR: CN ratio problem in CAPILgw in check_virtualLayer_balance.c\n");
-			errorCode = 1;
-		}
-	}
 
 	/* CN ratio in virtul layers */
 	for (rat = 0; rat < 4; rat++)

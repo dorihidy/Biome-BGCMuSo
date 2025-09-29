@@ -36,7 +36,7 @@ int groundwater_calculations(control_struct* ctrl, const siteconst_struct* sitec
 	if (ctrl->spinup != 1)
 	{
 		sprop->GWD_pre = sprop->GWD;
-		if (!errorCode && groundwater_preproc(ctrl, GWS, sitec, sprop, soilInfo, ws, wf, cs, ns))
+		if (!errorCode && groundwater_preproc(ctrl, GWS, sitec, sprop, soilInfo, ws, wf))
 		{
 			printf("\n");
 			printf("ERROR in groundwater_preproc.c for groundwater_calculation.c\n");

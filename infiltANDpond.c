@@ -28,6 +28,7 @@ int infiltANDpond(wstate_struct* ws, wflux_struct* wf)
 	
 	/* internal variables */
 	int errorCode, layer;
+	double remain, HOLD;
 
 	 errorCode=layer=0;
      
@@ -53,12 +54,25 @@ int infiltANDpond(wstate_struct* ws, wflux_struct* wf)
 	else
 		wf->infiltPOT = wf->waterFromAbove;
 
-	/* rain flag for tipping calculation */
-	if (wf->infiltPOT)
-		wf->flagRAIN = 1;
-	else
-		wf->flagRAIN = 0;
+	/* rain flag for tipping calculation for each layer */
+	remain = wf->infiltPOT;
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
+	{
+		if (remain > 0)
+			wf->flagRAIN[layer] = 1;
+		else
+			wf->flagRAIN[layer] = 0;
 
+		HOLD = ws->soilwSAT[layer] - ws->soilw[layer];
+		if (!errorCode && HOLD < 0 && HOLD > CRIT_PREC)
+		{
+			printf("ERROR in soilwSAT in infiltANDpond.c\n");
+			errorCode = 1;
+		}
+
+		remain -= HOLD;
+
+	}
 
 	return (errorCode);
 }

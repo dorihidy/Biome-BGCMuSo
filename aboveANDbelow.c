@@ -136,36 +136,35 @@ int aboveANDbelow(soilprop_struct* sprop, epvar_struct* epv, cstate_struct* cs, 
 			}
 		}
 
-		if ((cs->litrCabove[layer] && cs->litrCabove[layer] / cs->litrCabove[layer] != 1) || (cs->litrCbelow[layer] && cs->litrCbelow[layer] / cs->litrCbelow[layer] != 1))
+		if (cs->litrCabove[layer] && cs->litrCabove[layer] / cs->litrCabove[layer] != 1)
 		{
 			printf("\n");
-			printf("ERROR: invalid above/below litr in aboveANDbelow.c\n");
+			printf("ERROR: invalid above litter C in aboveANDbelow.c\n");
 			errorCode = 1;
 		}
 
-		if (cs->litrCabove[layer] - (cs->litr1c[layer] + cs->litr2c[layer] + cs->litr3c[layer] + cs->litr4c[layer]) > 0)
-		{
-			if (cs->litrCabove[layer] - (cs->litr1c[layer] + cs->litr2c[layer] + cs->litr3c[layer] + cs->litr4c[layer]) > CRIT_PREC)
-			{
-				printf("\n");
-				printf("ERROR: negative above/below litr in aboveANDbelow.c\n");
-				errorCode = 1;
-			}
-			else
-				cs->litrCabove[layer] = cs->litr1c[layer] + cs->litr2c[layer] + cs->litr3c[layer] + cs->litr4c[layer];
 
+		if (cs->litrCbelow[layer] && cs->litrCbelow[layer] / cs->litrCbelow[layer] != 1)
+		{
+			printf("\n");
+			printf("ERROR: invalid below litter C i in aboveANDbelow.c\n");
+			errorCode = 1;
 		}
-		if (cs->cwdCabove[layer] - cs->cwdc[layer] > 0)
-		{
-			if (cs->cwdCabove[layer] - cs->cwdc[layer] > CRIT_PREC)
-			{
-				printf("\n");
-				printf("ERROR: negative above/below litr in aboveANDbelow.c\n");
-				errorCode = 1;
-			}
-			else
-				cs->cwdCabove[layer] = cs->cwdc[layer];
 
+
+		if (cs->cwdCabove[layer] && cs->cwdCabove[layer] / cs->cwdCabove[layer] != 1)
+		{
+			printf("\n");
+			printf("ERROR: invalid above cwdC in aboveANDbelow.c\n");
+			errorCode = 1;
+		}
+
+
+		if (cs->cwdCbelow[layer] && cs->cwdCbelow[layer] / cs->cwdCbelow[layer] != 1)
+		{
+			printf("\n");
+			printf("ERROR: invalid below cwdC in aboveANDbelow.c\n");
+			errorCode = 1;
 		}
 
 		cs->litrCabove_total += cs->litrCabove[layer];

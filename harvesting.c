@@ -127,10 +127,34 @@ int harvesting(file econout, control_struct* ctrl, phenology_struct* phen, const
 		cf->STDBc_softstem_to_HRV = cs->STDBc_softstem * HRVcoeff_stem;
 		cf->STDBc_froot_to_HRV    = cs->STDBc_froot    * HRVcoeff_froot;
 		
-		nf->STDBn_leaf_to_HRV     = ns->STDBn_leaf     * HRVcoeff_leaf; 
-		nf->STDBn_yield_to_HRV    = ns->STDBn_yield    * HRVcoeff_yield; 
-		nf->STDBn_softstem_to_HRV = ns->STDBn_softstem * HRVcoeff_stem;
-		nf->STDBn_froot_to_HRV    = ns->STDBn_froot    * HRVcoeff_froot;
+		if (ns->STDBn_leaf)
+		{
+			if (cs->STDBc_leaf)
+				nf->STDBn_leaf_to_HRV = cf->STDBc_leaf_to_HRV / (cs->STDBc_leaf / ns->STDBn_leaf);
+			else
+				nf->STDBn_leaf_to_HRV = ns->STDBn_leaf;
+		}
+		if (ns->STDBn_yield)
+		{
+			if (cs->STDBc_yield)
+				nf->STDBn_yield_to_HRV = cf->STDBc_yield_to_HRV / (cs->STDBc_yield / ns->STDBn_yield);
+			else
+				nf->STDBn_yield_to_HRV = ns->STDBn_yield;
+		}
+		if (ns->STDBn_softstem)
+		{
+			if (cs->STDBc_softstem)
+				nf->STDBn_softstem_to_HRV = cf->STDBc_softstem_to_HRV / (cs->STDBc_softstem / ns->STDBn_softstem);
+			else
+				nf->STDBn_softstem_to_HRV = ns->STDBn_softstem;
+		}
+		if (ns->STDBn_froot)
+		{
+			if (cs->STDBc_froot)
+				nf->STDBn_froot_to_HRV = cf->STDBc_froot_to_HRV / (cs->STDBc_froot / ns->STDBn_froot);
+			else
+				nf->STDBn_froot_to_HRV = ns->STDBn_froot;
+		}
 
 		
 		/* 1.3 Water */

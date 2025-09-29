@@ -26,21 +26,22 @@ int tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, 
 {
 
 	int errorCode = 0;
-	int layer, ll, N_NAGlayers;
+	int layer, ll, N_NAGlayers, flagRAIN;
 
-	double VWC, soilw_sat1, soilw1;
-	double INFILT, conduct_cmday, conductSAT_cmday;
+	double VWC, soilw_sat1, soilw1, soilB;
+	double INFILT, conductSAT_cmday;
 	double VWCsat, VWCfc, dz0, dz1, dz0_cm, HOLD;
 
 	double DC, DRN, EXCESS, VWCnew, soilw0;
 
 	/* tipping is used only for layers without GW */
-	if (sprop->GWD == DATA_GAP)
+	if (sprop->CFlayer == DATA_GAP)
 		N_NAGlayers = N_SOILLAYERS;
 	else
 		N_NAGlayers = (int) sprop->CFlayer;
 
-	
+
+
 	/* --------------------------------------------------------------------------------------------------------------------*/
 	/* 1.PERCOLATION */
 
@@ -61,13 +62,14 @@ int tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, 
 		dz0_cm = dz0 * m_to_cm;
 
 		DC = sprop->drainCoeff[layer];
+		soilB = sprop->soilB[layer];
+		flagRAIN = wf->flagRAIN[layer];
 
 		/* hydraulic conductivity in actual layer (cm/day = m/s * 100 * sec/day) */
 		conductSAT_cmday = sprop->hydrCONDUCTsat[layer] * m_to_cm * nSEC_IN_DAY;
-		conduct_cmday = conductSAT_cmday;
 
 
-		if (!errorCode && calc_drainage(wf->flagRAIN, INFILT, VWC, VWCsat, VWCfc, dz0_cm, DC, conduct_cmday, &DRN, &EXCESS, &VWCnew))
+		if (!errorCode && calc_drainage(flagRAIN, soilB, INFILT, VWC, VWCsat, VWCfc, dz0_cm, DC, conductSAT_cmday, &DRN, &EXCESS, &VWCnew))
 		{
 			printf("\n");
 			printf("ERROR calc_drainage.c for tipping.c\n");

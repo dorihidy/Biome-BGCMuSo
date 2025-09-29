@@ -56,6 +56,7 @@ int cnw_summary(const epconst_struct* epc, const siteconst_struct* sitec, const 
 	depth[3] = 0.20;
 	depth[4] = 0.25;
 	depth[5] = 0.30;
+
 	/************************************************************************************************************************************/
 	/* 1. summarize meteorological and water variables */
 
@@ -387,8 +388,6 @@ int cnw_summary(const epconst_struct* epc, const siteconst_struct* sitec, const 
 	summary->SOC4percent_top30 = ((summary->SOC4_top30 / depth[5]) / summary->BD_top30) * prop_to_percent;
 
 
-
-
 	/***********************/
 	/* 5.4 NH4 and NO3 */
 	summary->NH4ppmAVAIL_top30 = (summary->NH4_ppm[0] * sitec->soillayer_thickness[0] / 30. + summary->NH4_ppm[1] * sitec->soillayer_thickness[1] / 30. + summary->NH4_ppm[2] * sitec->soillayer_thickness[2] / 30.) * sprop->NH4_mobilen_prop;
@@ -613,6 +612,7 @@ int cnw_summary(const epconst_struct* epc, const siteconst_struct* sitec, const 
 	summary->cumETcanopy   += (wf->EVPcanopyw + wf->TRPsoilw_SUM);
 	summary->cumET         += wf->ET;
 	summary->cumFLsoilw    += wf->FL_to_soilwTOTAL;
+
 	/************************************************************************************************************************************/
 	/* 8. calculation litter fluxes and pools */
 
@@ -829,9 +829,6 @@ int cnw_summary(const epconst_struct* epc, const siteconst_struct* sitec, const 
 			summary->GWrecharge_orgN += soilInfo->dismatGWrecharge[dm][layer];
 		}
 	}
-
-	/************************************************************************************************************************************/
-	/* 10. Annual data for groundwater transported materail for total soil*/
 	
 	summary->cumGWdischarge += wf->GWdischarge_total;
 	summary->cumGWrecharge += wf->GWrecharge_total;
@@ -860,6 +857,9 @@ int cnw_summary(const epconst_struct* epc, const siteconst_struct* sitec, const 
 	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
 
+		summary->cumTOTALchangeGW_NH4 += soilInfo->dismatGWdecomp[0][layer] + soilInfo->dismatGWecofunc[0][layer] + soilInfo->dismatGWfertil[0][layer];
+		summary->cumTOTALchangeGW_NO3 += soilInfo->dismatGWdecomp[1][layer] + soilInfo->dismatGWecofunc[1][layer] + soilInfo->dismatGWfertil[1][layer];
+
 		for (dm = N_DISSOLVinorgN; dm < N_DISSOLVN; dm++)
 		{
 			summary->cumTOTALchangeGW_orgN += soilInfo->dismatGWdecomp[dm][layer] + soilInfo->dismatGWecofunc[dm][layer] + soilInfo->dismatGWfertil[dm][layer];
@@ -867,8 +867,10 @@ int cnw_summary(const epconst_struct* epc, const siteconst_struct* sitec, const 
 
 			summary->cumTOTALdischarge_orgN += soilInfo->dismatGWdischarge[dm][layer];
 			summary->cumTOTALrecharge_orgN += soilInfo->dismatGWrecharge[dm][layer];
+
+			summary->cumTOTALfertil_orgN += soilInfo->dismatTOTALfertil[2][layer];
 		}
-		for (dm = 0; dm < N_DISSOLVorgN;  dm++) summary->cumTOTALfertil_orgN += soilInfo->FRZ_to_litrN[dm][layer];
+
 
 		summary->cumTOTALplantUPto_orgN += nf->NH4_to_npool[layer] + nf->NO3_to_npool[layer];
 	}
@@ -889,7 +891,7 @@ int cnw_summary(const epconst_struct* epc, const siteconst_struct* sitec, const 
 
 			summary->cumUNSATfertil_NH4 += soilInfo->dismatUNSATfertil[0][layer];
 			summary->cumUNSATfertil_NO3 += soilInfo->dismatUNSATfertil[1][layer];
-			for (dm = 0; dm < N_DISSOLVorgN; dm++) summary->cumUNSATfertil_orgN += soilInfo->FRZ_to_litrN[dm][layer];
+			for (dm = 0; dm < N_DISSOLVorgN; dm++) summary->cumUNSATfertil_orgN += soilInfo->dismatUNSATfertil[dm][layer];
 
 			summary->cumUNSATdischarge_NH4 += soilInfo->dismatGWdischarge[0][layer];
 			summary->cumUNSATdischarge_NO3 += soilInfo->dismatGWdischarge[1][layer];
@@ -902,22 +904,12 @@ int cnw_summary(const epconst_struct* epc, const siteconst_struct* sitec, const 
 			if (layer < GWlayer)
 			{
 				summary->cumUNSATvolat += nf->N2OfluxNITRIF[layer];
-				summary->cumUNSATchangeGW_NH4 += soilInfo->dismatGWdecomp[0][layer] + soilInfo->dismatGWecofunc[0][layer] + soilInfo->dismatGWfertil[0][layer];
-				summary->cumUNSATchangeGW_NO3 += soilInfo->dismatGWdecomp[1][layer] + soilInfo->dismatGWecofunc[1][layer] + soilInfo->dismatGWfertil[1][layer];
-				for (dm = N_DISSOLVinorgN; dm < N_DISSOLVN; dm++) summary->cumUNSATchangeGW_orgN += soilInfo->dismatGWdecomp[dm][layer] + soilInfo->dismatGWecofunc[dm][layer] + soilInfo->dismatGWfertil[dm][layer];
-
 				summary->cumUNSATplantUPto_orgN += nf->NH4_to_npool[layer] + nf->NO3_to_npool[layer];
 				summary->cumUNSATdenitr += nf->NO3_to_denitr[layer];
 			}
 			else
 			{
 				summary->cumUNSATvolat += nf->N2OfluxNITRIF[layer] * UNSATprop;
-
-				summary->cumUNSATchangeGW_NH4 += soilInfo->dismatGWdecomp_CAPIL[0] + soilInfo->dismatGWdecomp_NORM[0] + soilInfo->dismatGWecofunc_CAPIL[0] + soilInfo->dismatGWecofunc_NORM[0];
-				summary->cumUNSATchangeGW_NO3 += soilInfo->dismatGWdecomp_CAPIL[1] + soilInfo->dismatGWdecomp_NORM[1] + soilInfo->dismatGWecofunc_CAPIL[1] + soilInfo->dismatGWecofunc_NORM[1];
-
-				for (dm = N_DISSOLVinorgN; dm < N_DISSOLVN; dm++) summary->cumUNSATchangeGW_orgN += soilInfo->dismatGWdecomp_CAPIL[dm] + soilInfo->dismatGWdecomp_NORM[dm] + soilInfo->dismatGWecofunc_CAPIL[dm] + soilInfo->dismatGWecofunc_NORM[dm];
-
 				summary->cumUNSATplantUPto_orgN += (nf->NH4_to_npool[layer] + nf->NO3_to_npool[layer]) * UNSATprop;
 				summary->cumUNSATdenitr += nf->NO3_to_denitr[layer] * UNSATprop;
 			}

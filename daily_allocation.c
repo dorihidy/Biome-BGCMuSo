@@ -542,8 +542,6 @@ int daily_allocation(const control_struct* ctrl, const epconst_struct* epc, cons
 		if (ns->soil4n[layer] > 0.0) cn_s4 = cs->soil4c[layer]/ns->soil4n[layer];
 
 
-	
-		/* labile litter fluxes */
 		if (cs->litr1c[layer] > 0.0 && ns->litr1n[layer] > 0.0)
 		{
 

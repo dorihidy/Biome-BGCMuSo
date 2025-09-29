@@ -1699,7 +1699,7 @@ int output_map_init(double** output_map, phenology_struct* phen, metvar_struct* 
         output_map[2148] = &nf->nfix_to_NH4[7]; //%"N-fixation to NH4 pool in soil layer 8 (150-200 cm)" $\\left[\\kg_{N}m^{-2 }day^{-1} \\right]$ "Nitrogénfluxus a talaj ásványi NH4-bol az átmeneti növényi N tározóba a 8. talajrétegben (150-200 cm)" $\\left[\\kg_{N}m^{-2 }nap{^-1} \\right]$ "NitrogeN-fixation to NH4 pool in soil layer 8 (150-200 cm)" %
         output_map[2149] = &nf->nfix_to_NH4[8]; //%"N-fixation to NH4 pool in soil layer 9 (200-400 cm)" $\\left[\\kg_{N}m^{-2 }day^{-1} \\right]$ "Nitrogénfluxus a talaj ásványi NH4-bol az átmeneti növényi N tározóba a 9. talajrétegben (200-400 cm)" $\\left[\\kg_{N}m^{-2 }nap{^-1} \\right]$ "NitrogeN-fixation to NH4 pool in soil layer 9 (200-400 cm)" %
         output_map[2150] = &nf->nfix_to_NH4[9]; //%"N-fixation to NH4 pool in soil layer 10 (400-1000 cm)" $\\left[\\kg_{N}m^{-2 }day^{-1} \\right]$ "Nitrogénfluxus a talaj ásványi NH4-bol az átmeneti növényi N tározóba a 10. talajrétegben (400-1000 cm)" $\\left[\\kg_{N}m^{-2 }nap{^-1} \\right]$ "NitrogeN-fixation to NH4 pool in soil layer 10 (400-1000 cm)" %
-
+    
     	output_map[2213] = &nf->grossMINERflux[0]; //%"Gross mineralization flux in soil layer 1 (0-3 cm)" $\\left[\\kg_{N}m^{-2} \\right]$ "Bruttó mineralizációs fluxus az 1. talajrétegben (0-3 cm)" $\\left[\\kg_{N}m^{-2} \\right]$ "Gross mineralization flux  in soil layer 1 (0-3 cm)" %
 		output_map[2214] = &nf->grossMINERflux[1]; //%"Gross mineralization flux  in soil layer 2 (3-10 cm)" $\\left[\\kg_{N}m^{-2} \\right]$ "Bruttó mineralizációs fluxus az 2. talajrétegben (3-10 cm)" $\\left[\\kg_{N}m^{-2} \\right]$ "Gross mineralization flux   in soil layer 2 (3-10 cm)" %
 		output_map[2215] = &nf->grossMINERflux[2]; //%"Gross mineralization in soil layer 3 (10-30 cm)" $\\left[\\kg_{N}m^{-2} \\right]$ "Bruttó mineralizációs fluxus a 3. talajrétegben (10-30 cm)" $\\left[\\kg_{N}m^{-2} \\right]$ "Gross mineralization flux  in soil layer 3 (10-360 cm)" %
@@ -2742,9 +2742,9 @@ int output_map_init(double** output_map, phenology_struct* phen, metvar_struct* 
         output_map[3506] = &summary->cumWinput; //%"Cumulative sum of water inputs" $\\left[\\kg_{H2O}m^{-2}\\right]$ 
         output_map[3507] = &summary->cumGWsnk; //%"Cumulative sum of GW-infiltration" $\\left[\\kg_{H2O}m^{-2}\\right]$ "Cumulative sum GW-infiltration" $\\left[\\kg_{H2O}m^{-2 } \\right]$ "Cumulative sum potential evapotranspiration" %
         output_map[3508] = &summary->cumWoutput; //%"Cumulative sum of GW-infiltration" $\\left[\\kg_{H2O}m^{-2}\\right]$ "Cumulative sum GW-infiltration" $\\left[\\kg_{H2O}m^{-2 } \\right]$ "Cumulative sum potential evapotranspiration" %
-        output_map[3509] = &summary->cumUNSATchangeGW_NH4; //%"Cumulative sum of all NH4 fluxes (ecological processes, denitrification, fertilization)" $\\left[\\kg_{N}m^{-2 }\\right]$ 
-        output_map[3510] = &summary->cumUNSATchangeGW_NO3; //%"Cumulative sum of all NO3 fluxes (ecological processes, denitrification, fertilization)" $\\left[\\kg_{N}m^{-2 }\\right]$ 
-        output_map[3511] = &summary->cumUNSATchangeGW_orgN; //%"Cumulative sum of all orgN fluxes (ecological processes, denitrification, fertilization)" $\\left[\\kg_{N}m^{-2 }\\right]$ 
+        output_map[3509] = &summary->cumTOTALchangeGW_NH4; //%"Cumulative sum of all NH4 fluxes (ecological processes, denitrification, fertilization) covered by GW in GWlayer" $\\left[\\kg_{N}m^{-2 }\\right]$ 
+        output_map[3510] = &summary->cumTOTALchangeGW_NO3; //%"Cumulative sum of all NO3 fluxes (ecological processes, denitrification, fertilization) covered by GW in GWlayer" $\\left[\\kg_{N}m^{-2 }\\right]$ 
+        output_map[3511] = &summary->cumTOTALchangeGW_orgN; //%"Cumulative sum of all orgN fluxes (ecological processes, denitrification, fertilization) covered by GW in GWlayer" $\\left[\\kg_{N}m^{-2 }\\right]$ 
         output_map[3512] = &summary->cumUNSATecofunc_NH4; //%"Cumulative sum of NH4 ecological fluxes (fixaton, deposition,mineralization-immobilization,  plant uptake, nitrification, denitrification) affected by GW-effect in unsaturated zone (above GWD)" $\\left[\\kg_{N}m^{-2 }\\right]$ 
         output_map[3513] = &summary->cumUNSATfertil_NH4; //%"Cumulative sum of NH4 fertilization fluxes affected by GW-effect in unsaturated zone" $\\left[\\kg_{N}m^{-2 }\\right]$ 
         output_map[3514] = &summary->cumUNSATdischarge_NH4; //%"Cumulative sum of NH4 discharge fluxes in unsaturated zone (above GWD)" $\\left[\\kg_{N}m^{-2 }\\right]$ 
@@ -2806,8 +2806,8 @@ int output_map_init(double** output_map, phenology_struct* phen, metvar_struct* 
         output_map[3573] = &soilInfo->ratio_CAPILgw[1];
         output_map[3574] = &soilInfo->ratio_CAPILgw[2];
         output_map[3575] = &soilInfo->ratio_CAPILgw[3];
-     
-
+        output_map[3576] = &soilInfo->content_CAPILgw[2];
+        output_map[3577] = &soilInfo->content_CAPILcf[2];
 
     }
 

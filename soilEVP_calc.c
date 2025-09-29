@@ -87,19 +87,20 @@ int soilEVP_calc(control_struct* ctrl, const siteconst_struct* sitec, soilprop_s
 			epv->VWC[0] = ws->soilw[0] / water_density / sitec->soillayer_thickness[0];
 
 			/* if capillary zone exists in unsaturated zone (not in GWlayer) and capillary zone is in the top soil layer */
-			if (sprop->dz_CAPILcf && CFlayer == 0)
+			if ((sprop->dz_CAPILcf + sprop->dz_NORMcf) && CFlayer == 0)
 			{
 				if (sprop->soilw_NORMcf) soilwAVAIL_NORMcf = sprop->soilw_NORMcf - sprop->VWChw[CFlayer] * sprop->dz_NORMcf * water_density;
 				soilwAVAIL_CAPILcf = sprop->soilw_CAPILcf - sprop->VWChw[CFlayer] * sprop->dz_CAPILcf * water_density;
-				if (soilwAVAIL_CAPILcf)
+				if (soilwAVAIL_CAPILcf + soilwAVAIL_NORMcf)
 				{
 					ratioNORM = soilwAVAIL_NORMcf / (soilwAVAIL_NORMcf + soilwAVAIL_CAPILcf);
 					ratioCAPIL = soilwAVAIL_CAPILcf / (soilwAVAIL_NORMcf + soilwAVAIL_CAPILcf);
 				}
 				else
 				{
-					ratioNORM = sprop->dz_NORMcf / (sprop->dz_CAPILcf + sprop->dz_NORMcf);
-					ratioCAPIL = sprop->dz_CAPILcf / (sprop->dz_CAPILcf + sprop->dz_NORMcf);
+					printf("\n");
+					printf("ERROR in ratio calculation in multilayer_transpiration.c\n");
+					errorCode = 1;
 				}
 				if (fabs(1 - ratioNORM - ratioCAPIL) > CRIT_PREC)
 				{

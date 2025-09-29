@@ -28,16 +28,17 @@ int pondANDrunoffD(control_struct* ctrl, siteconst_struct* sitec, soilprop_struc
 	/* internal variables */
 	int errorCode, layer, flagEXTRA;
 	double pondmax, soilwEXTRA;
-	double soilw_NORMgw_full, soilw_CAPILgw_full, ratioNORM, ratioCAPIL;
+	double NORM_fulldiff, CAPIL_fulldiff, ratioNORM, ratioCAPIL;
 
-	errorCode=layer=flagEXTRA=0;
+	errorCode = layer = flagEXTRA = 0;
 
 
 	/*--------------------------------------*/
 	/* Water flux from soil to pond */
-	
+
 
 	ws->pondw += wf->soilw_to_pondw + wf->prcp_to_pondw;
+	if (ws->pondw < CRIT_PREC) ws->pondw = 0;
 
 	/*--------------------------------------*/
 	/* Dunnian runoff */
@@ -83,34 +84,37 @@ int pondANDrunoffD(control_struct* ctrl, siteconst_struct* sitec, soilprop_struc
 
 			if ((int)sprop->CFlayer == 0)
 			{
-				soilw_NORMgw_full = sprop->VWCsat[0] * sprop->dz_NORMcf * water_density;
-				soilw_CAPILgw_full = sprop->VWCsat[0] * sprop->dz_CAPILcf * water_density;
-				ratioNORM = soilw_NORMgw_full/ (soilw_NORMgw_full+ soilw_CAPILgw_full);
-				ratioCAPIL = soilw_CAPILgw_full / (soilw_NORMgw_full + soilw_CAPILgw_full);
+		
+				NORM_fulldiff = sprop->VWCsat[0] * sprop->dz_NORMcf * water_density - sprop->soilw_NORMcf;
+				CAPIL_fulldiff = sprop->VWCsat[0] * sprop->dz_CAPILcf * water_density - sprop->soilw_CAPILcf;
+				ratioNORM = NORM_fulldiff / (NORM_fulldiff + CAPIL_fulldiff);
+				ratioCAPIL = CAPIL_fulldiff / (NORM_fulldiff + CAPIL_fulldiff);
 				sprop->soilw_NORMcf += soilwEXTRA * ratioNORM;
 				sprop->soilw_CAPILcf += soilwEXTRA * ratioCAPIL;
 				if (sprop->dz_NORMcf) sprop->VWC_NORMcf = sprop->soilw_NORMcf / sprop->dz_NORMcf / water_density;
 				if (sprop->dz_CAPILcf) sprop->VWC_CAPILcf = sprop->soilw_CAPILcf / sprop->dz_CAPILcf / water_density;
+
+				if (epv->VWC[0] - sprop->VWCsat[0] > CRIT_PREC_lenient || sprop->VWC_CAPILcf - sprop->VWCsat[0] > CRIT_PREC_lenient || sprop->VWC_NORMcf - sprop->VWCsat[0] > CRIT_PREC_lenient)
+				{
+					printf("\n");
+					printf("ERROR in pondwANDrunoffD.c for tipping.c\n");
+					errorCode = 1;
+				}
 			}
-			if (epv->VWC[0] - sprop->VWCsat[0] > CRIT_PREC_lenient || sprop->VWC_CAPILcf - sprop->VWCsat[0] > CRIT_PREC_lenient || sprop->VWC_NORMcf - sprop->VWCsat[0] > CRIT_PREC_lenient)
-			{
-				printf("\n");
-				printf("ERROR in pondwANDrunoffD.c for tipping.c\n");
-				errorCode = 1;
-			}
+
 
 			if ((int)sprop->GWlayer==0)
 			{
-				soilw_NORMgw_full = sprop->VWCsat[0] * sprop->dz_NORMgw * water_density;
-				soilw_CAPILgw_full = sprop->VWCsat[0] * sprop->dz_CAPILgw * water_density;
-				ratioNORM = (soilw_NORMgw_full - sprop->soilw_NORMgw) / soilwEXTRA;
-				ratioCAPIL = (soilw_CAPILgw_full - sprop->soilw_CAPILgw) / soilwEXTRA;
+				NORM_fulldiff = sprop->VWCsat[0] * sprop->dz_NORMgw * water_density - sprop->soilw_NORMgw;
+				CAPIL_fulldiff = sprop->VWCsat[0] * sprop->dz_CAPILgw * water_density - sprop->soilw_CAPILgw;
+				ratioNORM = NORM_fulldiff / (NORM_fulldiff + CAPIL_fulldiff);
+				ratioCAPIL = CAPIL_fulldiff / (NORM_fulldiff + CAPIL_fulldiff);
 				sprop->soilw_NORMgw += soilwEXTRA * ratioNORM;
 				sprop->soilw_CAPILgw += soilwEXTRA * ratioCAPIL;
 				if (sprop->dz_NORMgw) sprop->VWC_NORMgw = sprop->soilw_NORMgw / sprop->dz_NORMgw / water_density;
 				if (sprop->dz_CAPILgw) sprop->VWC_CAPILgw = sprop->soilw_CAPILgw / sprop->dz_CAPILgw / water_density;
 			}
-			if (epv->VWC[0] - sprop->VWCsat[0] > CRIT_PREC_lenient || sprop->VWC_CAPILgw - sprop->VWCsat[0] > CRIT_PREC_lenient || sprop->VWC_NORMgw - sprop->VWCsat[0] > CRIT_PREC_lenient)
+			if (epv->VWC[0] - sprop->VWCsat[0] > CRIT_PREC_lenient || (sprop->dz_CAPILgw && sprop->VWC_CAPILgw - sprop->VWCsat[0] > CRIT_PREC_lenient) || (sprop->dz_NORMgw && sprop->VWC_NORMgw - sprop->VWCsat[0] > CRIT_PREC_lenient))
 			{
 				printf("\n");
 				printf("ERROR in pondwANDrunoffD.c for tipping.c\n");

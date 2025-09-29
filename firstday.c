@@ -261,6 +261,16 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 			soilInfo->content_NORMgw[dm] = 0;
 			soilInfo->content_CAPILgw[dm] = 0;
 			soilInfo->content_SATgw[dm] = 0;
+			soilInfo->contentBOUND_NORMcf[dm] = 0;
+			soilInfo->contentBOUND_CAPILcf[dm] = 0;
+			soilInfo->contentBOUND_NORMgw[dm] = 0;
+			soilInfo->contentBOUND_CAPILgw[dm] = 0;
+			soilInfo->contentBOUND_SATgw[dm] = 0;
+			soilInfo->contentDISSOLV_NORMcf[dm] = 0;
+			soilInfo->contentDISSOLV_CAPILcf[dm] = 0;
+			soilInfo->contentDISSOLV_NORMgw[dm] = 0;
+			soilInfo->contentDISSOLV_CAPILgw[dm] = 0;
+			soilInfo->contentDISSOLV_SATgw[dm] = 0;
 		}
 	}
 		
@@ -751,13 +761,50 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 	soilInfo->dissolv_prop[8] = sprop->SOIL3dissolv_prop;
 	soilInfo->dissolv_prop[9] = sprop->SOIL4dissolv_prop;
 
+
+	for (dm = 0; dm < N_DISSOLVMATER; dm++)
+	{
+		for (layer = 0; layer < N_SOILLAYERS; layer++)
+		{
+			soilInfo->content_soil[dm][layer] = 0;
+			soilInfo->contentBOUND_soil[dm][layer] = 0;
+			soilInfo->contentDISSOLV_soil[dm][layer] = 0;
+		}
+		soilInfo->contentBOUND_NORMcf[dm] = 0;
+		soilInfo->contentBOUND_CAPILcf[dm] = 0;
+		soilInfo->contentBOUND_NORMgw[dm] = 0;
+		soilInfo->contentBOUND_CAPILgw[dm] = 0;
+		soilInfo->contentBOUND_SATgw[dm] = 0;
+		soilInfo->contentDISSOLV_NORMcf[dm] = 0;
+		soilInfo->contentDISSOLV_CAPILcf[dm] = 0;
+		soilInfo->contentDISSOLV_NORMgw[dm] = 0;
+		soilInfo->contentDISSOLV_CAPILgw[dm] = 0;
+		soilInfo->contentDISSOLV_SATgw[dm] = 0;
+		soilInfo->content_NORMcf[dm] = 0;
+		soilInfo->content_CAPILcf[dm] = 0;
+		soilInfo->content_NORMgw[dm] = 0;
+		soilInfo->content_CAPILgw[dm] = 0;
+		soilInfo->content_SATgw[dm] = 0;
+	}
 	
-	
+	/* firsttime_flag=0 (before calculation note initial values, partlyORtotal_flag=1 (TOTAL (BOUND+DISSOLV) is affected  */
+	if (!errorCode && calc_DISSOLVandBOUND(0, 1, sprop, soilInfo))
+	{
+		printf("ERROR in calc_DISSOLVandBOUND.c for firstday.c\n");
+		errorCode = 1;
+	}
 
 	/* call soil concentration calculation routine to calculate the concetration of soil (-1: all layers, NH4 -> content_soil*/
 	if (!errorCode && check_soilcontent(-1, 0, sprop, cs, ns, soilInfo))
 	{
 		printf("ERROR in check_soilcontent.c for firstday.c\n");
+		errorCode = 1;
+	}
+
+	/*  firsttime_flag=1 (after calculation note initial values, int partlyORtotal_flag=1 (TOTAL (BOUND+DISSOLV) is affected  */
+	if (!errorCode && calc_DISSOLVandBOUND(1, 1, sprop, soilInfo))
+	{
+		printf("ERROR in calc_DISSOLVandBOUND.c for firstday.c\n");
 		errorCode = 1;
 	}
 

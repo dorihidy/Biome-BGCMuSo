@@ -1092,7 +1092,7 @@ int multilayer_soilcalc(control_struct* ctrl,  soilprop_struct* sprop)
 		/*  PSIhw = pow(10, pF_hygroscopw) / (-10000); estimated soil water potential at hygroscopic water in MPa (1MPa = 10000cm)  (fc: pF = 2.5; wp: pF = 4.2) */
 	
 		/* 2.4 CONTROL - measured VWC values: SAT>FC>WP>HW */
-		if ((VWCsat - VWCfc) < 0.001 || (VWCfc - VWCwp) < 0.001  || (VWCwp - VWChw) < 0.001 || VWChw < 0.001 || VWCsat > 1.0) 
+		if ((VWCsat - VWCfc) < 0.00001 || (VWCfc - VWCwp) < 0.00001  || (VWCwp - VWChw) < 0.00001 || VWChw < 0.00001 || VWCsat > 1.0) 
 		{
 			if (!errorCode) printf("ERROR in measured VWC data in SOI file\n");
 			if (!errorCode) printf("rules: VWCsat > VWCfc; VWCfc > VWCwp; VWCwp > VWChw; VWChw > 0.001, VWCsat <1.0, VWChw>0.01\n");

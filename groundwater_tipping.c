@@ -26,10 +26,10 @@ int groundwater_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 {
 
 	int errorCode = 0;
-	int  ll;
+	int  ll, flagRAIN;
 
 	double VWC, soilw_sat1, soilw1;
-	double INFILT, conduct_cmday, conductSAT_cmday;
+	double INFILT, conductSAT_cmday, soilB;
 	double VWCsat, VWCcrit, dz0, dz1, dz0_cm, HOLD, soilw0;
 
 	double DC, DRN, EXCESS, VWCnew;
@@ -46,7 +46,7 @@ int groundwater_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 
 	/* hydraulic conductivity in actual GWlayer (cm/day = m/s * 100 * sec/day) */
 	conductSAT_cmday = sprop->hydrCONDUCTsat[GWlayer] * m_to_cm * nSEC_IN_DAY;
-	conduct_cmday = conductSAT_cmday;
+	soilB = sprop->soilB[GWlayer];
 
 	/* -----------------------------*/
 	/* 1. normZone */
@@ -64,9 +64,10 @@ int groundwater_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 		dz0_cm = dz0 * m_to_cm;
 
 		DC = sprop->drainCoeff[GWlayer];
+		flagRAIN = wf->flagRAIN[GWlayer];
 
 
-		if (!errorCode && calc_drainage(wf->flagRAIN, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conduct_cmday, &DRN, &EXCESS, &VWCnew))
+		if (!errorCode && calc_drainage(flagRAIN, soilB, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conductSAT_cmday, &DRN, &EXCESS, &VWCnew))
 		{
 			printf("\n");
 			printf("ERROR calc_drainage.c for tipping.c\n");
@@ -150,13 +151,9 @@ int groundwater_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 		dz0_cm = dz0 * m_to_cm;
 
 		DC = sprop->drainCoeff[GWlayer];
+		flagRAIN = wf->flagRAIN[GWlayer];
 
-		/* hydraulic conductivity in actual GWlayer (cm/day = m/s * 100 * sec/day) */
-		conductSAT_cmday = sprop->hydrCONDUCTsat[GWlayer] * m_to_cm * nSEC_IN_DAY;
-		conduct_cmday = conductSAT_cmday;
-
-
-		if (!errorCode && calc_drainage(wf->flagRAIN, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conduct_cmday, &DRN, &EXCESS, &VWCnew))
+		if (!errorCode && calc_drainage(flagRAIN, soilB, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conductSAT_cmday, &DRN, &EXCESS, &VWCnew))
 		{
 			printf("\n");
 			printf("ERROR calc_drainage.c for tipping.c\n");

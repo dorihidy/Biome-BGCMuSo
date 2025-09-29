@@ -679,7 +679,7 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=501;
 			}
 
-		
+	
 			/* initalizing annmax and cumulative variables */
 			if (yday == 0)
 			{
@@ -716,12 +716,14 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 			}
 	
 
+	
 			/* GROUNDWATER calculations */
 			if (!errorCode && groundwater_calculations(&ctrl, &sitec, &GWS, &sprop, &soilInfo, &epv, &ws, &wf, &cs, &ns))
 			{
 				printf("ERROR in groundwater_calculations.c from bgc.c\n");
 				errorCode = 505;
 			}
+
 
 
 			/* daily meteorological variables from metarrays */
@@ -798,8 +800,7 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=514;
 			}
 			
-			
-
+	
 			/* potential evaporation and transpiration */
 			if (!errorCode && Elimit_and_PET(&ctrl, &epc, &sprop, &metv, &epv, &wf))
 			{
@@ -903,7 +904,11 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=524;
 			}
 			
-			
+			if (yday == 99)
+			{
+				int balus = 6;
+			}
+	
 			/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 			/* 3. WATER CALCULATIONS WITH STATE UPDATE */
 
@@ -940,7 +945,6 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 			}
 
 	
-
 			/* daily update of carbon and nitrogen state variables */
    	    	if (!errorCode && CN_state_update(&sitec, &epc, &soilInfo, &sprop, &ctrl, &epv, &cf, &nf, &cs, &ns, annual_alloc, epc.evergreen))
 			{
@@ -979,7 +983,7 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 
 	
 			/* calculate the leaching of N, DOC and DON from multilayer soil */
-			if (!errorCode && multilayer_leaching( &sprop,  &soilInfo, &cs, &ns, &ws, &wf))
+			if (!errorCode && multilayer_leaching(&sitec, &sprop,  &soilInfo, &cs, &ns, &ws, &wf))
 			{
 				printf("ERROR in multilayer_leaching.c from bgc.c\n");
 				errorCode=532;
@@ -1040,7 +1044,7 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 			
  
 			/* PLOUGHING */
- 			if (!errorCode && ploughing(&ctrl, &epc, &sitec, &sprop, &metv, &epv, &PLG, &cs, &ns, &ws, &cf, &nf, &wf))
+ 			if (!errorCode && ploughing(&ctrl, &epc, &sitec, &sprop, &soilInfo, &metv, &epv, &PLG, &cs, &ns, &ws, &cf, &nf, &wf))
 			{
 				printf("ERROR in ploughing.c from bgc.c\n");
 				errorCode=539;
@@ -1081,23 +1085,24 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 			
 
 			/* calculating rooting depth, n_rootlayers, n_maxrootlayers, rootlengthProp */
- 			 if (!errorCode && multilayer_rootDepth(&epc, &sprop, &cs, &sitec, &epv))
-			 {
+			if (!errorCode && multilayer_rootDepth(&epc, &sprop, &cs, &sitec, &epv))
+			{
 				printf("ERROR in multilayer_rootDepth.c from bgc.c\n");
-				errorCode=544;
-			 }
-			 
+				errorCode = 544;
+			}
 
+			 
+	
 			/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 			/* 7. ERROR CHECKING AND SUMMARY VARIABLES  */
 	
 			/* test for very low state variable values and force them to 0.0 to avoid rounding and floating point overflow errors */
-			if (!errorCode && precision_control(&ws, &cs, &ns, &sprop, &soilInfo))
+			if (!errorCode && precision_control(&ctrl, &sprop, &ws, &cs, &ns, &soilInfo))
 			{
 				printf("ERROR in precision_control.c from bgc.c\n");
 				errorCode=545;
 			} 
-
+			
 	
 			/* test for mass and water balance of virtual layers */
 			if (!errorCode && sprop.GWlayer != DATA_GAP && check_virtualLayer_balance(&ctrl, &soilInfo, &sprop, &wf))
@@ -1279,6 +1284,13 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 		{
 			fprintf(bgcout->log_file.ptr, "Limited denitrification due high soil respiration\n");
 			ctrl.limitDENIT_flag = -1;
+		}
+
+
+		if (ctrl.CNratio_flag)
+		{
+			fprintf(bgcout->log_file.ptr, "CN ratio is less than 1 for one of the soil pools\n");
+			ctrl.CNratio_flag = -1;
 		}
 
 		if (ctrl.noTRP_flag)

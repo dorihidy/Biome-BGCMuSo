@@ -81,8 +81,8 @@
     <ClCompile Include="atm_pres.c" />
     <ClCompile Include="bgc.c" />
     <ClCompile Include="calc_diffus.c" />
+    <ClCompile Include="calc_DISSOLVandBOUND.c" />
     <ClCompile Include="calc_drainage.c" />
-    <ClCompile Include="calc_leach.c" />
     <ClCompile Include="calc_nrootlayers.c" />
     <ClCompile Include="calc_VWCeq.c" />
     <ClCompile Include="canopy_et.c" />

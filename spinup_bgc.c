@@ -1016,9 +1016,10 @@ int spinup_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				}
 			
 	
+
 		
 				/* calculate the leaching of N, DOC and DON from multilayer soil */
-				if (!errorCode && multilayer_leaching(&sprop, &soilInfo, &cs, &ns, &ws, &wf))
+				if (!errorCode && multilayer_leaching(&sitec, &sprop, &soilInfo, &cs, &ns, &ws, &wf))
 				{
 					printf("ERROR in multilayer_leaching.c from spinup_bgc.c\n");
 					errorCode=532;
@@ -1044,7 +1045,7 @@ int spinup_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				/* 6. ERROR CHECKING AND SUMMARY VARIABLES  */
 			
 				/* test for very low state variable values and force them to 0.0 to avoid rounding and floating point overflow errors */
-				if (!errorCode && precision_control(&ws, &cs, &ns, &sprop, &soilInfo))
+				if (!errorCode && precision_control(&ctrl, &sprop, &ws, &cs, &ns, &soilInfo))
 				{
 					printf("ERROR in call to precision_control.c from spinup_bgc.c\n");
 					errorCode=545;

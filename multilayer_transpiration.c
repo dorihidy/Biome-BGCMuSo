@@ -246,12 +246,12 @@ int multilayer_transpiration(control_struct* ctrl, const siteconst_struct* sitec
 	wf->TRPsoilw_SUM = TRPsoilw_SUM;
 
 	/* if capillary zone exists in unsaturated zone (not in GWlayer) and capillary zone is in the top soil layer */
-	if (sprop->dz_CAPILcf && wf->TRPsoilw[CFlayer] > 0)
+	if ((sprop->dz_CAPILcf+sprop->dz_NORMcf) && wf->TRPsoilw[CFlayer] > 0)
 	{
 		soilwAVAIL_NORMcf = MAX(0, sprop->soilw_NORMcf - sprop->VWCwp[CFlayer] * sprop->dz_NORMcf * water_density);
 		soilwAVAIL_CAPILcf = MAX(0, sprop->soilw_CAPILcf - sprop->VWCwp[CFlayer] * sprop->dz_CAPILcf * water_density);
 
-		if (soilwAVAIL_CAPILcf)
+		if (soilwAVAIL_NORMcf+soilwAVAIL_CAPILcf)
 		{
 			ratioNORM = soilwAVAIL_NORMcf / (soilwAVAIL_NORMcf + soilwAVAIL_CAPILcf);
 			ratioCAPIL = soilwAVAIL_CAPILcf / (soilwAVAIL_NORMcf + soilwAVAIL_CAPILcf);

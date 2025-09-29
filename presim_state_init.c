@@ -42,6 +42,7 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 	ctrl->limitSNSC_flag = 0;
 	ctrl->limitleach_flag = 0;
 	ctrl->limitdiffus_flag = 0;
+	ctrl->CNratio_flag = 0;
 	ctrl->pond_flag = 0;
 	ctrl->noTRP_flag = 0;
 	ctrl->grazingW_flag = 0;
@@ -297,6 +298,7 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 		ws->soilw[layer] = 0;
 		ws->soilw_pre[layer] = 0;
 		ws->soilwAVAIL[layer] = 0;
+		ws->soilwSAT[layer] = 0;
 		cs->cwdc[layer] = 0;
 		cs->litr1c[layer] = 0;
 		cs->litr2c[layer] = 0;
@@ -329,11 +331,7 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 		soilInfo->content_SATgw[dm] = 0;
 		soilInfo->dismatLeach_NORMgw[dm] = 0;
 		soilInfo->dismatLeach_NORMcf[dm] = 0;
-		soilInfo->dismatGWmovchange[dm] = 0;
-		soilInfo->dismatGWecofunc_NORM[dm] = 0;
-		soilInfo->dismatGWecofunc_CAPIL[dm] = 0;
-		soilInfo->dismatGWdecomp_CAPIL[dm] = 0;
-		soilInfo->dismatGWdecomp_NORM[dm] = 0;
+
 
 
 		for (layer = 0; layer < N_SOILLAYERS; layer++)
@@ -343,6 +341,7 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 			soilInfo->dismatLeach_percolDiffus[dm][layer] = 0;
 			soilInfo->dismatGWdischarge[dm][layer] = 0;
 			soilInfo->dismatGWrecharge[dm][layer] = 0;
+			soilInfo->dismatGWmovchange[dm][layer] = 0;
 			soilInfo->dismatGWecofunc[dm][layer] = 0;
 			soilInfo->dismatGWdecomp[dm][layer] = 0;
 			soilInfo->dismatGWfertil[dm][layer] = 0;
@@ -353,11 +352,6 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 			soilInfo->dismatTOTALdecomp[dm][layer] = 0;
 			soilInfo->dismatTOTALfertil[dm][layer] = 0;
 
-			if (dm < N_DISSOLVorgN)
-			{
-				soilInfo->FRZ_to_litrN[dm][layer] = 0;
-				soilInfo->FRZ_to_litrC[dm][layer] = 0;
-			}
 
 		}
 	}

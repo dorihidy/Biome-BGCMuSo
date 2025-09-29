@@ -422,7 +422,7 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=5010;
 			}
 			
-
+		
 			/* initalizing annmax and cumulative variables */
 			if (yday == 0)
 			{
@@ -458,6 +458,7 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				printf("ERROR in groundwater_calculations.c from bgc.c\n");
 				errorCode = 5050;
 			}
+
 
 			/* daily meteorological variables from metarrays */
 			if (!errorCode && daymet(&ctrl, &metarr, &epc, &metv, ws.snoww))
@@ -568,6 +569,7 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=5190;
 			}
 					
+	
 			/* daily litter and soil decomp and nitrogen fluxes */
 			if (!errorCode && decomp(&metv,&epc,&sprop,&sitec,&cs,&ns,&epv,&cf,&nf,&nt))
 			{
@@ -597,7 +599,7 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 			/* reassess the annual turnover rates for livewood --> deadwood, and for evergreen leaf and fine root litterfall. 
 			This happens once each year, on the annual_alloc day (the last litterfall day - test for annual allocation day) */
 			
-				if (phen.remdays_litfall == 1) 
+			if (phen.remdays_litfall == 1) 
 				annual_alloc = 1;
 			else 
 				annual_alloc = 0;
@@ -684,6 +686,7 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=5300;
 			}
 			
+
 	
 			/* calculate the change of soil mineralized N in multilayer soil */ 
 			if (!errorCode && multilayer_sminn(&ctrl, &metv, &sitec, &ndep, &cs, &cf, &ns, &nf, &sprop, &epv, &soilInfo))
@@ -692,9 +695,8 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=5310;
 			}
 			
-
 			/* calculate the leaching of N, DOC and DON from multilayer soil */
-			if (!errorCode && multilayer_leaching(&sprop, &soilInfo, &cs, &ns,  &ws, &wf))
+			if (!errorCode && multilayer_leaching(&sitec, &sprop, &soilInfo, &cs, &ns,  &ws, &wf))
 			{
 				printf("ERROR in multilayer_leaching.c from transient_bgc.c\n");
 				errorCode=5320;
@@ -751,7 +753,7 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 			
  
 			/* PLOUGHING */
- 			if (!errorCode && ploughing(&ctrl, &epc, &sitec, &sprop, &metv, &epv, &PLG, &cs, &ns, &ws, &cf, &nf, &wf))
+ 			if (!errorCode && ploughing(&ctrl, &epc, &sitec, &sprop, &soilInfo, &metv, &epv, &PLG, &cs, &ns, &ws, &cf, &nf, &wf))
 			{
 				printf("ERROR in ploughing.c from transient_bgc.c\n");
 				errorCode=5390;
@@ -803,13 +805,17 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 			/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 			/* 7. ERROR CHECKING AND SUMMARY VARIABLES  */
 			
+	
+
 			/* test for very low state variable values and force them to 0.0 to avoid rounding and floating point overflow errors */
-			if (!errorCode && precision_control(&ws, &cs, &ns, &sprop, &soilInfo))
+			if (!errorCode && precision_control(&ctrl, &sprop, &ws, &cs, &ns, &soilInfo))
 			{
 				printf("ERROR in call to precision_control.c from transient_bgc.c\n");
 				errorCode=5450;
 			} 
 			
+
+
 			/* test for virtual layer balance*/
 			if (!errorCode && sprop.GWlayer != DATA_GAP && check_virtualLayer_balance(&ctrl, &soilInfo, &sprop, &wf))
 			{
@@ -982,6 +988,12 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 		{
 			fprintf(bgcout->log_file.ptr, "Limited denitrification due high soil respiration\n");
 			ctrl.limitDENIT_flag = -1;
+		}
+
+		if (ctrl.CNratio_flag)
+		{
+			fprintf(bgcout->log_file.ptr, "CN ratio is less than 1 in case of litter or soil pools\n");
+			ctrl.CNratio_flag = -1;
 		}
 
 		if (ctrl.noTRP_flag)

@@ -22,11 +22,11 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
-int calc_drainage(int flagRAIN, double INFILT, double VWC, double VWCsat, double VWCfc, double dz0, double DC, double conduct_cmday, double* DRN, double* EXCESS, double* VWCnew)
+int calc_drainage(int flagRAIN, double soilB, double INFILT, double VWC, double VWCsat, double VWCfc, double dz0, double DC, double conductSAT_cmday, double* DRN, double* EXCESS, double* VWCnew)
 {
 
 	int errorCode = 0;
-	double HOLD, DRAIN, DRNact, DRNx;
+	double HOLD, DRAIN, DRNact, DRNx, conduct_cmday;
 	*EXCESS = 0;
 
 	
@@ -47,7 +47,11 @@ int calc_drainage(int flagRAIN, double INFILT, double VWC, double VWCsat, double
 			DRNact = INFILT - HOLD + DRAIN;
 
 
-			/* drainage is limited: cm/h * h/day */
+			/* drainage is limited: actual conductance with updated soil water content */
+			conduct_cmday = conductSAT_cmday * pow((VWC + INFILT / dz0) / VWCsat, 3 + 2 * soilB);
+			if (conduct_cmday > conductSAT_cmday) conduct_cmday = conductSAT_cmday;
+		
+
 			if ((DRNact - conduct_cmday) > 0.0)
 			{
 				DRNact = conduct_cmday;
@@ -73,6 +77,9 @@ int calc_drainage(int flagRAIN, double INFILT, double VWC, double VWCsat, double
 
 			VWC = VWC + INFILT / dz0;
 
+			/* drainage is limited: actual conductance with updated soil water content */
+			conduct_cmday = conductSAT_cmday * pow(VWC / VWCsat, 3 + 2 * soilB);
+			if (conduct_cmday > conductSAT_cmday) conduct_cmday = conductSAT_cmday;
 
 			/* BEGIN IF-ELSE: VWC > FC */
 			if (VWC >= VWCfc)
@@ -87,7 +94,8 @@ int calc_drainage(int flagRAIN, double INFILT, double VWC, double VWCsat, double
 					DRNact = 0;
 
 
-				/* drainage is limited */
+
+
 				if ((DRNact - conduct_cmday) > 0.0)
 				{
 					DRNact = conduct_cmday;
@@ -117,7 +125,10 @@ int calc_drainage(int flagRAIN, double INFILT, double VWC, double VWCsat, double
 
 		DRNact = MAX(INFILT + DRNx - HOLD, 0.0);
 	
-		/* limitation of drainage: saturation conductivity */
+		/* drainage is limited: actual conductance with updated soil water content */
+		conduct_cmday = conductSAT_cmday * pow((VWC + INFILT / dz0) / VWCsat, 3 + 2 * soilB);
+		if (conduct_cmday > conductSAT_cmday) conduct_cmday = conductSAT_cmday;
+
 		if ((DRNact - conduct_cmday) > 0.0) DRNact = conduct_cmday;
 		if (DRNact < CRIT_PREC_lenient) DRNact = 0;
 

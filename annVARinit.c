@@ -127,13 +127,15 @@ int annVARinit(summary_struct* summary, epvar_struct* epv, cstate_struct* cs, ws
 	epv->annmax_livecrootc = 0;
 
 
-	summary->cumUNSATchangeGW_orgN= 0;
+
 	summary->cumUNSATplantUPto_orgN = 0;
 	summary->cumUNSATecofunc_orgN = 0;
 	summary->cumUNSATfertil_orgN = 0;
 	summary->cumUNSATdischarge_orgN = 0;
 	summary->cumUNSATrecharge_orgN = 0;
 
+	summary->cumTOTALchangeGW_NH4 = 0;
+	summary->cumTOTALchangeGW_NO3 = 0;
 	summary->cumTOTALchangeGW_orgN = 0;
 	summary->cumTOTALplantUPto_orgN = 0;
 	summary->cumTOTALecofunc_orgN = 0;
@@ -141,8 +143,6 @@ int annVARinit(summary_struct* summary, epvar_struct* epv, cstate_struct* cs, ws
 	summary->cumTOTALdischarge_orgN = 0;
 	summary->cumTOTALrecharge_orgN = 0;
 
-	summary->cumUNSATchangeGW_NH4 = 0;
-	summary->cumUNSATchangeGW_NO3 = 0;
 	summary->cumUNSATecofunc_NH4= 0;
 	summary->cumUNSATecofunc_NO3= 0;
 	summary->cumUNSATfertil_NH4= 0;

@@ -53,7 +53,7 @@ int water_state_update(wflux_struct* wf, wstate_struct* ws)
 	/* evapotranspiration/sublimation snk */
 	ws->EVPcanopyw_snk += wf->EVPcanopyw;
 	ws->snowSUBL_snk += wf->SUBLsnoww;
-	ws->soilEVP_snk += wf->EVPsoilw + wf->EVPfromGW;
+	ws->soilEVP_snk += wf->EVPsoilw;
 	ws->TRP_snk += wf->TRPsoilw_SUM;
 	ws->pondEVP_snk += wf->EVPpondw;
 
@@ -98,7 +98,7 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, so
 	int errorCode = 0;
 	int layer, pp, dm, GWlayer, CFlayer;
 	double leafc_to_litr, leafn_to_litr, frootc_to_litr, frootn_to_litr, yieldc_to_litr, yieldn_to_litr, softstemc_to_litr, softstemn_to_litr;
-	double ratioNORM, ratioCAPIL, ratioSAT, diffNORM, diffCAPIL, diffSAT, diff;
+	double ratioNORM, ratioCAPIL, ratioSAT, diffNORM, diffCAPIL, diffSAT;
 
 	/* C state variables are updated below in the order of the relevant fluxes in the daily model loop */
 
@@ -110,6 +110,16 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, so
 
 	GWlayer = (int)sprop->GWlayer;
 	CFlayer = (int)sprop->CFlayer;
+
+	/* *****************************************************************************************************/
+	/* 0. firsttime_flag=0 (before calculation note initial values, partlyORtotal_flag=1 (TOTAL (BOUND+DISSOLV) is affected  */
+
+	if (!errorCode && calc_DISSOLVandBOUND(0, 1, sprop, soilInfo))
+	{
+		printf("ERROR in calc_DISSOLVandBOUND.c for state_update.c\n");
+		errorCode = 1;
+	}
+
 	/***************************************************************************************************************************************************/
 	/* 1. Phenology fluxes */
 	if (!errorCode && epc->leaf_cn && CNratio_control(cs, epc->leaf_cn, cs->leafc, ns->leafn, cf->leafc_transfer_to_leafc, nf->leafn_transfer_to_leafn, 0)) 
@@ -480,6 +490,13 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, so
 			soilInfo->dismatUNSATdecomp[9][layer] = soilInfo->dismatTOTALdecomp[9][layer];
 
 		}
+
+		/* transfer value: content_array -> NH4, NO3, DOC, DON */
+		if (!errorCode && check_soilcontent(layer, 0, sprop, cs, ns, soilInfo))
+		{
+			printf("ERROR in check_soilcontent.c for state_update.c\n");
+			errorCode = 1;
+		}
 		
 	}
 
@@ -488,20 +505,11 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, so
 	/*-------------------------------------------------*/
 	/* 8.4. Groundwater transport */
 
-
-
 	if (sprop->GWlayer != DATA_GAP)
 	{ 
 
-		/* transfer value: NH4, NO3, DOC, DON - > content_array  etc.*/
-		if (!errorCode && check_soilcontent(-1, 0, sprop, cs, ns, soilInfo))
-		{
-			printf("ERROR in check_soilcontent.c for state_update.c\n");
-			errorCode = 1;
-		}
-
 		/* if capillary zone exists in unsaturated zone (not in GWlayer) */
-		if (sprop->dz_CAPILcf)
+		if (sprop->dz_CAPILcf+sprop->dz_NORMcf)
 		{
 			for (dm = 0; dm < N_DISSOLVMATER; dm++)
 			{
@@ -527,7 +535,7 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, so
 				diffCAPIL = soilInfo->dismatTOTALdecomp[dm][CFlayer] * ratioCAPIL;
 
 				/* NORM zone: negative storage value is not possible  */
-				if (soilInfo->content_NORMcf[dm] + diffNORM < 0) diffNORM = soilInfo->content_NORMcf[dm];
+				if (soilInfo->content_NORMcf[dm] + diffNORM < 0) diffNORM = -1 * soilInfo->content_NORMcf[dm];
 
 				soilInfo->content_NORMcf[dm] += diffNORM;
 
@@ -590,102 +598,114 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, so
 						diffSAT = soilInfo->dismatTOTALdecomp[dm][layer] * ratioSAT;
 
 
-						/* NORM zone: negative storage value is not possible - covered by GW */
-						if (soilInfo->content_NORMgw[dm] + diffNORM < 0)
-							diff = -1 * diffNORM - soilInfo->content_NORMgw[dm];
-						else
-							diff = 0;
+						/* NORM zone (negative content is not possible - covered by groundwater) */
+						soilInfo->contentBOUND_NORMgw[dm] += diffNORM * (1 - soilInfo->dissolv_prop[dm]);
+						soilInfo->contentDISSOLV_NORMgw[dm] += diffNORM * soilInfo->dissolv_prop[dm];
+						if (soilInfo->contentBOUND_NORMgw[dm] < 0)
+						{
+							diffNORM -= soilInfo->contentBOUND_NORMgw[dm];
+							soilInfo->contentBOUND_NORMgw[dm] = 0;
+						}
+						if (soilInfo->contentDISSOLV_NORMgw[dm] < 0)
+						{
+							diffNORM -= soilInfo->contentDISSOLV_NORMgw[dm];
+							soilInfo->contentDISSOLV_NORMgw[dm] = 0;
+						}
 
-						soilInfo->dismatGWdecomp_NORM[dm] = diff;
-						soilInfo->content_NORMgw[dm] += diffNORM + soilInfo->dismatGWdecomp_NORM[dm];
+						/* CAPIL zone (negative content is not possible - covered by groundwater) */
+						soilInfo->contentBOUND_CAPILgw[dm] += diffCAPIL * (1 - soilInfo->dissolv_prop[dm]);
+						soilInfo->contentDISSOLV_CAPILgw[dm] += diffCAPIL * soilInfo->dissolv_prop[dm];
+						if (soilInfo->contentBOUND_CAPILgw[dm] < 0)
+						{
+							diffCAPIL -= soilInfo->contentBOUND_CAPILgw[dm];
+							soilInfo->contentBOUND_CAPILgw[dm] = 0;
+						}
+						if (soilInfo->contentDISSOLV_CAPILgw[dm] < 0)
+						{
+							diffCAPIL -= soilInfo->contentDISSOLV_CAPILgw[dm];
+							soilInfo->contentDISSOLV_CAPILgw[dm] = 0;
+						}
 
-						/* CAPIL zone: negative storage value is not possible - covered by GW */
-						if (soilInfo->content_CAPILgw[dm] + diffCAPIL < 0)
-							diff = -1 * diffCAPIL - soilInfo->content_CAPILgw[dm];
-						else
-							diff = 0;
+						/* SAT zone: diffSAT is the part remained after diffNORM and diffCAPIL, but: dissolved part of SATgw is unchanged - GWdecomp */
+						diffSAT = soilInfo->dismatTOTALdecomp[dm][layer] - diffNORM - diffCAPIL;
+						
+						soilInfo->contentBOUND_SATgw[dm] += diffSAT * (1 - soilInfo->dissolv_prop[dm]);
+						soilInfo->dismatGWdecomp[dm][GWlayer] = -1 * diffSAT * soilInfo->dissolv_prop[dm];
 
-						soilInfo->dismatGWdecomp_CAPIL[dm] = diff;
-						soilInfo->content_CAPILgw[dm] += diffCAPIL + soilInfo->dismatGWdecomp_CAPIL[dm];
+						/* negative content is not possible - covered by groundwater */
+						if (soilInfo->contentBOUND_SATgw[dm] < 0)
+						{
+							soilInfo->dismatGWdecomp[dm][layer] -= soilInfo->contentBOUND_SATgw[dm];
+							soilInfo->contentBOUND_SATgw[dm] = 0;
+						}
 
-
-						/* SAT zone: no soilInfo->dismatTOTALdecomp is possible (constant conc) - covered by GW */
-						soilInfo->dismatGWdecomp[dm][GWlayer] = -1 * diffSAT;
-						soilInfo->content_SATgw[dm] += diffSAT + soilInfo->dismatGWdecomp[dm][layer];
-
-	
-
-						/* UNSAT soilInfo->dismatTOTALdecomp */
+						/* change of UNSAT zone*/
 						soilInfo->dismatUNSATdecomp[dm][layer] = diffNORM + diffCAPIL;
 
-						soilInfo->content_soil[dm][layer] += soilInfo->dismatGWdecomp_NORM[dm] + soilInfo->dismatGWdecomp_CAPIL[dm] + soilInfo->dismatGWdecomp[dm][GWlayer];
+						
 					}
 				}
 
 			}
 			else
 			{
-				/* below GWlayer - soilInfo->dismatTOTALdecomp is covered by GW*/
+				/* below GWlayer - dissolv part of dismatTOTALdecomp is covered by GW*/
 				for (dm = 0; dm < N_DISSOLVMATER; dm++)
 				{
-					
-					soilInfo->dismatGWdecomp[dm][layer] = -1 * soilInfo->dismatTOTALdecomp[dm][layer];
-					soilInfo->content_soil[dm][layer] += soilInfo->dismatGWdecomp[dm][layer];
+					soilInfo->contentBOUND_soil[dm][layer] += soilInfo->dismatTOTALdecomp[dm][layer] * (1 - soilInfo->dissolv_prop[dm]);
+					soilInfo->dismatGWdecomp[dm][layer] = -1 * soilInfo->dismatTOTALdecomp[dm][layer] * soilInfo->dissolv_prop[dm];
+
+					/* negative content is not possible - covered by groundwater */
+					if (soilInfo->contentBOUND_soil[dm][layer] < 0)
+					{
+						soilInfo->dismatGWdecomp[dm][layer] -= soilInfo->contentBOUND_soil[dm][layer];
+						soilInfo->contentBOUND_soil[dm][layer] = 0;
+					}
 				}
-			}
 
-
-			/* transfer value: content_array -> NH4, NO3, DOC, DON */
-			if (!errorCode && check_soilcontent(layer, 1, sprop, cs, ns, soilInfo))
-			{
-				printf("ERROR in check_soilcontent.c for state_update.c\n");
-				errorCode = 1;
-			}
-
-		}
-		/* src/snk variables*/
-		for (dm = 0; dm < N_DISSOLVN; dm++)
-		{
-			if (soilInfo->dismatGWdecomp_NORM[dm] > 0)
-				ns->GWsrc_N += soilInfo->dismatGWdecomp_NORM[dm];
-			else
-				ns->GWsnk_N += -1 * soilInfo->dismatGWdecomp_NORM[dm];
-
-			if (soilInfo->dismatGWdecomp_CAPIL[dm] > 0)
-				ns->GWsrc_N += soilInfo->dismatGWdecomp_CAPIL[dm];
-			else
-				ns->GWsnk_N += -1 * soilInfo->dismatGWdecomp_CAPIL[dm];
-
-			for (layer = 0; layer < N_SOILLAYERS; layer++)
-			{
-				if (soilInfo->dismatGWdecomp[dm][layer] > 0)
-					ns->GWsrc_N += soilInfo->dismatGWdecomp[dm][layer];
-				else
-					ns->GWsnk_N += -1 * soilInfo->dismatGWdecomp[dm][layer];
 			}
 		}
 
-		for (dm = N_DISSOLVN; dm < N_DISSOLVMATER; dm++)
-		{
-			if (soilInfo->dismatGWdecomp_NORM[dm] > 0)
-				cs->GWsrc_C += soilInfo->dismatGWdecomp_NORM[dm];
-			else
-				cs->GWsnk_C += -1 * soilInfo->dismatGWdecomp_NORM[dm];
+	}
 
-			if (soilInfo->dismatGWdecomp_CAPIL[dm] > 0)
-				cs->GWsrc_C += soilInfo->dismatGWdecomp_CAPIL[dm];
-			else
-				cs->GWsnk_C += -1 * soilInfo->dismatGWdecomp_CAPIL[dm];
 
-			for (layer = 0; layer < N_SOILLAYERS; layer++)
-			{
-				if (soilInfo->dismatGWdecomp[dm][layer] > 0)
-					cs->GWsrc_C += soilInfo->dismatGWdecomp[dm][layer];
-				else
-					cs->GWsnk_C += -1 * soilInfo->dismatGWdecomp[dm][layer];
-			}
-		}
+	/* *****************************************************************************************************/
+	/* src/snk variables*/
+	
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
+	{
+		for (dm = 0; dm < N_DISSOLVN; dm++) soilInfo->dismatGWdecompN_total += soilInfo->dismatGWdecomp[dm][layer];
+		for (dm = N_DISSOLVN; dm < N_DISSOLVMATER; dm++) soilInfo->dismatGWdecompC_total += soilInfo->dismatGWdecomp[dm][layer];
+	}
 
+
+	if (soilInfo->dismatGWdecompN_total > 0)
+		ns->GWsrc_N += soilInfo->dismatGWdecompN_total;
+	else
+		ns->GWsnk_N += -1 * soilInfo->dismatGWdecompN_total;
+
+
+	if (soilInfo->dismatGWdecompC_total > 0)
+		cs->GWsrc_C += soilInfo->dismatGWdecompC_total;
+	else
+		cs->GWsnk_C += -1 * soilInfo->dismatGWdecompC_total;
+
+
+	/* *****************************************************************************************************/
+	/* update pools */
+
+
+	/*  firsttime_flag=1 (after calculation note initial values, int partlyORtotal_flag=1 (TOTAL (BOUND+DISSOLV) is affected  */
+	if (!errorCode && calc_DISSOLVandBOUND(1, 1, sprop, soilInfo))
+	{
+		printf("ERROR in calc_DISSOLVandBOUND.c for state_update.c\n");
+		errorCode = 1;
+	}
+
+	if (!errorCode && check_soilcontent(-1, 1, sprop, cs, ns, soilInfo))
+	{
+		printf("ERROR in check_soilcontent.c for state_update.c\n");
+		errorCode = 1;
 	}
 
 
@@ -1132,7 +1152,6 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, so
 
 
 
-
 	return (errorCode);
 }			
 
@@ -1184,7 +1203,6 @@ int CNratio_control(cstate_struct* cs, double CNratio, double cpool, double npoo
 		CNdiff = cflux/nflux - CNratio;
 
 	}
-
 
 	return (!errorCode);
 }

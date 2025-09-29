@@ -19,24 +19,24 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_func.h"
 #include "bgc_constants.h"
 
-int multilayer_leaching(soilprop_struct* sprop, soilInfo_struct* soilInfo, cstate_struct* cs,  nstate_struct* ns, wstate_struct* ws, wflux_struct* wf)
+int multilayer_leaching(const siteconst_struct* sitec, soilprop_struct* sprop, soilInfo_struct* soilInfo, cstate_struct* cs,  nstate_struct* ns, wstate_struct* ws, wflux_struct* wf)
 {
 	int errorCode, layer, GWlayer, CFlayer, dm;
 
-	double wflux,diffNORM, diffCAPIL, diff;
-	double change, dismatLeachNORM, dismatLeach_NORMvsCAPIL, dismatLeach_NORMfromAbove, dismatLeach_CAPILfromAbove, dischargeNORM, dischargeCAPIL, rechargeNORM, rechargeCAPIL, dismatLeachCAPIL, percolDiffus_NORM, percolDiffus_CAPIL, dismatLeach_fromAbove;
-	double soilw[N_DISSOLVMATER], conc0[N_DISSOLVMATER], conc1[N_DISSOLVMATER];
+	double wflux, diffNORM, diffCAPIL, diff;
+	double change, dismatLeachNORM, dismatLeach_NORMvsCAPIL, dismatLeach_NORMfromAbove, dismatLeach_CAPILfromAbove, dischargeNORM, dischargeCAPIL, rechargeNORM, rechargeCAPIL, dismatLeachCAPIL, percolDiffus_NORM, dismatLeach_fromAbove;
+	double soilwAVAIL[N_DISSOLVMATER], conc0[N_DISSOLVMATER], conc1[N_DISSOLVMATER];
 
 	errorCode = 0; 
 
-	change= dismatLeachNORM = wflux = dismatLeach_NORMvsCAPIL = dismatLeach_NORMfromAbove = dismatLeach_CAPILfromAbove = dischargeNORM = dischargeCAPIL = rechargeNORM = rechargeCAPIL = dismatLeachCAPIL = percolDiffus_NORM = percolDiffus_CAPIL = dismatLeach_fromAbove = 0;
+	change= dismatLeachNORM = wflux = dismatLeach_NORMvsCAPIL = dismatLeach_NORMfromAbove = dismatLeach_CAPILfromAbove = dischargeNORM = dischargeCAPIL = rechargeNORM = rechargeCAPIL = dismatLeachCAPIL = percolDiffus_NORM = dismatLeach_fromAbove = 0;
 	GWlayer = (int)sprop->GWlayer;
 	CFlayer = (int)sprop->CFlayer;
 
 	/*---------------------------------------------------------------------------------*/
 	/* for concentration calculation original soilw data (from the beginning of the simulation day) is used: top soil layer - infiltration is also counts in concentration calculation */
 
-	for (layer = 0; layer < N_SOILLAYERS; layer++) soilw[layer] = ws->soilw_pre[layer];
+	for (layer = 0; layer < N_SOILLAYERS; layer++) soilwAVAIL[layer] = ws->soilw_pre[layer] - sprop->VWChw[layer] / sitec->soillayer_thickness[layer] / water_density;
 
 	/*---------------------------------------------------------------------------------*/
 	/* leaching fluxes for the 10 dissolving material types */
@@ -50,7 +50,7 @@ int multilayer_leaching(soilprop_struct* sprop, soilInfo_struct* soilInfo, cstat
 				/* CFlayer*/
 				if (layer == CFlayer && layer != GWlayer)
 				{ 
-					if (!errorCode && capillary_leaching(dm, sprop, soilInfo, ws, wf, &dismatLeachNORM, &dismatLeachCAPIL, &dischargeNORM, &dischargeCAPIL, &rechargeNORM, &rechargeCAPIL))
+					if (!errorCode && capillary_leaching(dm, sitec, sprop, soilInfo, ws, wf, &dismatLeachNORM, &dismatLeachCAPIL, &dischargeNORM, &dischargeCAPIL, &rechargeNORM, &rechargeCAPIL))
 					{
 						printf("ERROR in capillary_leaching.c from multilayer_leaching.c\n");
 						errorCode = 1;
@@ -59,7 +59,7 @@ int multilayer_leaching(soilprop_struct* sprop, soilInfo_struct* soilInfo, cstat
 				/* GWlayer*/
 				else
 				{	
-					if (!errorCode && groundwater_leaching(dm, sprop, soilInfo, ws, wf, &dismatLeachNORM, &dismatLeachCAPIL, &dischargeNORM, &dischargeCAPIL, &rechargeNORM, &rechargeCAPIL))
+					if (!errorCode && groundwater_leaching(dm, sitec, sprop, soilInfo, ws, wf, &dismatLeachNORM, &dismatLeachCAPIL, &dischargeNORM, &dischargeCAPIL, &rechargeNORM, &rechargeCAPIL))
 					{
 						printf("ERROR in groundwater_leaching.c from multilayer_leaching.c\n");
 						errorCode = 1;
@@ -75,23 +75,24 @@ int multilayer_leaching(soilprop_struct* sprop, soilInfo_struct* soilInfo, cstat
 		else
 		{
 			wflux = wf->soilwFlux[layer];
+
 			if (wflux != 0)
 			{				
 				for (dm = 0; dm < N_DISSOLVMATER; dm++)
 				{
-					conc0[dm] = soilInfo->dissolv_prop[dm] * (soilInfo->content_soil[dm][layer] / soilw[layer]);
+					conc0[dm] =  (soilInfo->contentDISSOLV_soil[dm][layer] / ws->soilw[layer]);
 					if (layer < N_SOILLAYERS - 1)
 					{		
-						conc1[dm] = soilInfo->dissolv_prop[dm] * (soilInfo->content_soil[dm][layer + 1] / soilw[layer + 1]);
+						conc1[dm] =  (soilInfo->contentDISSOLV_soil[dm][layer + 1] / ws->soilw[layer + 1]);
 
 						if (wflux > 0)
 						{
-							if (wflux > soilw[layer]) wflux = soilw[layer];
+							if (wflux > soilwAVAIL[layer]) wflux = soilwAVAIL[layer];
 							soilInfo->dismatLeach[dm][layer] = conc0[dm] * wflux;
 						}
 						else
 						{
-							if (fabs(wflux) > soilw[layer+1]) wflux = -1 * soilw[layer+1];
+							if (fabs(wflux) > soilwAVAIL[layer+1]) wflux = -1 * soilwAVAIL[layer+1];
 							soilInfo->dismatLeach[dm][layer] = conc1[dm] * wflux;
 						}
 					}
@@ -110,7 +111,7 @@ int multilayer_leaching(soilprop_struct* sprop, soilInfo_struct* soilInfo, cstat
 		{ 
 			for (dm = 0; dm < N_DISSOLVMATER; dm++)
 			{
-				soilInfo->dismatLeach_percolDiffus[dm][layer] = wf->soilwPercolDiffus_fromNORM[layer] * soilInfo->content_NORMcf[dm] / sprop->soilw_NORMcf;
+				soilInfo->dismatLeach_percolDiffus[dm][layer] = wf->soilwPercolDiffus_fromNORM[layer] * soilInfo->contentDISSOLV_NORMcf[dm] / sprop->soilw_NORMcf;
 			}
 		}
 	}
@@ -130,13 +131,13 @@ int multilayer_leaching(soilprop_struct* sprop, soilInfo_struct* soilInfo, cstat
 			change = dismatLeach_fromAbove - soilInfo->dismatLeach[dm][layer] +
 				soilInfo->dismatLeach_percolDiffus[dm][layer] + soilInfo->dismatGWdischarge[dm][layer] - soilInfo->dismatGWrecharge[dm][layer];
 
-			soilInfo->content_soil[dm][layer] += change;
+			soilInfo->contentDISSOLV_soil[dm][layer] += change;
 	
 
 			/* avoiding negative pool */
-			if (soilInfo->content_soil[dm][layer] < 0)
+			if (soilInfo->contentDISSOLV_soil[dm][layer] < 0)
 			{
-				diff = soilInfo->content_soil[dm][layer];
+				diff = soilInfo->contentDISSOLV_soil[dm][layer];
 				if (soilInfo->dismatLeach[dm][layer] > fabs(diff))
 					soilInfo->dismatLeach[dm][layer] += diff;
 				else
@@ -155,31 +156,22 @@ int multilayer_leaching(soilprop_struct* sprop, soilInfo_struct* soilInfo, cstat
 				/* correcting CFlayer-values if actual layer is CFlayer*/
 				if (layer == CFlayer)
 				{
-					soilInfo->content_NORMcf[dm] = 0;
-					soilInfo->content_CAPILcf[dm] = 0;
+					soilInfo->contentDISSOLV_NORMcf[dm] = 0;
+					soilInfo->contentDISSOLV_CAPILcf[dm] = 0;
 				}
 
 				/* correcting CFlayer-values if bottom neighbourg is CFlayer*/
 				if (layer + 1 == CFlayer && layer + 1 != GWlayer)
 				{
-					diffNORM = diff * (soilInfo->content_NORMcf[dm] / (soilInfo->content_NORMcf[dm] + soilInfo->content_CAPILcf[dm]));
+					diffNORM = diff * (soilInfo->contentDISSOLV_NORMcf[dm] / (soilInfo->contentDISSOLV_NORMcf[dm] + soilInfo->contentDISSOLV_CAPILcf[dm]));
 					diffCAPIL = diff - diffNORM;
-					soilInfo->content_NORMcf[dm] += diffNORM;
-					soilInfo->content_CAPILcf[dm] += diffCAPIL;
+					soilInfo->contentDISSOLV_NORMcf[dm] += diffNORM;
+					soilInfo->contentDISSOLV_CAPILcf[dm] += diffCAPIL;
 				}
 
-				soilInfo->content_soil[dm][layer] = 0;
+				soilInfo->contentDISSOLV_soil[dm][layer] = 0;
 			}
 		}
-	}
-
-
-	/*---------------------------------------------------------------------------------*/
-	/* transfer value: content_array ->NH4, NO3, DOC, DON  etc.*/
-	if (!errorCode && check_soilcontent(-1, 1, sprop, cs, ns, soilInfo))
-	{
-		printf("ERROR in check_soilcontent.c for multilayer_leaching.c\n");
-		errorCode = 1;
 	}
 
 
@@ -208,7 +200,22 @@ int multilayer_leaching(soilprop_struct* sprop, soilInfo_struct* soilInfo, cstat
 	for (dm = 0; dm < N_DISSOLVN; dm++)              ns->Ndeepleach_snk += soilInfo->dismatLeach[dm][N_SOILLAYERS - 1];
 	for (dm = N_DISSOLVN; dm < N_DISSOLVMATER; dm++) cs->Cdeepleach_snk += soilInfo->dismatLeach[dm][N_SOILLAYERS - 1];
 
+	/*---------------------------------------------------------------------------------*/	
+	/* transfer value: content_array ->NH4, NO3, DOC, DON  etc.*/
 
+	/*  firsttime_flag=1 (after calculation note initial values, int partlyORtotal_flag=0 (BOUND or DISSOLV) is affected  */
+	if (!errorCode && calc_DISSOLVandBOUND(1, 0, sprop, soilInfo))
+	{
+		printf("ERROR in calc_DISSOLVandBOUND.c for multilayer_leaching.c\n");
+		errorCode = 1;
+	}
+
+
+	if (!errorCode && check_soilcontent(-1, 1, sprop, cs, ns, soilInfo))
+	{
+		printf("ERROR in check_soilcontent.c for multilayer_leaching.c\n");
+		errorCode = 1;
+	}
 
 	
 	

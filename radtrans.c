@@ -89,9 +89,26 @@ int radtrans(const control_struct* ctrl, const phenology_struct* phen, const cst
 		epv->allLAI = epv->projLAI * epc->lai_ratio;
 		epv->SLA_avg = SLA_avg;
 
-		/* Calculate projected LAI for sunlit and shaded canopy portions */
-		epv->plaisun = 1.0 - exp(-epv->projLAI);
-		epv->plaishade = epv->projLAI - epv->plaisun;
+		/* Calculate projected LAI for sunlit and shaded canopy portions  - avoid numeric error in exp function (only used if leafc is greater than a CRIT_PREC value */
+		if (cs->leafc)
+		{ 
+			if (cs->leafc > CRIT_PREC_lenient)
+			{
+				epv->plaisun = 1.0 - exp(-epv->projLAI);
+				epv->plaishade = epv->projLAI - epv->plaisun;
+			}
+			else
+			{
+				epv->plaisun = 0.5 * epv->projLAI;
+				epv->plaishade = 0.5 * epv->projLAI;
+			}
+		}
+		else
+		{
+			epv->plaisun = 0;
+			epv->plaishade = 0;
+		}
+
 		if (epv->plaishade < 0.0)
 		{
 			printf("\n");

@@ -155,7 +155,7 @@ int senescence(const soilprop_struct* sprop, const epconst_struct* epc, const gr
 		if (epc->leaf_cn)
 		{
 			STDB_CN = epc->leaflitr_cn;
-			if (STDB_CN <= 0) errorCode=1;
+			if (STDB_CN < 1) errorCode=1;
 
 			cf->m_leafc_to_SNSC				= SNSCmort_leaf * cs->leafc;  
 			cf->m_leafc_storage_to_SNSC		= m_nscSNSCmort * SNSCmort_leaf * cs->leafc_storage;
@@ -176,7 +176,7 @@ int senescence(const soilprop_struct* sprop, const epconst_struct* epc, const gr
 		if (epc->froot_cn)
 		{
 			STDB_CN = epc->froot_cn * epc->leaflitr_cn/epc->leaf_cn;
-			if (STDB_CN <= 0) errorCode=1;
+			if (STDB_CN < 1) errorCode=1;
 
 			cf->m_frootc_to_SNSC			  = SNSCmort_other * cs->frootc;	 
 			cf->m_frootc_storage_to_SNSC	  = m_nscSNSCmort * SNSCmort_other * cs->frootc_storage;	
@@ -187,9 +187,9 @@ int senescence(const soilprop_struct* sprop, const epconst_struct* epc, const gr
 			nf->m_frootn_storage_to_SNSC	  = cf->m_frootc_storage_to_SNSC / epc->froot_cn;
 			nf->m_frootn_transfer_to_SNSC	  = cf->m_frootc_transfer_to_SNSC / epc->froot_cn;
 
-			nf->frootSNSC_to_retrans          = nf->m_frootn_to_SNSC - cf->m_frootc_to_SNSC/STDB_CN;
-			nf->froot_transferSNSC_to_retrans = nf->m_frootn_transfer_to_SNSC - cf->m_frootc_transfer_to_SNSC/STDB_CN;
-			nf->froot_storageSNSC_to_retrans  = nf->m_frootn_storage_to_SNSC - cf->m_frootc_storage_to_SNSC/STDB_CN;	
+			nf->frootSNSC_to_retrans          = nf->m_frootn_to_SNSC - cf->m_frootc_to_SNSC/ STDB_CN;
+			nf->froot_transferSNSC_to_retrans = nf->m_frootn_transfer_to_SNSC - cf->m_frootc_transfer_to_SNSC/ STDB_CN;
+			nf->froot_storageSNSC_to_retrans  = nf->m_frootn_storage_to_SNSC - cf->m_frootc_storage_to_SNSC/ STDB_CN;
 
 			nf->SNSC_to_retrans              += nf->frootSNSC_to_retrans + nf->froot_transferSNSC_to_retrans + nf->froot_storageSNSC_to_retrans;
 
@@ -198,7 +198,7 @@ int senescence(const soilprop_struct* sprop, const epconst_struct* epc, const gr
 		if (epc->softstem_cn)
 		{
 			STDB_CN = epc->softstem_cn * epc->leaflitr_cn/epc->leaf_cn;
-			if (STDB_CN <= 0) errorCode=1;
+			if (STDB_CN < 1) errorCode=1;
 
 			cf->m_softstemc_to_SNSC			    = SNSCmort_other * cs->softstemc;
 			cf->m_softstemc_storage_to_SNSC	    = m_nscSNSCmort * SNSCmort_other * cs->softstemc_storage;	
@@ -346,7 +346,15 @@ int senescence(const soilprop_struct* sprop, const epconst_struct* epc, const gr
 		                  - (nf->yieldSNSC_to_retrans + nf->yieldc_transferSNSC_to_retrans + nf->yieldc_storageSNSC_to_retrans); 
 	ns->STDBn_softstem += nf->m_softstemn_to_SNSC + nf->m_softstemn_storage_to_SNSC + nf->m_softstemn_transfer_to_SNSC  
 		                  - (nf->softstemSNSC_to_retrans + nf->softstem_transferSNSC_to_retrans + nf->softstem_storageSNSC_to_retrans); 
-	ns->STDBn_froot    += nf->m_retransn_to_SNSC;
+
+	/* dividing of senescenced retranslocated N flux into STDB pools*/
+	if (ns->leafn + ns->frootn + ns->yieldn + ns->softstemn)
+	{
+		ns->STDBn_leaf += nf->m_retransn_to_SNSC * (ns->leafn / (ns->leafn + ns->frootn + ns->yieldn + ns->softstemn));
+		ns->STDBn_froot += nf->m_retransn_to_SNSC * (ns->frootn / (ns->leafn + ns->frootn + ns->yieldn + ns->softstemn));
+		ns->STDBn_yield += nf->m_retransn_to_SNSC * (ns->yieldn / (ns->leafn + ns->frootn + ns->yieldn + ns->softstemn));
+		ns->STDBn_softstem += nf->m_retransn_to_SNSC * (ns->softstemn / (ns->leafn + ns->frootn + ns->yieldn + ns->softstemn));
+	}
 
 	ns->retransn       += nf->SNSC_to_retrans;
 	 /****************************************************************************************/

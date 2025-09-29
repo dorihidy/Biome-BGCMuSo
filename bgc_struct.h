@@ -84,6 +84,7 @@ typedef struct
 	int limitSNSC_flag;         /* (flag) for warnings into logfile */	
 	int limitleach_flag;        /* (flag) for warnings into logfile */	
 	int limitdiffus_flag;       /* (flag) for warnings into logfile */	
+	int CNratio_flag;          /* (flag) for warnings into logfile */
 	int pond_flag;              /* (flag) for warnings into logfile */	
 	int noTRP_flag;             /* (flag) for warnings into logfile */	
 	int grazingW_flag;          /* (flag) for warnings into logfile */	
@@ -283,6 +284,7 @@ typedef struct
 	double EVPsurface1cum;              /* cumulated soil evaporation in first evaporation phase (no limit) */
 	double EVPsurface2cum;              /* cumulated soil evaporation in second evaporation phase (DSR limit) */
 	double soilwAVAIL[N_SOILLAYERS];/* transpiration lack in a given layer */
+	double soilwSAT[N_SOILLAYERS];     /* saturated soil water content in given layer */
 	double GW_waterlogging;          /* amount of water above the surface (negative GWD data) */
     double WbalanceERR;              /* SUM of water balance error  */
 	double inW;						 /* SUM of nitrogen input */
@@ -309,8 +311,6 @@ typedef struct
 	double potSUBLsnow;                             /* potential sublimation of snow */
     double snoww_to_soilw;							/* melt from snowpack  */
     double EVPsoilw;								/* evaporation from soil */
-	double EVPsoilw0;								/* evaporation from soil */
-	double EVPsoilw1;								/* evaporation from soil */
 	double EVPsoilwNORMcf;								/* evaporation from soil */
 	double EVPsoilwCAPILcf;								/* evaporation from soil */
 	double TRPsoilwNORMcf;								/* evaporation from soil */
@@ -383,7 +383,7 @@ typedef struct
 	double waterFromAbove;                          /* water flux from above: prcp_to_soilSurface+snoww_to_soilw+canopyw_to_soilw+IRG_to_prcp OR pondw */
 	double infiltPOT;                               /* potential infiltraion water flux from above */
 	double soilwFLuxFromBelow;
-	int flagRAIN;
+	int flagRAIN[N_SOILLAYERS];
 	double inflow_NORMcf;              /* SUM of water balance error  */
 	double inflow_CAPILcf;              /* SUM of water balance error  */
 	double inflow_NORMgw;              /* SUM of water balance error  */
@@ -2314,11 +2314,18 @@ typedef struct
 	double content_SATgw[N_DISSOLVMATER];                        /* material content of capillary zone of GW-layer: NH4, NO3, DOC and DON  */
 	double content_NORMcf[N_DISSOLVMATER];                  /* material content of unsaturated zone of GW-layer: NH4, NO3, DOC and DON  */
 	double content_CAPILcf[N_DISSOLVMATER];                      /* material content of capillary zone of GW-layer: NH4, NO3, DOC and DON  */
-	double content_NORMgw_pre[N_DISSOLVMATER];                     /* material content of unsaturated zone of GW-layer: NH4, NO3, DOC and DON  */
-	double content_CAPILgw_pre[N_DISSOLVMATER];                    /* material content of capillary zone of GW-layer: NH4, NO3, DOC and DON  */
-	double content_SATgw_pre[N_DISSOLVMATER];                    /* material content of capillary zone of GW-layer: NH4, NO3, DOC and DON  */
-	double content_NORMcf_pre[N_DISSOLVMATER];                  /* material content of unsaturated zone of GW-layer: NH4, NO3, DOC and DON  */
-	double content_CAPILcf_pre[N_DISSOLVMATER];                      /* CN content of capillary zone of GW-layer: soil1CN, soil2CM, soil3CN, soil4CN  */
+	double contentBOUND_soil[N_DISSOLVMATER][N_SOILLAYERS];             /* (kg/m2) bounded content of dissolved materials */
+	double contentBOUND_NORMgw[N_DISSOLVMATER];                     /* bounded material content of unsaturated zone of GW-layer: NH4, NO3, DOC and DON  */
+	double contentBOUND_CAPILgw[N_DISSOLVMATER];                    /* bounded material content of capillary zone of GW-layer: NH4, NO3, DOC and DON  */
+	double contentBOUND_SATgw[N_DISSOLVMATER];                        /* bounded material content of capillary zone of GW-layer: NH4, NO3, DOC and DON  */
+	double contentBOUND_NORMcf[N_DISSOLVMATER];                  /* bounded material content of unsaturated zone of GW-layer: NH4, NO3, DOC and DON  */
+	double contentBOUND_CAPILcf[N_DISSOLVMATER];                      /* bounded material content of capillary zone of GW-layer: NH4, NO3, DOC and DON  */
+	double contentDISSOLV_soil[N_DISSOLVMATER][N_SOILLAYERS];             /* (kg/m2) dissolved content of dissolved materials */
+	double contentDISSOLV_NORMgw[N_DISSOLVMATER];                     /* dissolved material content of unsaturated zone of GW-layer: NH4, NO3, DOC and DON  */
+	double contentDISSOLV_CAPILgw[N_DISSOLVMATER];                    /* dissolved material content of capillary zone of GW-layer: NH4, NO3, DOC and DON  */
+	double contentDISSOLV_SATgw[N_DISSOLVMATER];                        /* dissolved material content of capillary zone of GW-layer: NH4, NO3, DOC and DON  */
+	double contentDISSOLV_NORMcf[N_DISSOLVMATER];                  /* dissolved material content of unsaturated zone of GW-layer: NH4, NO3, DOC and DON  */
+	double contentDISSOLV_CAPILcf[N_DISSOLVMATER];                      /* dissolved material content of capillary zone of GW-layer: NH4, NO3, DOC and DON  */
 	double ratio_NORMgw[4];                                        /* material content of NORM zone of GW-layer soil1CN, soil2CM, soil3CN, soil4CN  */
 	double ratio_NORMcf[4];                                        /* material content of NORM zone of CF-layer soil1CN, soil2CM, soil3CN, soil4CN  */
 	double ratio_CAPILgw[4];                                      /* material content of CAPIL zone of GW-layer soil1CN, soil2CM, soil3CN, soil4CN  */
@@ -2330,24 +2337,24 @@ typedef struct
 	double dismatLeach_NORMcf[N_DISSOLVMATER];                     /* (kg/m2/day) leaching flux of dissolved materials in normal zone of CF-layer */
 	double dismatGWrecharge[N_DISSOLVMATER][N_SOILLAYERS];         /* (kg/m2/day) recharge flux of dissolved materials */
 	double dismatGWdischarge[N_DISSOLVMATER][N_SOILLAYERS];        /* (kg/m2/day) discharge fluxes of dissolved materials */
-	double dismatGWmovchange[N_DISSOLVMATER];                      /* (kg/m2/day) mvochange fluxes of dissolved materials regarding to all soil layers */
-	double dismatGWmovchangeN_total;                               /* (kg/m2/day) mvochange fluxes of dissolved N regarding to all soil layers */
-	double dismatGWmovchangeC_total;                               /* (kg/m2/day) mvochange fluxes of dissolved C regarding to all soil layers */
+	double dismatGWmovchange[N_DISSOLVMATER][N_SOILLAYERS];                      /* (kg/m2/day) mvochange fluxes of dissolved materials regarding to all soil layers */
 	double dismatGWecofunc[N_DISSOLVMATER][N_SOILLAYERS];          /* (kg/m2/day) ecofunc fluxes of dissolved materials */
-	double dismatGWecofunc_NORM[N_DISSOLVMATER];                   /* (kg/m2/day) ecofunc (processes in multilayer_sminn) fluxes of dissolved materials */
-	double dismatGWecofunc_CAPIL[N_DISSOLVMATER];                  /* (kg/m2/day) ecofunc (processes in multilayer_sminn) fluxes of dissolved materials in NORM zone of GW-layer */
 	double dismatGWdecomp[N_DISSOLVMATER][N_SOILLAYERS];           /* (kg/m2/day) decomposition (processes in multilayer_sminn) fluxes of dissolved materials in CAPIL zone of GW-layer */
-	double dismatGWdecomp_NORM[N_DISSOLVMATER];                    /* (kg/m2/day) decomposition  fluxes of dissolved materials */
-	double dismatGWdecomp_CAPIL[N_DISSOLVMATER];                   /* (kg/m2/day) decomposition fluxes of dissolved materials in NORM zone of GW-layer */
 	double dismatGWfertil[N_DISSOLVMATER][N_SOILLAYERS];           /* (kg/m2/day) decomposition fluxes of dissolved materials in CAPIL zone of GW-layer */
-	double dismatUNSATecofunc[N_DISSOLVMATER][N_SOILLAYERS];       /* (kg/m2/day) ecofunc fluxes of dissolved materials */
-	double dismatUNSATdecomp[N_DISSOLVMATER][N_SOILLAYERS];        /* (kg/m2/day) decomposition (processes in multilayer_sminn) fluxes of dissolved materials in CAPIL zone of GW-layer */
-	double dismatUNSATfertil[N_DISSOLVMATER][N_SOILLAYERS];        /* (kg/m2/day) decomposition fluxes of dissolved materials in CAPIL zone of GW-layer */
-	double dismatTOTALecofunc[N_DISSOLVMATER][N_SOILLAYERS];       /* (kg/m2/day) ecofunc fluxes of dissolved materials */
-	double dismatTOTALdecomp[N_DISSOLVMATER][N_SOILLAYERS];        /* (kg/m2/day) decomposition (processes in multilayer_sminn) fluxes of dissolved materials in CAPIL zone of GW-layer */
-	double dismatTOTALfertil[N_DISSOLVMATER][N_SOILLAYERS];        /* (kg/m2/day) decomposition fluxes of dissolved materials in CAPIL zone of GW-layer */
-	double FRZ_to_litrN[N_DISSOLVorgN][N_SOILLAYERS];              /* (kg/m2/day) decomposition fluxes of dissolved materials in CAPIL zone of GW-layer */
-	double FRZ_to_litrC[N_DISSOLVorgN][N_SOILLAYERS];              /* (kg/m2/day) decomposition fluxes of dissolved materials in CAPIL zone of GW-layer */
+	double dismatGWmovchangeN_total;                               /* (kg/m2/day) mvochange fluxes of dissolved N regarding to all soil layers */
+	double dismatGWecofuncN_total;                                 /* (kg/m2/day) ecofunc fluxes of dissolved materials covered by GW */
+	double dismatGWdecompN_total;                                  /* (kg/m2/day) ecofunc fluxes of dissolved materials covered by GW  */
+	double dismatGWfertilN_total;                                  /* (kg/m2/day) fertilizing fluxes of dissolved materials covered by GW  */
+	double dismatGWmovchangeC_total;                               /* (kg/m2/day) mvochange fluxes of dissolved C regarding to all soil layers */
+	double dismatGWecofuncC_total;                                 /* (kg/m2/day) ecofunc fluxes of dissolved materials covered by GW */
+	double dismatGWdecompC_total;                                  /* (kg/m2/day) ecofunc fluxes of dissolved materials covered by GW  */
+	double dismatGWfertilC_total;                                  /* (kg/m2/day) ecofunc fluxes of dissolved materials covered by GW  */
+	double dismatUNSATecofunc[N_DISSOLVMATER][N_SOILLAYERS];       /* (kg/m2/day) ecofunc fluxes of dissolved materials covered by GW in UNSAT zone */
+	double dismatUNSATdecomp[N_DISSOLVMATER][N_SOILLAYERS];        /* (kg/m2/day) decomposition fluxes of dissolved materials covered by GW  in UNSAT zone */
+	double dismatUNSATfertil[N_DISSOLVMATER][N_SOILLAYERS];        /* (kg/m2/day) fertilization fluxes of dissolved materials covered by GW  in UNSAT zone */
+	double dismatTOTALecofunc[N_DISSOLVMATER][N_SOILLAYERS];       /* (kg/m2/day) ecofunc fluxes of dissolved materials covered by GW  */
+	double dismatTOTALdecomp[N_DISSOLVMATER][N_SOILLAYERS];        /* (kg/m2/day) decomposition fluxes of dissolved materials covered by GW  */
+	double dismatTOTALfertil[N_DISSOLVMATER][N_SOILLAYERS];        /* fertilization fluxes of dissolved materials covered by GW  */
 
 
 } soilInfo_struct;
@@ -2559,7 +2566,6 @@ typedef struct
 	double NO3_unsat;
 	double orgN_unsat;
 
-	double cumUNSATchangeGW_orgN;
 	double cumUNSATplantUPto_orgN;
 	double cumUNSATecofunc_orgN;
 	double cumUNSATfertil_orgN;
@@ -2567,14 +2573,14 @@ typedef struct
 	double cumUNSATrecharge_orgN;
 
 	double cumTOTALchangeGW_orgN;
+	double cumTOTALchangeGW_NH4;
+	double cumTOTALchangeGW_NO3;
 	double cumTOTALplantUPto_orgN;
 	double cumTOTALecofunc_orgN;
 	double cumTOTALfertil_orgN;
 	double cumTOTALdischarge_orgN;
 	double cumTOTALrecharge_orgN;
 
-	double cumUNSATchangeGW_NH4;
-	double cumUNSATchangeGW_NO3;
 	double cumUNSATecofunc_NH4;
 	double cumUNSATecofunc_NO3;
 	double cumUNSATfertil_NH4;

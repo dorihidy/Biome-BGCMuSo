@@ -92,7 +92,7 @@ int hydrol_control(siteconst_struct* sitec, soilprop_struct* sprop, wstate_struc
 	if (sprop->GWlayer != DATA_GAP)
 	{
 
-		if ((sprop->dz_NORMcf && sprop->dz_NORMgw) || (!sprop->dz_NORMcf && !sprop->dz_NORMgw && sprop->CFD))
+		if ((sprop->dz_NORMcf && sprop->dz_NORMgw))
 		{
 			printf("\n");
 			printf("ERROR in tipping calculation in case of GW in hydrol_control.c of multilayer_hydrolprocess.c\n");
@@ -120,7 +120,7 @@ int hydrol_control(siteconst_struct* sitec, soilprop_struct* sprop, wstate_struc
 			errorCode = 1;
 		}
 
-		if (sprop->VWC_CAPILcf && (sprop->VWC_CAPILcf - sprop->VWCsat[CFlayer] > CRIT_PREC_lenient || sprop->VWChw[CFlayer] - sprop->VWC_CAPILcf > CRIT_PREC_lenient || sprop->VWC_CAPILcf / sprop->VWC_CAPILcf != 1))
+		if (sprop->VWC_CAPILcf && (sprop->VWC_CAPILcf - sprop->VWCsat[CFlayer] > CRIT_PREC_lenient || sprop->VWC_CAPILcf < CRIT_PREC_lenient || sprop->VWC_CAPILcf / sprop->VWC_CAPILcf != 1))
 		{
 			printf("\n");
 			printf("ERROR in soil water content calculation - invalid VWC value (hydrol_control.c of multilayer_hydrolprocess)\n");

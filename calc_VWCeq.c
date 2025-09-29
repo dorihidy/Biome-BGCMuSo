@@ -96,6 +96,12 @@ int calc_VWCeq(control_struct* ctrl, const siteconst_struct* sitec, soilprop_str
 				 
 				/* lower limitation of VWCeq: wilting point */
 				if (sprop->VWCeq[layer] < 1.01 * sprop->VWCwp[layer]) sprop->VWCeq[layer] = 1.01 * sprop->VWCwp[layer];
+
+				/* upper limitation of VWCeq: saturation  */
+				if (sprop->VWCeq[layer] > sprop->VWCsat[layer])
+				{
+					sprop->VWCeq[layer] = sprop->VWCsat[layer];
+				}
 		
 
 			}
