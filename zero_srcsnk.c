@@ -168,6 +168,7 @@ int zero_srcsnk(cstate_struct* cs, nstate_struct* ns, wstate_struct* ws, summary
 	summary->cumAR = 0;
 	summary->cumTR = 0;
 	summary->cumSR = 0;
+	summary->cumNflux = 0;
 	summary->cumN2Oflux = 0;
 	summary->cumN2OfluxCeq = 0;
 	summary->cumCH4flux = 0;
@@ -201,6 +202,8 @@ int zero_srcsnk(cstate_struct* cs, nstate_struct* ns, wstate_struct* ws, summary
 	summary->cumPET = 0;
 	summary->cumPETsurface = 0;
 	summary->cumPETcanopy = 0;
+	summary->cumIMMOBflux_RZ = 0;
+	summary->cumNdemand = 0;
 
 	summary->cumTOTALchangeGW_orgN = 0;
 	summary->cumTOTALchangeGW_NH4 = 0;
@@ -250,6 +253,11 @@ int zero_srcsnk(cstate_struct* cs, nstate_struct* ns, wstate_struct* ws, summary
 	summary->cumGWsnk = 0;
 	summary->cumWinput = 0;
 	summary->cumWoutput = 0;
+
+	summary->cumGWbalance = 0;
+	summary->cumGWbalance_NH4 = 0;
+	summary->cumGWbalance_NO3 = 0;
+	summary->cumGWbalance_orgN = 0;
 
 	summary->cumCflux_lateral = 0;
 	summary->harvestIndex = 0;

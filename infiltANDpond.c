@@ -20,9 +20,11 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_struct.h"
 #include "bgc_constants.h"
 #include "bgc_func.h"
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
 
-int infiltANDpond(wstate_struct* ws, wflux_struct* wf)
+int infiltANDpond(control_struct* ctrl, wstate_struct* ws, wflux_struct* wf)
 {
 
 	
@@ -31,6 +33,7 @@ int infiltANDpond(wstate_struct* ws, wflux_struct* wf)
 	double remain, HOLD;
 
 	 errorCode=layer=0;
+	 remain = HOLD = 0;
      
 	/*------------------------------------------*/
 	/* 1. calculation of water from above */ 
@@ -54,16 +57,19 @@ int infiltANDpond(wstate_struct* ws, wflux_struct* wf)
 	else
 		wf->infiltPOT = wf->waterFromAbove;
 
+
 	/* rain flag for tipping calculation for each layer */
 	remain = wf->infiltPOT;
+
+
 	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
 		if (remain > 0)
-			wf->flagRAIN[layer] = 1;
+			ctrl->rain_flag[layer] = 1;
 		else
-			wf->flagRAIN[layer] = 0;
+			ctrl->rain_flag[layer] = 0;
 
-		HOLD = ws->soilwSAT[layer] - ws->soilw[layer];
+		HOLD = MAX(ws->soilwFCEQ[layer] - ws->soilw[layer], 0);
 		if (!errorCode && HOLD < 0 && HOLD > CRIT_PREC)
 		{
 			printf("ERROR in soilwSAT in infiltANDpond.c\n");

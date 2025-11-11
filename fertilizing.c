@@ -367,7 +367,6 @@ int fertilizing(const control_struct* ctrl, const siteconst_struct* sitec, soilp
 			for (layer = 0; layer < N_SOILLAYERS; layer++) soilInfo->dismatGWfertilN_total += soilInfo->dismatGWfertil[dm][layer];
 		}
 
-		/* balus */
 		if (soilInfo->dismatGWfertilN_total > 0)
 			ns->GWsrc_N += soilInfo->dismatGWfertilN_total;
 		else

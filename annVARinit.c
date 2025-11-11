@@ -56,6 +56,7 @@ int annVARinit(summary_struct* summary, epvar_struct* epv, cstate_struct* cs, ws
 	summary->cumAR = 0.0;
 	summary->cumTR  = 0;
 	summary->cumSR  = 0;
+	summary->cumNflux = 0;
 	summary->cumN2Oflux  = 0;
 	summary->cumN2OfluxCeq = 0;
 	summary->cumCH4fluxCeq = 0;
@@ -66,6 +67,7 @@ int annVARinit(summary_struct* summary, epvar_struct* epv, cstate_struct* cs, ws
 	summary->cumCloss_THN_w = 0;
 	summary->cumCloss_THN_nw = 0;
 	summary->cumCloss_MOW  = 0;
+	summary->cumCloss_SNSC = 0;
 
 	summary->cumCloss_GRZ  = 0;
 	summary->cumCplus_GRZ  = 0;
@@ -84,12 +86,13 @@ int annVARinit(summary_struct* summary, epvar_struct* epv, cstate_struct* cs, ws
 	summary->cumNplus_FRZ_org = 0;
 	summary->cumNplus_FRZ_NH4 = 0;
 	summary->cumNplus_FRZ_NO3 = 0;
-	summary->cumCloss_SNSC  = 0;
 	summary->cumCplus_STDB  = 0;
 	summary->cumCplus_CTDB  = 0;
 	summary->cumEVPsurface  = 0;
 	summary->cumETcanopy  = 0;
 	summary->cumET  = 0;
+	summary->cumIMMOBflux_RZ = 0;
+	summary->cumNdemand = 0;
 	
 	summary->cumMRdeficit_NSC  = 0;
 	summary->cumMRdeficit_SC   = 0;
@@ -174,6 +177,15 @@ int annVARinit(summary_struct* summary, epvar_struct* epv, cstate_struct* cs, ws
 	summary->cumPETcanopy = 0;
 	summary->cumPETsurface = 0;
 	summary->cumFLsoilw = 0;
+	summary->cumGWrecharge_NH4 = 0;
+	summary->cumGWrecharge_NO3 = 0;
+	summary->cumGWdischarge_NH4 = 0;
+	summary->cumGWdischarge_NO3 = 0;
+	summary->cumGWdischarge_orgN = 0;
+	summary->cumGWbalance = 0;
+	summary->cumGWbalance_NH4 = 0;
+	summary->cumGWbalance_NO3 = 0;
+	summary->cumGWbalance_orgN = 0;
 
 
 	return (errorCode);

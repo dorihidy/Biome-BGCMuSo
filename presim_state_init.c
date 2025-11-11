@@ -72,7 +72,11 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 	ctrl->Ksat_flag = 0;
 	ctrl->firstsimday_flag = 1;
 
-	for (layer = 0; layer < N_SOILLAYERS; layer++) ctrl->soiltype_array[layer] = 0;
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
+	{
+		ctrl->soiltype_array[layer] = 0;
+		ctrl->rain_flag[layer] = 0;
+	}
 
 	cinit->max_leafc = 0.0;
 	cinit->max_frootc = 0.0;
@@ -298,7 +302,7 @@ int presim_state_init(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, c
 		ws->soilw[layer] = 0;
 		ws->soilw_pre[layer] = 0;
 		ws->soilwAVAIL[layer] = 0;
-		ws->soilwSAT[layer] = 0;
+		ws->soilwFCEQ[layer] = 0;
 		cs->cwdc[layer] = 0;
 		cs->litr1c[layer] = 0;
 		cs->litr2c[layer] = 0;

@@ -226,6 +226,15 @@ int daily_allocation(const control_struct* ctrl, const epconst_struct* epc, cons
 		f7 = epc->alloc_livecrootc[ap];
 		f8 = epc->alloc_deadcrootc[ap];
 
+		/* control of allocation */
+		if (f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8 == 0)
+		{
+			printf("\n");
+			printf("ERROR: Sum of allocation parameters is equal to 0 in phase: %i\n", ap);
+			printf("Check EPC file and try again.\n");
+			errorCode = 1;
+		}
+
 		/* proportion of growth displayed on current day is the function of air temperature */ 
 		pnow_Tcoeff = 1;
 		if (epc->pnow_minT != DATA_GAP)

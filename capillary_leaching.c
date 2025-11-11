@@ -18,6 +18,8 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_struct.h"
 #include "bgc_func.h"
 #include "bgc_constants.h"
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
 int capillary_leaching(int dm, const siteconst_struct* sitec,  soilprop_struct* sprop, soilInfo_struct* soilInfo, wstate_struct* ws, wflux_struct* wf,
 	                   double* dismatLeachNORM, double* dismatLeachCAPIL, double* dischargeNORM, double* dischargeCAPIL, double* rechargeNORM, double* rechargeCAPIL)
@@ -35,6 +37,7 @@ int capillary_leaching(int dm, const siteconst_struct* sitec,  soilprop_struct* 
 	errorCode = 0;
 
 	dismatLeachNORM_act = wflux = dismatLeach_NORMvsCAPIL = dismatLeach_NORMfromAbove = dismatLeach_CAPILfromAbove = dischargeNORM_act = dischargeCAPIL_act = rechargeNORM_act = rechargeCAPIL_act = dismatLeachCAPIL_act = percolDiffus_NORM  = dismatLeach_fromAbove = 0;
+	soilwAVAIL_NORMcf = soilw_NORMcf = soilwAVAIL_CAPILgw = 0;
 
 	GWlayer = (int)sprop->GWlayer;
 	CFlayer = (int)sprop->CFlayer;
@@ -52,9 +55,10 @@ int capillary_leaching(int dm, const siteconst_struct* sitec,  soilprop_struct* 
 	soilw_NORMcf = sprop->soilw_NORMcf_pre;
 	soilw_CAPILcf = sprop->soilw_CAPILcf_pre;
 	soilw_CAPILgw = sprop->soilw_CAPILgw_pre;
-	soilwAVAIL_NORMcf = sprop->soilw_NORMcf_pre - sprop->VWChw[CFlayer] / sprop->dz_NORMcf / water_density;
-	soilwAVAIL_CAPILcf = sprop->soilw_CAPILcf_pre - sprop->VWChw[CFlayer] / sprop->dz_CAPILcf / water_density;
-	soilwAVAIL_CAPILgw = sprop->soilw_CAPILgw_pre - sprop->VWChw[GWlayer] / sprop->dz_CAPILgw / water_density;
+	if (sprop->dz_NORMcf) soilwAVAIL_NORMcf = MAX(0, soilw_NORMcf - sprop->VWChw[CFlayer] / sprop->dz_NORMcf / water_density);
+	if (sprop->dz_CAPILcf) soilwAVAIL_CAPILcf = MAX(0, soilw_CAPILcf - sprop->VWChw[CFlayer] / sprop->dz_CAPILcf / water_density);
+	if (sprop->dz_CAPILgw) soilwAVAIL_CAPILgw = MAX(0, soilw_CAPILgw - sprop->VWChw[GWlayer] / sprop->dz_CAPILgw / water_density);
+
 	/*---------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 	/*---------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 	/* flux between NORM and CAPIL */
@@ -159,7 +163,7 @@ int capillary_leaching(int dm, const siteconst_struct* sitec,  soilprop_struct* 
 	{ 
 		wflux = wf->soilwPercol[CFlayer] + wf->soilwDiffusCAPILcf;
 
-		if (wflux >= 0)
+		if (wflux > 0)
 		{
 			if (wflux > soilwAVAIL_CAPILcf) wflux = soilwAVAIL_CAPILcf;
 			dismatLeachCAPIL_act = wflux * (soilInfo->contentDISSOLV_CAPILcf[dm] / soilw_CAPILcf);

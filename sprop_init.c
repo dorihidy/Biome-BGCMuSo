@@ -36,7 +36,7 @@ int sprop_init(file init, soilprop_struct* sprop, control_struct* ctrl)
 	char key[] = "SOIL_FILE";
 	char keyword[STRINGSIZE];
 	char header[STRINGSIZE];
-
+	int PROPlayerDC_CTRL = 0;
 	
 	/********************************************************************
 	**                                                                 **
@@ -868,6 +868,13 @@ int sprop_init(file init, soilprop_struct* sprop, control_struct* ctrl)
 
 
 		}
+		if (sprop->PROPlayerDC_mes[layer] != DATA_GAP) PROPlayerDC_CTRL += sprop->PROPlayerDC_mes[layer];
+	}
+	/* control */
+	if (sprop->PROPlayerDC_mes[0] != DATA_GAP && PROPlayerDC_CTRL != 1)
+	{
+		printf("ERROR in PROPlayerDC (sum must equal to 1), sprop_init.c\n");
+		errorCode = 208103;
 	}
 
 

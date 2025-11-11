@@ -412,12 +412,7 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 		cs->cpool = 0.0;
 		
 		/* initalization of above- and belowground litter */
-		cs->litrCabove[0] = cs->litr1c[0] + cs->litr2c[0] + cs->litr3c[0] + cs->litr4c[0];
-		cs->litrCbelow[0] = 0;
-		cs->cwdCabove[0] = cs->cwdc[0];
-		cs->cwdCbelow[0] = 0;
-
-		for (layer = 1; layer < N_SOILLAYERS; layer++) 
+		for (layer = 0; layer < N_SOILLAYERS; layer++) 
 		{ 
 			cs->litrCabove[layer] = 0;
 			cs->litrCbelow[layer] = cs->litr1c[layer] + cs->litr2c[layer] + cs->litr3c[layer] + cs->litr4c[layer]; 

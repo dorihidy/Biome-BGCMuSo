@@ -126,12 +126,12 @@ int irrigating(const control_struct* ctrl, const irrigating_struct* IRG, const s
 
 int multilayer_hydrolprocess(control_struct* ctrl, siteconst_struct* sitec, soilprop_struct* sprop, soilInfo_struct* soilInfo, const epconst_struct* epc, epvar_struct* epv,
 	                         wstate_struct* ws, wflux_struct* wf, nstate_struct* ns, nflux_struct* nf, cstate_struct* cs, cflux_struct* cf, flooding_struct* FLS, int* mondays);
-	int infiltANDpond(wstate_struct* ws, wflux_struct* wf);
+	int infiltANDpond(control_struct* ctrl, wstate_struct* ws, wflux_struct* wf);
 	int pondANDrunoffD(control_struct* ctrl, siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
-	int tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
-		int calc_drainage(int flagRAIN, double soilB, double INFILT, double VWC, double VWCsat, double VWCfc, double dz0, double DC, double conductSAT_cmday, double* DRN, double* EXCESS, double* VWCnew);
-	int capillary_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
-	int groundwater_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
+	int tipping(const control_struct* ctrl, siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
+		int calc_drainage(int rain_flag, double soilB, double INFILT, double VWC, double VWCsat, double VWCfc, double dz0, double DC, double conductSAT_cmday, double* DRN, double* EXCESS, double* VWCnew);
+	int capillary_tipping(const control_struct* ctrl, siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
+	int groundwater_tipping(const control_struct* ctrl, siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
 	int diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
 	int capillary_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
 	int groundwater_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);

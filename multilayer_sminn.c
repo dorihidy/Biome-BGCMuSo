@@ -122,6 +122,7 @@ NH4_prop=net_miner=SR_layer=sminn_to_soilCTRL=sminn_to_npoolCTRL=ndep_to_sminnCT
 			}
 			else
 				nf->nfix_to_NH4[layer] = nf->nfix_to_sminn_total * epv->rootlengthProp[layer];
+
 		}
 
 		nf->environment_to_sminn[layer] = nf->ndep_to_NH4[layer] + nf->ndep_to_NO3[layer] + nf->nfix_to_NH4[layer];

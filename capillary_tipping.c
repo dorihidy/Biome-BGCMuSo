@@ -22,11 +22,11 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
-int capillary_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf)
+int capillary_tipping(const control_struct* ctrl, siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf)
 {
 
 	int errorCode = 0;
-	int  ll, layer, flagRAIN;
+	int  ll, layer, rain_flag;
 
 	double VWC, soilw_sat1, soilw1, soilB;
 	double INFILT, conductSAT_cmday;
@@ -63,12 +63,12 @@ int capillary_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_str
 
 		DC = sprop->drainCoeff[CFlayer];
 		soilB = sprop->soilB[CFlayer];
-		flagRAIN = wf->flagRAIN[CFlayer];
+		rain_flag = ctrl->rain_flag[CFlayer];
 
 		/* saturated hydraulic conductivity in actual CFlayer (cm/day = m/s * 100 * sec/day) */
 		conductSAT_cmday = sprop->hydrCONDUCTsat[CFlayer] * m_to_cm * nSEC_IN_DAY;
 
-		if (!errorCode && calc_drainage(flagRAIN, soilB, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conductSAT_cmday, &DRN, &EXCESS, &VWCnew))
+		if (!errorCode && calc_drainage(rain_flag, soilB, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conductSAT_cmday, &DRN, &EXCESS, &VWCnew))
 		{
 			printf("\n");
 			printf("ERROR calc_drainage.c for capillary_tipping.c\n");
@@ -140,12 +140,12 @@ int capillary_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_str
 
 		DC = sprop->drainCoeff[CFlayer];
 		soilB = sprop->soilB[CFlayer];
-		flagRAIN = wf->flagRAIN[CFlayer];
+		rain_flag = ctrl->rain_flag[CFlayer];
 
 		/* hydraulic conductivity in actual CFlayer (cm/day = m/s * 100 * sec/day) */
 		conductSAT_cmday = sprop->hydrCONDUCTsat[CFlayer] * m_to_cm * nSEC_IN_DAY;
 
-		if (!errorCode && calc_drainage(flagRAIN, soilB, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conductSAT_cmday, &DRN, &EXCESS, &VWCnew))
+		if (!errorCode && calc_drainage(rain_flag, soilB, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conductSAT_cmday, &DRN, &EXCESS, &VWCnew))
 		{
 			printf("\n");
 			printf("ERROR calc_drainage.c for capillary_tipping.c\n");
@@ -172,7 +172,7 @@ int capillary_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_str
 		INFILT = DRN;
 
 		/* if there is excess water, redistribute it in layers above */
-		if (EXCESS > CRIT_PREC_lenient)
+		if (EXCESS > 0)
 		{
 			/* first of all: normal layer is saturated */
 			if (sprop->dz_NORMcf)
@@ -195,7 +195,7 @@ int capillary_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_str
 
 				EXCESS = EXCESS - HOLD;
 			}
-			if (EXCESS > CRIT_PREC_lenient)
+			if (EXCESS > 0)
 			{
 				for (ll = CFlayer - 1; ll >= 0; ll--)
 				{
@@ -254,12 +254,12 @@ int capillary_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_str
 
 		DC = sprop->drainCoeff[layer];
 		soilB = sprop->soilB[layer];
-		flagRAIN = wf->flagRAIN[layer];
+		rain_flag = ctrl->rain_flag[layer];
 
 		/* hydraulic conductivity in actual layer (cm/day = m/s * 100 * sec/day) */
 		conductSAT_cmday = sprop->hydrCONDUCTsat[layer] * m_to_cm * nSEC_IN_DAY;
 
-		if (!errorCode && calc_drainage(flagRAIN, soilB, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conductSAT_cmday, &DRN, &EXCESS, &VWCnew))
+		if (!errorCode && calc_drainage(rain_flag, soilB, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conductSAT_cmday, &DRN, &EXCESS, &VWCnew))
 		{
 			printf("\n");
 			printf("ERROR calc_drainage.c for tipping.c\n");
@@ -285,7 +285,7 @@ int capillary_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_str
 		INFILT = DRN;
 
 		/* if there is excess water, redistribute it in layers above */
-		if (EXCESS > CRIT_PREC_lenient)
+		if (EXCESS > 0)
 		{
 			for (ll = layer - 1; ll >= 0; ll--)
 			{

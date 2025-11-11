@@ -270,7 +270,7 @@ int groundwater_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar
 		{
 			/* GWrecharge_NORMgw: if rVWC_NORMgw > rVWC_CAPILgw, but CAPILgw is saturated: GWrecharge_NORMgw*/
 			EXCESS = (sprop->soilw_CAPILgw + soilwDiffus_act) - sprop->VWCsat[GWlayer] * sprop->dz_CAPILgw * water_density;
-			if (soilwDiffus_act > 0 && EXCESS > CRIT_PREC_lenient)
+			if (soilwDiffus_act > 0 && EXCESS > 0)
 			{
 				sprop->soilw_NORMgw -= soilwDiffus_act;
 				wf->soilwDiffus_NORMvsCAPILgw += soilwDiffus_act - EXCESS;

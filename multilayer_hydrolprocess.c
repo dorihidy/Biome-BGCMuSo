@@ -64,7 +64,7 @@ int multilayer_hydrolprocess(control_struct* ctrl, siteconst_struct* sitec, soil
 
 
 	/* INFILTRATION AND PONDW FORMATION */
-	if (!errorCode && infiltANDpond(ws, wf))
+	if (!errorCode && infiltANDpond(ctrl, ws, wf))
 	{
 		printf("\n");
 		printf("ERROR in infiltANDpond.c from multilayer_hydrolprocess.c\n");
@@ -73,7 +73,7 @@ int multilayer_hydrolprocess(control_struct* ctrl, siteconst_struct* sitec, soil
 
 
 	/* PERCOLATION  in layers without groundwater */	
-	if (!errorCode && tipping(sitec, sprop, epv, ws, wf))
+	if (!errorCode && tipping(ctrl, sitec, sprop, epv, ws, wf))
 	{
 		printf("\n");
 		printf("ERROR in tipping.c from multilayer_hydrolprocess.c\n");
@@ -86,7 +86,7 @@ int multilayer_hydrolprocess(control_struct* ctrl, siteconst_struct* sitec, soil
 		/* in layers in capillary zone(without GW) */
 		if (sprop->dz_NORMcf + sprop->dz_CAPILcf)
 		{ 
-			if (!errorCode && capillary_tipping(sitec, sprop, epv, ws, wf))
+			if (!errorCode && capillary_tipping(ctrl, sitec, sprop, epv, ws, wf))
 			{
 				printf("\n");
 				printf("ERROR in capillary_tipping.c from multilayer_hydrolprocess.c\n");
@@ -94,7 +94,7 @@ int multilayer_hydrolprocess(control_struct* ctrl, siteconst_struct* sitec, soil
 			}
 		}
 		/* in layers in capillary zone (with GW) */		
-		if (!errorCode && groundwater_tipping(sitec, sprop, epv, ws, wf))
+		if (!errorCode && groundwater_tipping(ctrl, sitec, sprop, epv, ws, wf))
 		{
 			printf("\n");
 			printf("ERROR in groundwater_tipping.c from multilayer_hydrolprocess.c\n");

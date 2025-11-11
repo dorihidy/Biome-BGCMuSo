@@ -35,7 +35,6 @@ int make_zero_flux_struct(const control_struct* ctrl, wflux_struct* wf, cflux_st
 	{
 		wf->FRZ_to_NORM[layer] = 0;
 		wf->FRZ_to_CAPIL[layer] = 0;
-		wf->flagRAIN[layer] = 0;
 	}
 
 	wf->prcp_to_canopyw = 0;
@@ -118,6 +117,7 @@ int make_zero_flux_struct(const control_struct* ctrl, wflux_struct* wf, cflux_st
 	wf->GWrecharge_CAPILcf = 0;
 	wf->GWrecharge_lastCAPIL = 0;
 	wf->GWrecharge_total = 0;
+
 
 	wf->inflow_NORMcf = 0;
 	wf->inflow_CAPILcf = 0;
@@ -1055,6 +1055,10 @@ int make_zero_flux_struct(const control_struct* ctrl, wflux_struct* wf, cflux_st
 	summary->GWrecharge_NH4 = 0;
 	summary->GWrecharge_NO3 = 0;
 	summary->GWrecharge_orgN = 0;
+	summary->GWbalance = 0;
+	summary->GWbalance_NH4 = 0;
+	summary->GWbalance_NO3 = 0;
+	summary->GWbalance_orgN = 0;
 
 
 	return (errorCode);

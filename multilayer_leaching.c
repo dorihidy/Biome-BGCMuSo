@@ -18,6 +18,8 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_struct.h"
 #include "bgc_func.h"
 #include "bgc_constants.h"
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
 int multilayer_leaching(const siteconst_struct* sitec, soilprop_struct* sprop, soilInfo_struct* soilInfo, cstate_struct* cs,  nstate_struct* ns, wstate_struct* ws, wflux_struct* wf)
 {
@@ -36,7 +38,7 @@ int multilayer_leaching(const siteconst_struct* sitec, soilprop_struct* sprop, s
 	/*---------------------------------------------------------------------------------*/
 	/* for concentration calculation original soilw data (from the beginning of the simulation day) is used: top soil layer - infiltration is also counts in concentration calculation */
 
-	for (layer = 0; layer < N_SOILLAYERS; layer++) soilwAVAIL[layer] = ws->soilw_pre[layer] - sprop->VWChw[layer] / sitec->soillayer_thickness[layer] / water_density;
+	for (layer = 0; layer < N_SOILLAYERS; layer++) soilwAVAIL[layer] = MAX(0, ws->soilw_pre[layer] - sprop->VWChw[layer] / sitec->soillayer_thickness[layer] / water_density);
 
 	/*---------------------------------------------------------------------------------*/
 	/* leaching fluxes for the 10 dissolving material types */
@@ -146,9 +148,14 @@ int multilayer_leaching(const siteconst_struct* sitec, soilprop_struct* sprop, s
 						soilInfo->dismatGWrecharge[dm][layer] += diff;
 					else
 					{
-						printf("\n");
-						printf("ERROR: negative content_CAPILgw in multilayer_leaching.c\n");
-						errorCode = 1;
+						if (fabs(soilInfo->contentDISSOLV_soil[dm][layer]) > CRIT_PREC)
+						{
+							printf("\n");
+							printf("ERROR: negative content_CAPILgw in multilayer_leaching.c\n");
+							errorCode = 1;
+						}
+						else
+							soilInfo->contentDISSOLV_soil[dm][layer] = 0;
 					}
 				}
 

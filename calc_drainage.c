@@ -22,15 +22,15 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
-int calc_drainage(int flagRAIN, double soilB, double INFILT, double VWC, double VWCsat, double VWCfc, double dz0, double DC, double conductSAT_cmday, double* DRN, double* EXCESS, double* VWCnew)
+int calc_drainage(int rain_flag, double soilB, double INFILT, double VWC, double VWCsat, double VWCfc, double dz0, double DC, double conductSAT_cmday, double* DRN, double* EXCESS, double* VWCnew)
 {
 
 	int errorCode = 0;
-	double HOLD, DRAIN, DRNact, DRNx, conduct_cmday;
+	double HOLD, DRAIN, DRNact, DRNx, conduct_cmday, VWCmean, VWCafter;
 	*EXCESS = 0;
 
 	
-	if (flagRAIN)
+	if (rain_flag)
 	{
 		/* [cm] = m3/m3 * cm */
 		HOLD = (VWCsat - VWC) * dz0;
@@ -126,7 +126,10 @@ int calc_drainage(int flagRAIN, double soilB, double INFILT, double VWC, double 
 		DRNact = MAX(INFILT + DRNx - HOLD, 0.0);
 	
 		/* drainage is limited: actual conductance with updated soil water content */
-		conduct_cmday = conductSAT_cmday * pow((VWC + INFILT / dz0) / VWCsat, 3 + 2 * soilB);
+		VWCafter = VWC + INFILT / dz0;
+		if (VWCafter < VWCsat) VWCafter = VWCsat;
+		VWCmean = VWC; // (VWCafter + VWC) / 2.;
+		conduct_cmday = conductSAT_cmday * pow(VWCmean/ VWCsat, 3 + 2 * soilB);
 		if (conduct_cmday > conductSAT_cmday) conduct_cmday = conductSAT_cmday;
 
 		if ((DRNact - conduct_cmday) > 0.0) DRNact = conduct_cmday;

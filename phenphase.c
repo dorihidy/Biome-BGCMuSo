@@ -188,7 +188,11 @@ int phenphase(file logfile, const control_struct* ctrl, const epconst_struct* ep
 				epv->rootDepth_phen[pp]=epv->rootDepth;
 			}
 
-			critVWC = sprop->VWCwp[epv->germ_layer] + epc->grmn_paramVWC *(sprop->VWCfc[epv->germ_layer] - sprop->VWCwp[epv->germ_layer]);
+			if (epc->grmn_paramVWC == DATA_GAP)
+				critVWC = 0;
+			else
+				critVWC = sprop->VWCwp[epv->germ_layer] + epc->grmn_paramVWC *(sprop->VWCfc[epv->germ_layer] - sprop->VWCwp[epv->germ_layer]);
+
 			if (metv->GDD_wMOD > phen->GDD_limit && epv->VWC[epv->germ_layer] > critVWC && phen->yday_total > phen->onday)
 			{
 				phen->GDD_crit[pp] = metv->GDD_wMOD;

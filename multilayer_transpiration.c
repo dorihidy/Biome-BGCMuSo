@@ -75,7 +75,7 @@ int multilayer_transpiration(control_struct* ctrl, const siteconst_struct* sitec
 		soilw_wp = sprop->VWCwp[layer] * sitec->soillayer_thickness[layer] * water_density;
 
 		/* TRP_lack: control parameter to avoid negative soil water content (due to overestimated transpiration + dry soil) */
-		ws->soilwAVAIL[layer] = (ws->soilw[layer] - soilw_wp);
+		ws->soilwAVAIL[layer] = MAX(0, (ws->soilw[layer] - soilw_wp));
 	}
 	
 	

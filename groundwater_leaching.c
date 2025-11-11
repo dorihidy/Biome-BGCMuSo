@@ -18,6 +18,8 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_struct.h"
 #include "bgc_func.h"
 #include "bgc_constants.h"
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
 int groundwater_leaching(int dm, const siteconst_struct* sitec, soilprop_struct* sprop, soilInfo_struct* soilInfo, wstate_struct* ws, wflux_struct* wf,
 	                     double* dismatLeachNORM, double* dismatLeachCAPIL, double* dischargeNORM, double* dischargeCAPIL, double* rechargeNORM, double* rechargeCAPIL)
@@ -34,7 +36,7 @@ int groundwater_leaching(int dm, const siteconst_struct* sitec, soilprop_struct*
 	errorCode = 0;
 
 	dismatLeachNORM_act = wflux = dismatLeach_NORMvsCAPIL = dismatLeach_NORMfromAbove = dismatLeach_CAPILfromAbove = dischargeNORM_act = dischargeCAPIL_act = rechargeNORM_act = rechargeCAPIL_act = dismatLeachCAPIL_act = percolDiffus_NORM  = dismatLeach_fromAbove = 0;
-
+	soilwAVAIL_NORMcf = soilwAVAIL_NORMgw = soilwAVAIL_CAPILgw = 0;
 	GWlayer = (int)sprop->GWlayer;
 	CFlayer = (int)sprop->CFlayer;
 
@@ -49,9 +51,9 @@ int groundwater_leaching(int dm, const siteconst_struct* sitec, soilprop_struct*
 	soilw_NORMcf = sprop->soilw_NORMcf_pre;
 	soilw_NORMgw = sprop->soilw_NORMgw_pre;
 	soilw_CAPILgw = sprop->soilw_CAPILgw_pre;
-	soilwAVAIL_NORMcf = sprop->soilw_NORMcf_pre - sprop->VWChw[CFlayer] / sprop->dz_NORMcf / water_density;
-	soilwAVAIL_NORMgw = sprop->soilw_NORMgw_pre - sprop->VWChw[GWlayer] / sprop->dz_NORMgw / water_density;
-	soilwAVAIL_CAPILgw = sprop->soilw_CAPILgw_pre - sprop->VWChw[GWlayer] / sprop->dz_CAPILgw / water_density;
+	if (sprop->dz_NORMcf) soilwAVAIL_NORMcf = MAX(0, sprop->soilw_NORMcf_pre - sprop->VWChw[CFlayer] / sprop->dz_NORMcf / water_density);
+	if (sprop->dz_NORMgw) soilwAVAIL_NORMgw = MAX(0, sprop->soilw_NORMgw_pre - sprop->VWChw[GWlayer] / sprop->dz_NORMgw / water_density);
+	if (sprop->dz_CAPILgw) soilwAVAIL_CAPILgw = MAX(0, sprop->soilw_CAPILgw_pre - sprop->VWChw[GWlayer] / sprop->dz_CAPILgw / water_density);
 
 
 	/*-----------------------------------------------------------------*/

@@ -19,6 +19,8 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_struct.h"
 #include "bgc_func.h"
 #include "bgc_constants.h"
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
 int soilEVP_calc(control_struct* ctrl, const siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf)
 {
@@ -89,8 +91,8 @@ int soilEVP_calc(control_struct* ctrl, const siteconst_struct* sitec, soilprop_s
 			/* if capillary zone exists in unsaturated zone (not in GWlayer) and capillary zone is in the top soil layer */
 			if ((sprop->dz_CAPILcf + sprop->dz_NORMcf) && CFlayer == 0)
 			{
-				if (sprop->soilw_NORMcf) soilwAVAIL_NORMcf = sprop->soilw_NORMcf - sprop->VWChw[CFlayer] * sprop->dz_NORMcf * water_density;
-				soilwAVAIL_CAPILcf = sprop->soilw_CAPILcf - sprop->VWChw[CFlayer] * sprop->dz_CAPILcf * water_density;
+				if (sprop->soilw_NORMcf) soilwAVAIL_NORMcf = MAX(0, sprop->soilw_NORMcf - sprop->VWChw[CFlayer] * sprop->dz_NORMcf * water_density);
+				if (sprop->dz_CAPILcf) soilwAVAIL_CAPILcf = MAX(0, sprop->soilw_CAPILcf - sprop->VWChw[CFlayer] * sprop->dz_CAPILcf * water_density);
 				if (soilwAVAIL_CAPILcf + soilwAVAIL_NORMcf)
 				{
 					ratioNORM = soilwAVAIL_NORMcf / (soilwAVAIL_NORMcf + soilwAVAIL_CAPILcf);

@@ -77,9 +77,13 @@ int multilayer_hydrolparams(siteconst_struct* sitec, soilprop_struct* sprop, wst
 		/* convert kg/m2 --> m3/m2 --> m3/m3 */
 		epv->VWC[layer]  = ws->soilw[layer] / (water_density * sitec->soillayer_thickness[layer]);
 
+		if (sprop->VWCeq[layer] > sprop->VWCfc[layer])
+			ws->soilwFCEQ[layer] = sprop->VWCeq[layer] * water_density * sitec->soillayer_thickness[layer];
+		else
+			ws->soilwFCEQ[layer] = sprop->VWCfc[layer] * water_density * sitec->soillayer_thickness[layer];
+
 		epv->WFPS[layer] = epv->VWC[layer] / sprop->VWCsat[layer];	
 
-		ws->soilwSAT[layer] = sprop->VWCsat[layer] * sitec->soillayer_thickness[layer] * water_density;
    
 		/* PSI, hydrCONDUCT and hydrDIFFUS ( Cosby et al.) from VWC ([1MPa=100m] [m/s] [m2/s] */
 		epv->PSI[layer]  = sprop->PSIsat[layer] * pow( (epv->VWC[layer] /sprop->VWCsat[layer]), -1* sprop->soilB[layer]);
@@ -182,6 +186,7 @@ int multilayer_hydrolparams(siteconst_struct* sitec, soilprop_struct* sprop, wst
 	epv->PSI_RZ = PSI_RZ;
 	ws->soilw_RZ = soilw_RZ;
 	ws->soilwAVAIL_RZ = soilwAVAIL_RZ;
+
 
 
 	return(errorCode);

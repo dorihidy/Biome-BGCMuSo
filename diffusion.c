@@ -104,21 +104,6 @@ int diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv
 
 	
 
-	/* --------------------------------------------------------------------------------------------------------*/
-	/* BOTTOM LAYER IS SPECIAL 	 balus
-
-	if (sprop->GWD == DATA_GAP)
-	{
-		wf->soilwDiffus[N_SOILLAYERS - 1] = wf->soilwDiffus[N_SOILLAYERS - 2];
-		ws->soilw[N_SOILLAYERS - 1] -= wf->soilwDiffus[N_SOILLAYERS - 1];
-		epv->VWC[N_SOILLAYERS - 1] = ws->soilw[N_SOILLAYERS - 1] / sitec->soillayer_thickness[N_SOILLAYERS - 1] / water_density;
-	}
-
-	*/
-
-
-
-
 
 
 	return (errorCode);

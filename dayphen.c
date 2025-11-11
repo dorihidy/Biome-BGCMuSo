@@ -41,7 +41,7 @@ int dayphen(control_struct* ctrl, const epconst_struct* epc, const phenarray_str
 		ctrl->plantyr = -1;
 	}
 
-	if (ctrl->GSI_flag)
+	if (ctrl->GSI_flag && !PLT->PLT_num)
 	{
 		phen->Tmin_index        = phenarr->Tmin_index[ctrl->simyr][ctrl->yday];
 		phen->vpd_index         = phenarr->vpd_index[ctrl->simyr][ctrl->yday];

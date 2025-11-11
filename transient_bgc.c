@@ -695,6 +695,7 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=5310;
 			}
 			
+	
 			/* calculate the leaching of N, DOC and DON from multilayer soil */
 			if (!errorCode && multilayer_leaching(&sitec, &sprop, &soilInfo, &cs, &ns,  &ws, &wf))
 			{
@@ -1075,7 +1076,7 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 	{
 		free(phenarr.onday_arr);
 		free(phenarr.offday_arr);
-		if (ctrl.GSI_flag)
+		if (ctrl.GSI_flag && !PLT.PLT_num)
 		{
 			free(phenarr.Tmin_index);
 			free(phenarr.vpd_index);

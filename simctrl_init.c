@@ -178,7 +178,7 @@ int simctrl_init(file init, control_struct* ctrl, epconst_struct* epc, soilprop_
 
 
 	/* control: in case of planting/harvesting, model-defined phenology is not possible: first day - planting day, last day - harvesting day */
-	if (ctrl->phenology_flag == 1 && PLT->PLT_num) 
+	if (ctrl->phenology_flag == 1 && PLT->PLT_num && ctrl->spinup != 1) 
 	{
 		ctrl->prephen1_flag = 1;
 		ctrl->phenology_flag = 0;

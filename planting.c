@@ -87,8 +87,13 @@ int planting(control_struct* ctrl, const siteconst_struct* sitec, const soilprop
 				printf("ERROR in planttype_determination.c for planting.c\n");
 				errorCode=1; 
 			} 
+			
+			/* seed information in kg/ha (n_seedlings is DATA_GAP) OR in n/m2 and g/1000n */
+			if (PLT->weight_1000seed_array[md] == DATA_GAP)
+				seed_quantity = PLT->n_seedlings_array[md] / m2_to_ha;
+			else
+				seed_quantity = PLT->n_seedlings_array[md] * (PLT->weight_1000seed_array[md] * g_to_kg / 1000);	/* n/m2 * (g/1000n) -> kg seed/m2 */
 
-			seed_quantity = PLT->n_seedlings_array[md] * (PLT->weight_1000seed_array[md] * g_to_kg / 1000);	/* n/m2 * (g/1000n) -> kg seed/m2 */
 			seed_Ccontent = PLT->seed_carbon_array[md]/100;														/* change unit: % to number */
 
 			epv->germDepth = PLT->germDepth_array[md]; 

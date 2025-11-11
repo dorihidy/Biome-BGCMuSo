@@ -452,10 +452,10 @@ int CN_state_update(const siteconst_struct* sitec, const epconst_struct* epc, so
 
 		/*-------------------------------------------------*/
 		/* 8.1 control */
-		if ((ns->soil1n[layer] == 0 && fabs(cs->soil1c[layer]) > CRIT_PREC) || (ns->soil2n[layer] == 0 && fabs(cs->soil2c[layer]) > CRIT_PREC) ||
-			(ns->soil3n[layer] == 0 && fabs(cs->soil3c[layer]) > CRIT_PREC) || (ns->soil4n[layer] == 0 && fabs(cs->soil4c[layer]) > CRIT_PREC) ||
-			(ns->litr1n[layer] == 0 && fabs(cs->litr1c[layer]) > CRIT_PREC) || (ns->litr2n[layer] == 0 && fabs(cs->litr2c[layer]) > CRIT_PREC) ||
-			(ns->litr3n[layer] == 0 && fabs(cs->litr3c[layer]) > CRIT_PREC) || (ns->litr4n[layer] == 0 && fabs(cs->litr4c[layer]) > CRIT_PREC))
+		if ((ns->soil1n[layer] == 0 && fabs(cs->soil1c[layer]) > CRIT_PREC_lenient) || (ns->soil2n[layer] == 0 && fabs(cs->soil2c[layer]) > CRIT_PREC_lenient) ||
+			(ns->soil3n[layer] == 0 && fabs(cs->soil3c[layer]) > CRIT_PREC_lenient) || (ns->soil4n[layer] == 0 && fabs(cs->soil4c[layer]) > CRIT_PREC_lenient) ||
+			(ns->litr1n[layer] == 0 && fabs(cs->litr1c[layer]) > CRIT_PREC_lenient) || (ns->litr2n[layer] == 0 && fabs(cs->litr2c[layer]) > CRIT_PREC_lenient) ||
+			(ns->litr3n[layer] == 0 && fabs(cs->litr3c[layer]) > CRIT_PREC_lenient) || (ns->litr4n[layer] == 0 && fabs(cs->litr4c[layer]) > CRIT_PREC_lenient))
 		{
 			if (!errorCode)
 			{

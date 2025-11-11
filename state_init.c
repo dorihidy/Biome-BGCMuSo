@@ -85,7 +85,7 @@ int wstate_init(file init, control_struct* ctrl, const siteconst_struct* sitec, 
 	return (errorCode);
 }
 
-int cnstate_init(file init, const epconst_struct* epc, const soilprop_struct* sprop, const siteconst_struct* sitec, 
+int cnstate_init(file init, const control_struct* ctrl, const epconst_struct* epc, const soilprop_struct* sprop, const siteconst_struct* sitec,
 	             cstate_struct* cs, cinit_struct* cinit, nstate_struct* ns)
 {
 	int errorCode=0;
@@ -93,6 +93,7 @@ int cnstate_init(file init, const epconst_struct* epc, const soilprop_struct* sp
 	int alloc_softstem, alloc_yield, alloc_livestem, alloc_livecroot; 
 	char key1[] = "CN_STATE";
 	char keyword[STRINGSIZE];
+	double cwdC_ppm[N_SOILLAYERS], cwdN_ppm[N_SOILLAYERS];
 	double NH4_ppm[N_SOILLAYERS];
 	double NO3_ppm[N_SOILLAYERS];
 
@@ -157,180 +158,196 @@ int cnstate_init(file init, const epconst_struct* epc, const soilprop_struct* sp
 	/*--------------------------------------------------*/
 	/* 2. read the cwdc initial values in multilayer soil  */
 
-	scanflag=0; 
-	for (layer=0; layer<N_SOILLAYERS; layer++)
-	{
-		if (layer==N_SOILLAYERS-1) scanflag=1;
-		if (!errorCode && scan_array(init, &(cs->cwdc[layer]), 'd', scanflag, 1))
-		{
-			printf("ERROR reading cwdc in layer %i, cstate_init.c\n", layer);
-			errorCode=21307;
-		}
-	}
 
-    /* to avoid dividing by 0: if no deadwood, cwdn is zero. */
+	scanflag = 0;
 	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
-		if (!errorCode && epc->deadwood_cn > 0.0)
-			ns->cwdn[layer] = 0;
-		else
-			ns->cwdn[layer] = 0;
+		if (layer == N_SOILLAYERS - 1) scanflag = 1;
+		if (!errorCode && scan_array(init, &(cwdC_ppm[layer]), 'd', scanflag, 1))
+		{
+			printf("ERROR reading coarse woody debris C content in layer %i, cstate_init.c\n", layer);
+			errorCode = 21307;
+		}
+		cs->cwdc[layer] = (cwdC_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer]);
+	}
+
+
+
+	scanflag = 0;
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
+	{
+		if (layer == N_SOILLAYERS - 1) scanflag = 1;
+		if (!errorCode && scan_array(init, &(cwdN_ppm[layer]), 'd', scanflag, 1))
+		{
+			printf("ERROR reading coarse woody debris N content in layer %i, cstate_init.c\n", layer);
+			errorCode = 21308;
+		}
+		ns->cwdn[layer] = (cwdN_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer]);
 	}
 
 
 	/*--------------------------------------------------*/
 	/* 3. read the litter carbon pool initial values in multilayer soil  */
-	scanflag=0; 
-	for (layer=0; layer<N_SOILLAYERS; layer++)
-	{
-		if (layer==N_SOILLAYERS-1) scanflag=1;
-		if (!errorCode && scan_array(init, &(cs->litr1c[layer]), 'd', scanflag, 1))
-		{
-			printf("ERROR reading litter carbon in labile pool in layer %i, cstate_init.c\n", layer);
-			errorCode=21308;
-		}
-	}
-	
-	scanflag=0; 
-	for (layer=0; layer<N_SOILLAYERS; layer++)
-	{
-		if (layer==N_SOILLAYERS-1) scanflag=1;
-		if (!errorCode && scan_array(init, &(cs->litr2c[layer]), 'd', scanflag, 1))
-		{
-			printf("ERROR reading litter carbon in unshielded cellulose pool in layer %i, cstate_init.c\n", layer);
-			errorCode=21309;
-		}
-	}
-	
-	scanflag=0; 
-	for (layer=0; layer<N_SOILLAYERS; layer++)
-	{
-		if (layer==N_SOILLAYERS-1) scanflag=1;
-		if (!errorCode && scan_array(init, &(cs->litr3c[layer]), 'd', scanflag, 1))
-		{
-			printf("ERROR reading litter carbon in shielded cellulose pool in layer %i, cstate_init.c\n", layer);
-			errorCode=21310;
-		}
-	}
-
-	scanflag=0; 
-	for (layer=0; layer<N_SOILLAYERS; layer++)
-	{
-		if (layer==N_SOILLAYERS-1) scanflag=1;
-		if (!errorCode && scan_array(init, &(cs->litr4c[layer]), 'd', scanflag, 1))
-		{
-			printf("ERROR reading litter carbon in lignin pool in layer %i, cstate_init.c\n", layer);
-			errorCode=21311;
-		}
-	}
-
-
-	/* calculate the litter nitrogen pool initial values for cellulose and and lignin pools, 
-	using the leaf litter C:N as the basis for determining N content in all litter components - except of litr1n (reading below)  */
-	
+	scanflag = 0;
 	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
-		ns->litr2n[layer] = cs->litr2c[layer] / epc->leaflitr_cn;
-		ns->litr3n[layer] = cs->litr3c[layer] / epc->leaflitr_cn;
-		ns->litr4n[layer] = cs->litr4c[layer] / epc->leaflitr_cn;
+		if (layer == N_SOILLAYERS - 1) scanflag = 1;
+		if (!errorCode && scan_array(init, &(cs->litrC_ppm[layer]), 'd', scanflag, 1))
+		{
+			printf("ERROR reading litter carbon in layer %i, cstate_init.c\n", layer);
+			errorCode = 21309;
+		}
+
 	}
 
+
+	scanflag = 0;
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
+	{
+		if (layer == N_SOILLAYERS - 1) scanflag = 1;
+		if (!errorCode && scan_array(init, &(ns->litrN_ppm[layer]), 'd', scanflag, 1))
+		{
+			printf("ERROR reading litter nitrogen in layer %i, cstate_init.c\n", layer);
+			errorCode = 21310;
+		}
+	}
+
+
+	scanflag = 0;
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
+	{
+		if (layer == N_SOILLAYERS - 1) scanflag = 1;
+		if (!errorCode && scan_array(init, &(cs->litr4C_ppm[layer]), 'd', scanflag, 1))
+		{
+			printf("ERROR reading litter carbon in ligning pool in layer %i, cstate_init.c\n", layer);
+			errorCode = 21311;
+		}
+	}
+
+
+	scanflag = 0;
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
+	{
+		if (layer == N_SOILLAYERS - 1) scanflag = 1;
+		if (!errorCode && scan_array(init, &(ns->litr4N_ppm[layer]), 'd', scanflag, 1))
+		{
+			printf("ERROR reading litter carbon in ligning pool in layer %i, cstate_init.c\n", layer);
+			errorCode = 21312;
+		}
+	}
+
+
+	
 
 	/*--------------------------------------------------*/
 	/* 4. read the soil carbon pool initial values in multilayer soil  */
 
-	scanflag=0; 
-	for (layer=0; layer<N_SOILLAYERS; layer++)
-	{
-		if (layer==N_SOILLAYERS-1) scanflag=1;
-		if (!errorCode && scan_array(init, &(cs->soil1c[layer]), 'd', scanflag, 1))
-		{
-			printf("ERROR reading labile SOM carbon pool in layer %i, cstate_init.c\n", layer);
-			errorCode=21312;
-		}
-	}
-		
-	scanflag=0; 
-	for (layer=0; layer<N_SOILLAYERS; layer++)
-	{
-		if (layer==N_SOILLAYERS-1) scanflag=1;
-		if (!errorCode && scan_array(init, &(cs->soil2c[layer]), 'd', scanflag, 1))
-		{
-			printf("ERROR reading fast decomposing SOM carbon pool in layer %i, cstate_init.c\n", layer);
-			errorCode=21313;
-		}
-	}
-
- 	scanflag=0; 
-	for (layer=0; layer<N_SOILLAYERS; layer++)
-	{
-		if (layer==N_SOILLAYERS-1) scanflag=1;
-		if (!errorCode && scan_array(init, &(cs->soil3c[layer]), 'd', scanflag, 1))
-		{
-			printf("ERROR reading slow decomposing SOM carbon pool in layer %i, cstate_init.c\n", layer);
-			errorCode=21314;
-		}
-	}
-
-
-	scanflag=0; 
-	for (layer=0; layer<N_SOILLAYERS; layer++)
-	{
-		if (layer==N_SOILLAYERS-1) scanflag=1;
-		if (!errorCode && scan_array(init, &(cs->soil4c[layer]), 'd', scanflag, 1))
-		{
-			printf("ERROR reading stable SOM carbon pool in layer %i, cstate_init.c\n", layer);
-			errorCode=21315;
-		}
-	}
-
-
-	/* multilayer soil */
+	scanflag = 0;
 	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
-		ns->soil1n[layer] = cs->soil1c[layer]/sprop->soil1_CN;
-		ns->soil2n[layer] = cs->soil2c[layer]/sprop->soil2_CN;
-		ns->soil3n[layer] = cs->soil3c[layer]/sprop->soil3_CN;
-		ns->soil4n[layer] = cs->soil4c[layer]/sprop->soil4_CN;
-	}
-	
-	/* 5. read nitrogen state variable initial values from *.init */
-	scanflag=0; 
-	for (layer=0; layer<N_SOILLAYERS; layer++)
-	{
-		if (layer==N_SOILLAYERS-1) scanflag=1;
-		if (!errorCode && scan_array(init, &(ns->litr1n[layer]), 'd', scanflag, 1))
+		if (layer == N_SOILLAYERS - 1) scanflag = 1;
+		if (!errorCode && scan_array(init, &(cs->soilC_ppm[layer]), 'd', scanflag, 1))
 		{
-			printf("ERROR reading litter nitrogen in labile pool layer %i, cnstate_init.c\n", layer);
-			errorCode=21316;
+			printf("ERROR reading TOC in layer %i, cstate_init.c\n", layer);
+			errorCode = 21313;
 		}
 	}
-	
-	scanflag=0; 
-	for (layer=0; layer<N_SOILLAYERS; layer++)
+
+
+	scanflag = 0;
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
-		if (layer==N_SOILLAYERS-1) scanflag=1;
+		if (layer == N_SOILLAYERS - 1) scanflag = 1;
+		if (!errorCode && scan_array(init, &(ns->soilN_ppm[layer]), 'd', scanflag, 1))
+		{
+			printf("ERROR reading TON in layer %i, cstate_init.c\n", layer);
+			errorCode = 21314;
+		}
+	}
+
+
+	scanflag = 0;
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
+	{
+		if (layer == N_SOILLAYERS - 1) scanflag = 1;
+		if (!errorCode && scan_array(init, &(cs->soil4C_ppm[layer]), 'd', scanflag, 1))
+		{
+			printf("ERROR reading slow decomposing SOM carbon pool in layer %i, cstate_init.c\n", layer);
+			errorCode = 21315;
+		}
+	}
+
+
+	scanflag = 0;
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
+	{
+		if (layer == N_SOILLAYERS - 1) scanflag = 1;
+		if (!errorCode && scan_array(init, &(ns->soil4N_ppm[layer]), 'd', scanflag, 1))
+		{
+			printf("ERROR reading slow decomposing SOM nitrogen in layer %i, cstate_init.c\n", layer);
+			errorCode = 21316;
+		}
+	}
+
+
+	scanflag = 0;
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
+	{
+		if (layer == N_SOILLAYERS - 1) scanflag = 1;
 		if (!errorCode && scan_array(init, &(NH4_ppm[layer]), 'd', scanflag, 1))
 		{
 			printf("ERROR reading soil mineral nitrogen (NH4 pool) in layer %i, cnstate_init.c\n", layer);
-			errorCode=21317;
+			errorCode = 21317;
 		}
 		ns->NH4[layer] = (NH4_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer]);
 	}
 
-	scanflag=0; 
-	for (layer=0; layer<N_SOILLAYERS; layer++)
+	scanflag = 0;
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
-		if (layer==N_SOILLAYERS-1) scanflag=1;
+		if (layer == N_SOILLAYERS - 1) scanflag = 1;
 		if (!errorCode && scan_array(init, &(NO3_ppm[layer]), 'd', scanflag, 1))
 		{
 			printf("ERROR reading soil mineral nitrogen (NO3 pool) in layer %i, cnstate_init.c\n", layer);
-			errorCode=21318;
+			errorCode = 21318;
 		}
 		ns->NO3[layer] = (NO3_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer]);
 
 	}
 
+	/* in case of read_restart=0, litter pools are 0, in case of read_restart=1, litter pools are calculated in restart_io.c */
+
+	if (ctrl->spinup == 1)
+	{
+		for (layer = 0; layer < N_SOILLAYERS; layer++)
+		{
+			cs->litr1c[layer] = 0;
+			cs->litr2c[layer] = 0;
+			cs->litr3c[layer] = 0;
+			cs->litr4c[layer] = 0;
+
+			ns->litr1n[layer] = 0;
+			ns->litr2n[layer] = 0;
+			ns->litr3n[layer] = 0;
+			ns->litr4n[layer] = 0;
+
+			ns->cwdn[layer] = 0;
+			ns->cwdn[layer] = 0;
+
+			cs->soil1c[layer] = 0;
+			cs->soil2c[layer] = 0;
+			cs->soil3c[layer] = 0;
+			cs->soil4c[layer] = 0;
+
+			ns->soil1n[layer] = 0;
+			ns->soil2n[layer] = 0;
+			ns->soil3n[layer] = 0;
+			ns->soil4n[layer] = 0;
+
+			ns->NO3[layer] = 0;
+			ns->NH4[layer] = 0;
+		}
+	}
 
 		
 	return (errorCode);

@@ -468,8 +468,8 @@ int precision_reset(int dm, int layer, control_struct* ctrl, soilprop_struct* sp
 	/* examination of cpool and npool values */
 	if ((fabs(*cpool) < CRIT_PREC_RIG && *cpool != 0) || (fabs(*npool) < CRIT_PREC_RIG && *npool != 0))
 	{
-	
-			
+
+
 		/* extra control fo litter */
 		if (dm == 0)
 		{
@@ -492,7 +492,7 @@ int precision_reset(int dm, int layer, control_struct* ctrl, soilprop_struct* sp
 		/* in GWlayer no precision control */
 
 		if (layer != (int)sprop->GWlayer)
-		{ 
+		{
 			cs->Cprec_snk += *cpool;
 			ns->Nprec_snk += *npool;
 			*cpool = 0.0;
@@ -527,16 +527,9 @@ int precision_reset(int dm, int layer, control_struct* ctrl, soilprop_struct* sp
 				}
 			}
 		}
-		else
-		{
-			int balus = 6;
 
-		}
-	
 	}
 
 
 	return(*errorCode);
-
 }
-

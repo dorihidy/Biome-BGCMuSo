@@ -671,7 +671,6 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 			ctrl.yday   = yday;
 			ctrl.metday	= simyr*nDAYS_OF_YEAR + yday;		
 
-			
 			/* set fluxes to zero */
 			if (!errorCode && make_zero_flux_struct(&ctrl, &wf, &cf, &nf, &soilInfo, &summary))
 			{
@@ -714,8 +713,6 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				printf("ERROR in management days.c from bgc.c\n");
 				errorCode=504;
 			}
-	
-
 	
 			/* GROUNDWATER calculations */
 			if (!errorCode && groundwater_calculations(&ctrl, &sitec, &GWS, &sprop, &soilInfo, &epv, &ws, &wf, &cs, &ns))
@@ -853,9 +850,8 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				printf("ERROR in decomp.c from bgc.c\n");
 				errorCode=520;
 			}
-			
-
 		
+
 			/* Daily allocation gets called whether or not this is a current growth day, because the competition between decomp immobilization fluxes 
 			and plant growth N demand is resolved here.  On days with no growth, no allocation occurs, but immobilization fluxes are updated normally */
 
@@ -904,10 +900,7 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=524;
 			}
 			
-			if (yday == 99)
-			{
-				int balus = 6;
-			}
+	
 	
 			/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 			/* 3. WATER CALCULATIONS WITH STATE UPDATE */
@@ -944,7 +937,6 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=527;
 			}
 
-	
 			/* daily update of carbon and nitrogen state variables */
    	    	if (!errorCode && CN_state_update(&sitec, &epc, &soilInfo, &sprop, &ctrl, &epv, &cf, &nf, &cs, &ns, annual_alloc, epc.evergreen))
 			{
@@ -981,7 +973,8 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode = 531;
 			}
 
-	
+
+
 			/* calculate the leaching of N, DOC and DON from multilayer soil */
 			if (!errorCode && multilayer_leaching(&sitec, &sprop,  &soilInfo, &cs, &ns, &ws, &wf))
 			{
@@ -1135,7 +1128,7 @@ int bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=549;
 			}	
 
-
+	
 			/* calculate summary variables */
  			if (!errorCode && cnw_summary(&epc, &sitec, &sprop, &metv, &cs, &cf, &ns, &nf, &wf, &soilInfo, &epv, &summary))
 			{

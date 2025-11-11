@@ -162,7 +162,8 @@ int spinup_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 	FLS	= bgcin->FLS;		/* flooding variables */
 	GWS = bgcin->GWS;       /* groundwater variables */
 
-
+	/* management in spinup phase is not possible - management information set in spinup INI is used in transient phase */
+	PLT.PLT_num = 0;
 
 	/* temporal solution for spinup tolerance differentiate (woody vs non-woody) r */
 	if (epc.woody)
@@ -360,9 +361,8 @@ int spinup_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 		fprintf(bgcout->log_file.ptr, "MSC data - annual varying\n");
 		if (ctrl.onscreen) printf("INFORMATION: reading conductance file: annual varying MSC data\n");
 	}
-
-	if (PLT.PLT_num || THN.THN_num || MOW.MOW_num || GRZ.GRZ_num || HRV.HRV_num || PLG.PLG_num || FRZ.FRZ_num || IRG.IRG_num || 
-		ctrl.condIRG_flag || ctrl.condMOW_flag)
+ 
+	if (PLT.PLT_num || THN.THN_num || MOW.MOW_num || GRZ.GRZ_num || HRV.HRV_num || PLG.PLG_num || FRZ.FRZ_num || IRG.IRG_num || MUL.MUL_num || CWE.CWE_num || ctrl.condIRG_flag || ctrl.condMOW_flag)
 		fprintf(bgcout->log_file.ptr, "management  - YES (in transient phase)\n");
 	else
 		fprintf(bgcout->log_file.ptr, "management  - NO\n");
@@ -738,13 +738,13 @@ int spinup_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				}
 
 
-				/* setting MANAGEMENTdays based on input data */
+				/* setting MANAGEMENTdays based on input data 
 				if (!errorCode && management(&ctrl, &FRZ, &GRZ, &HRV, &MOW, &PLT, &PLG, &THN, &IRG, &MUL, &CWE, &FLS, &GWS, mondays))
 				{
 					printf("ERROR in management days.c from bgc.c\n");
 					errorCode = 503;
 				}
-
+				*/
 	
 				/* GROUNDWATER calculations */
 				if (!errorCode && groundwater_calculations(&ctrl, &sitec, &GWS, &sprop, &soilInfo, &epv, &ws, &wf, &cs, &ns))

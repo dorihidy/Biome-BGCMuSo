@@ -99,6 +99,7 @@ typedef struct
 	char* planttypeName;        /* (string) name of the plant tpye in the header of EPC file */
 	int NaddSPINUP_flag;        /* (flag) for using artificial N-addition during spinup phase */
 	int soiltype_array[N_SOILLAYERS]; /* (flag) soiltype */
+	int rain_flag[N_SOILLAYERS];
 	double wstate_propFC;       /* proportion of FC */
 
 } control_struct;
@@ -284,12 +285,13 @@ typedef struct
 	double EVPsurface1cum;              /* cumulated soil evaporation in first evaporation phase (no limit) */
 	double EVPsurface2cum;              /* cumulated soil evaporation in second evaporation phase (DSR limit) */
 	double soilwAVAIL[N_SOILLAYERS];/* transpiration lack in a given layer */
-	double soilwSAT[N_SOILLAYERS];     /* saturated soil water content in given layer */
+	double soilwFCEQ[N_SOILLAYERS];     /* saturated soil water content in given layer */
 	double GW_waterlogging;          /* amount of water above the surface (negative GWD data) */
     double WbalanceERR;              /* SUM of water balance error  */
 	double inW;						 /* SUM of nitrogen input */
 	double outW;					 /* SUM of nitrogen output */
 	double storeW;					 /* SUM of nitrogen store */
+
 } wstate_struct;                        
 /* endOUT */
 
@@ -383,7 +385,6 @@ typedef struct
 	double waterFromAbove;                          /* water flux from above: prcp_to_soilSurface+snoww_to_soilw+canopyw_to_soilw+IRG_to_prcp OR pondw */
 	double infiltPOT;                               /* potential infiltraion water flux from above */
 	double soilwFLuxFromBelow;
-	int flagRAIN[N_SOILLAYERS];
 	double inflow_NORMcf;              /* SUM of water balance error  */
 	double inflow_CAPILcf;              /* SUM of water balance error  */
 	double inflow_NORMgw;              /* SUM of water balance error  */
@@ -486,6 +487,10 @@ typedef struct
     double soil2c_total;				/* SUM of carbon content of fast decomposing SOM */
     double soil3c_total;				/* SUM of carbon content of slowly decomposing SOM */
     double soil4c_total;				/* SUM of carbon content of stable SOM */
+	double litrC_ppm[N_SOILLAYERS];
+	double litr4C_ppm[N_SOILLAYERS];
+	double soilC_ppm[N_SOILLAYERS];
+	double soil4C_ppm[N_SOILLAYERS];
 	double cpool;						/* temporary photosynthate C pool */
     double psnsun_src;					/* SUM of gross PSN from sulit canopy */
     double psnshade_src;				/* SUM of gross PSN from shaded canopy */
@@ -1038,6 +1043,10 @@ typedef struct
     double soil2n_total;				/* SUM of Nitrogen content of fast decomposing SOM */
     double soil3n_total;				/* SUM of Nitrogen content of slowly decomposing SOM */
     double soil4n_total;				/* SUM of Nitrogen content of total SOM */
+	double litrN_ppm[N_SOILLAYERS];
+	double litr4N_ppm[N_SOILLAYERS];
+	double soilN_ppm[N_SOILLAYERS];
+	double soil4N_ppm[N_SOILLAYERS];
 	double retransn;					/* plant pool of retranslocated N */
     double NH4[N_SOILLAYERS];			/* soil mineral N in multilayer soil */
 	double NO3[N_SOILLAYERS];			/* soil mineral N in multilayer soil */
@@ -2326,10 +2335,6 @@ typedef struct
 	double contentDISSOLV_SATgw[N_DISSOLVMATER];                        /* dissolved material content of capillary zone of GW-layer: NH4, NO3, DOC and DON  */
 	double contentDISSOLV_NORMcf[N_DISSOLVMATER];                  /* dissolved material content of unsaturated zone of GW-layer: NH4, NO3, DOC and DON  */
 	double contentDISSOLV_CAPILcf[N_DISSOLVMATER];                      /* dissolved material content of capillary zone of GW-layer: NH4, NO3, DOC and DON  */
-	double ratio_NORMgw[4];                                        /* material content of NORM zone of GW-layer soil1CN, soil2CM, soil3CN, soil4CN  */
-	double ratio_NORMcf[4];                                        /* material content of NORM zone of CF-layer soil1CN, soil2CM, soil3CN, soil4CN  */
-	double ratio_CAPILgw[4];                                      /* material content of CAPIL zone of GW-layer soil1CN, soil2CM, soil3CN, soil4CN  */
-	double ratio_CAPILcf[4];                                      /* material content of CAPIL zone of CF-layer soil1CN, soil2CM, soil3CN, soil4CN  */
 	double balance_UNSAT[N_DISSOLVMATER];                          /* balance in UNSAT part of GW-layer  */
 	double dismatLeach[N_DISSOLVMATER][N_SOILLAYERS];              /* (kg/m2/day) leaching flux of dissolved materials */
 	double dismatLeach_percolDiffus[N_DISSOLVMATER][N_SOILLAYERS]; /* (kg/m2/day) leaching flux of dissolved materials */
@@ -2434,6 +2439,7 @@ typedef struct
 	double cumAR;						/* (kgC/m2)  cumulative SUM of HR */
 	double cumTR;					    /* (kgC/m2)  cumulative SUM of total ecosystem respiration */
 	double cumSR;					    /* (kgC/m2)  cumulative SUM of soil respiration */
+	double cumNflux;                    /* (kgN/m2)  cumulative SUM N flux */
 	double cumN2Oflux;					/* (kgN/m2)  cumulative SUM N2O flux */
 	double cumN2OfluxCeq;				/* (kgC/m2)  cumulative SUM N2O flux in C eq.in 100-yr horizont*/
 	double cumCH4flux;					/* (kgC/m2)  cumulative SUM CH4 flux */
@@ -2471,6 +2477,8 @@ typedef struct
 	double cumMRdeficit_SC;             /* (kgC/m2) Cumulative flux of MR-deficit related fluxes */
 	double cumCflux_lateral;            /* (kgC/m2)  cumulative lateral carbon flux */
 	double cumFLsoilw;                  /* kgH2O/m2 cumulative sum of water from flooding */
+	double cumIMMOBflux_RZ;             /* (kgN/m2) cumulative immobilization flux (sminN_to_soil) in rootzone */
+	double cumNdemand;
 
 	double CNlitr_total;		        /* (prop) C:N ratio of litter pool  */
 	double CNsoil_total;				/* (prop) C:N ratio of soil pool  */
@@ -2601,8 +2609,7 @@ typedef struct
 
 
 	/* water fluxes for unsat soil */
-	double cumGWdischarge;
-	double cumGWrecharge;
+
 	double cumEVPfromGW;
 	double cumTRPfromGW;
 	double cumGWsrc;
@@ -2616,6 +2623,24 @@ typedef struct
 	double GWrecharge_NH4;
 	double GWrecharge_NO3;
 	double GWrecharge_orgN;
+	double GWbalance;
+	double GWbalance_NH4;
+	double GWbalance_NO3;
+	double GWbalance_orgN;
+	
+	double cumGWdischarge;
+	double cumGWrecharge_NH4;
+	double cumGWrecharge_NO3;
+	double cumGWrecharge_orgN;
+	double cumGWrecharge;
+	double cumGWdischarge_NH4;
+	double cumGWdischarge_NO3;
+	double cumGWdischarge_orgN;
+	double cumGWbalance;
+	double cumGWbalance_NH4;
+	double cumGWbalance_NO3;
+	double cumGWbalance_orgN;
+
 
 
 	double BD_top5;
