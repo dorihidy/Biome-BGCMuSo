@@ -75,8 +75,10 @@ int water_state_update(wflux_struct* wf, wstate_struct* ws)
 	ws->GWsrc_W += wf->EVPfromGW;
 	ws->GWsrc_W += wf->GW_to_pondw;
 	ws->GWsrc_W += wf->TRPfromGW_total;
-	ws->GWsrc_W += wf->GWdischarge_total;
-	ws->GWsnk_W += wf->GWrecharge_total;
+	if (wf->GWrecharge_total - wf->GWdischarge_total > 0)
+		ws->GWsnk_W += wf->GWrecharge_total - wf->GWdischarge_total;
+	else
+		ws->GWsrc_W += -1 * (wf->GWrecharge_total - wf->GWdischarge_total);
 
 
 	/* flooding src */

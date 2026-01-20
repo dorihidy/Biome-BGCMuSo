@@ -42,11 +42,11 @@ int mgm_init(file init, control_struct* ctrl,
 	char keyword[STRINGSIZE];
 	char header[STRINGSIZE];
 
-	int mgm, PLTyday, HRVyday, GRZstart_yday,GRZend_yday,doy,leap;
+	int mgm, PLTyday, HRVyday, lastPLTyday, lastHRVyday, GRZstart_yday,GRZend_yday,doy,leap;
 	int* mondays=0;
 	int* enddays=0;
 
-
+	lastPLTyday = lastHRVyday = 0;
 	/********************************************************************
 	**                                                                 **
 	** Begin reading initialization file block starting with keyword:  **
@@ -259,10 +259,30 @@ int mgm_init(file init, control_struct* ctrl,
 
 				if (HRVyday <= PLTyday)
 				{
-					printf("ERROR in management data: PLANTING must be before HARVESTING date\n");
+					printf("ERROR in management data: PLANTING must be before HARVEST date\n");
 					errorCode=2100006;
 				}
 
+				if (PLTyday <= lastPLTyday)
+				{
+					printf("ERROR in management data: PLANTING dates must increase monotonically\n");
+					errorCode = 2100006;
+				}
+
+				if (PLTyday <= lastHRVyday)
+				{
+					printf("ERROR in management data: PLANTING date must be before HARVEST date\n");
+					errorCode = 2100006;
+				}
+
+				if (HRVyday <= lastHRVyday)
+				{
+					printf("ERROR in management data: HARVEST dates must increase monotonically\n");
+					errorCode = 2100006;
+				}
+
+				lastHRVyday = HRVyday;
+				lastPLTyday = PLTyday;
 
 			}
 		}

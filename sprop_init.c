@@ -36,7 +36,7 @@ int sprop_init(file init, soilprop_struct* sprop, control_struct* ctrl)
 	char key[] = "SOIL_FILE";
 	char keyword[STRINGSIZE];
 	char header[STRINGSIZE];
-	int PROPlayerDC_CTRL = 0;
+	double PROPlayerDC_CTRL = 0;
 	
 	/********************************************************************
 	**                                                                 **

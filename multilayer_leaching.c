@@ -188,16 +188,20 @@ int multilayer_leaching(const siteconst_struct* sitec, soilprop_struct* sprop, s
 	{		
 		for (layer = 0; layer < N_SOILLAYERS; layer++)
 		{
-			ns->GWsnk_N += soilInfo->dismatGWrecharge[dm][layer];
-			ns->GWsrc_N += soilInfo->dismatGWdischarge[dm][layer];
+			if (soilInfo->dismatGWrecharge[dm][layer] - soilInfo->dismatGWdischarge[dm][layer] > 0)
+				ns->GWsnk_N += soilInfo->dismatGWrecharge[dm][layer] - soilInfo->dismatGWdischarge[dm][layer];
+			else
+				ns->GWsrc_N += -1 * (soilInfo->dismatGWrecharge[dm][layer] - soilInfo->dismatGWdischarge[dm][layer]);
 		}
 	}
 	for (dm = N_DISSOLVN; dm < N_DISSOLVMATER; dm++)
 	{
 		for (layer = 0; layer < N_SOILLAYERS; layer++)
 		{
-			cs->GWsnk_C += soilInfo->dismatGWrecharge[dm][layer];
-			cs->GWsrc_C += soilInfo->dismatGWdischarge[dm][layer];
+			if (soilInfo->dismatGWrecharge[dm][layer] - soilInfo->dismatGWdischarge[dm][layer] > 0)
+				cs->GWsnk_C += soilInfo->dismatGWrecharge[dm][layer] - soilInfo->dismatGWdischarge[dm][layer];
+			else
+				cs->GWsrc_C += -1 * (soilInfo->dismatGWrecharge[dm][layer] - soilInfo->dismatGWdischarge[dm][layer]);
 		}
 	}
 

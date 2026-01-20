@@ -88,26 +88,28 @@ NH4_prop=net_miner=SR_layer=sminn_to_soilCTRL=sminn_to_npoolCTRL=ndep_to_sminnCT
 			NH4_prop = ndep->NdepNH4_coeff;
 
 
-		/* Deposition  only in 0-30 cm */
+		/* Deposition and N-fixation only in 0-30 cm */
 		if (layer < 3)
 		{
 			weight = sitec->soillayer_thickness[layer] / sitec->soillayer_depth[2];
 			nf->ndep_to_NH4[layer] = (nf->ndep_to_sminn_total * weight) * ndep->NdepNH4_coeff;
 			nf->ndep_to_NO3[layer] = (nf->ndep_to_sminn_total * weight) * (1 - ndep->NdepNH4_coeff);
+			nf->nfix_to_NH4[layer] = nf->nfix_to_sminn_total * weight;
 		}
 		else
 		{
 			nf->ndep_to_NH4[layer] = 0;
 			nf->ndep_to_NO3[layer] = 0;
+			nf->nfix_to_NH4[layer] = 0;
 		}
 
-		/* N-fixation in rootlayer (based on rootlength proportion) or in absence of root: top 30 cm */
+		/* N-fixation old method: in rootlayer based on rootlength proportion - before MuSo7.0)
 		if (epv->n_rootlayers == 0)
-		{
+		{ 
 			if (layer < 3)
 			{
 				weight = sitec->soillayer_thickness[layer] / sitec->soillayer_depth[2];
-				nf->nfix_to_NH4[layer] = nf->nfix_to_sminn_total * weight;
+				
 			}
 			else
 				nf->nfix_to_NH4[layer] = 0;
@@ -115,15 +117,15 @@ NH4_prop=net_miner=SR_layer=sminn_to_soilCTRL=sminn_to_npoolCTRL=ndep_to_sminnCT
 		else
 		{
 			nf->nfix_to_NH4[layer] = nf->nfix_to_sminn_total * epv->rootlengthProp[layer];
-			/* no root is assumed in the top soil layer, but N fixation should occur also in top soil layer  */
+			no root is assumed in the top soil layer, but N fixation should occur also in top soil layer  
 			if (epv->rootlengthProp[0] == 0 && layer < 2)
 			{
 				nf->nfix_to_NH4[layer] = nf->nfix_to_sminn_total * epv->rootlengthProp[1] * (sitec->soillayer_thickness[layer] / sitec->soillayer_depth[1]);
 			}
 			else
 				nf->nfix_to_NH4[layer] = nf->nfix_to_sminn_total * epv->rootlengthProp[layer];
+		}*/
 
-		}
 
 		nf->environment_to_sminn[layer] = nf->ndep_to_NH4[layer] + nf->ndep_to_NO3[layer] + nf->nfix_to_NH4[layer];
 

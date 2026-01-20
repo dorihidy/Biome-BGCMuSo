@@ -862,8 +862,11 @@ int cnw_summary(const epconst_struct* epc, const siteconst_struct* sitec, const 
 
 
 	/* GW water src and snk */
-	summary->cumGWsrc += wf->EVPfromGW + wf->TRPfromGW_total + wf->GWdischarge_total + wf->GW_to_pondw;
-	summary->cumGWsnk += wf->GWrecharge_total;
+	summary->cumGWsrc += wf->EVPfromGW + wf->TRPfromGW_total + wf->GW_to_pondw;
+	if (wf->GWrecharge_total + wf->GWdischarge_total > 0)
+		summary->cumGWsrc += wf->GWrecharge_total + wf->GWdischarge_total;
+	else
+		summary->cumGWsnk += -1 * (wf->GWrecharge_total + wf->GWdischarge_total);
 
 
 	summary->cumWinput += wf->prcp_to_canopyw + wf->prcp_to_soilSurface + wf->prcp_to_snoww + wf->FRZ_to_soilw;

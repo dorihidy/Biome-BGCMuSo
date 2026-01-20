@@ -89,7 +89,7 @@ int output_init(file init, int transient, harvesting_struct* HRV, output_struct*
 	if (!errorCode && scan_value(init, &output->onscreen, 'i'))
 	{
 		printf("ERROR reading on-screen indicator flag: output_init.c\n");
-		errorCode=21611;
+		errorCode=21606;
 	}
 	
 

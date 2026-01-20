@@ -277,9 +277,9 @@ int restart_input(const control_struct* ctrl, const epconst_struct* epc, const s
 				litrC = restart->litr1c[layer] + restart->litr2c[layer] + restart->litr3c[layer];
 				if (litrC)
 				{
-					cs->litr1c[layer] = ((cs->litrC_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr1c[layer] / litrC;
-					cs->litr2c[layer] = ((cs->litrC_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr2c[layer] / litrC;
-					cs->litr3c[layer] = ((cs->litrC_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr3c[layer] / litrC;
+					cs->litr1c[layer] = (((cs->litrC_ppm[layer]- cs->litr4C_ppm[layer])  / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr1c[layer] / litrC;
+					cs->litr2c[layer] = (((cs->litrC_ppm[layer] - cs->litr4C_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr2c[layer] / litrC;
+					cs->litr3c[layer] = (((cs->litrC_ppm[layer] - cs->litr4C_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr3c[layer] / litrC;
 
 				}
 				else
@@ -340,9 +340,9 @@ int restart_input(const control_struct* ctrl, const epconst_struct* epc, const s
 				litrN = restart->litr1n[layer] + restart->litr2n[layer] + restart->litr3n[layer];
 				if (litrN)
 				{
-					ns->litr1n[layer] = ((ns->litrN_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr1n[layer] / litrN;
-					ns->litr2n[layer] = ((ns->litrN_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr2n[layer] / litrN;
-					ns->litr3n[layer] = ((ns->litrN_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr3n[layer] / litrN;					
+					ns->litr1n[layer] = (((ns->litrN_ppm[layer] - ns->litr4N_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr1n[layer] / litrN;
+					ns->litr2n[layer] = (((ns->litrN_ppm[layer] - ns->litr4N_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr2n[layer] / litrN;
+					ns->litr3n[layer] = (((ns->litrN_ppm[layer] - ns->litr4N_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr3n[layer] / litrN;
 				}
 				else
 				{
@@ -398,9 +398,9 @@ int restart_input(const control_struct* ctrl, const epconst_struct* epc, const s
 				soilC = restart->soil1c[layer] + restart->soil2c[layer] + restart->soil3c[layer];
 				if (soilC)
 				{
-					cs->soil1c[layer] = ((cs->soilC_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil1c[layer] / soilC;
-					cs->soil2c[layer] = ((cs->soilC_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil2c[layer] / soilC;
-					cs->soil3c[layer] = ((cs->soilC_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil3c[layer] / soilC;				
+					cs->soil1c[layer] = (((cs->soilC_ppm[layer] - cs->soil4C_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil1c[layer] / soilC;
+					cs->soil2c[layer] = (((cs->soilC_ppm[layer] - cs->soil4C_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil2c[layer] / soilC;
+					cs->soil3c[layer] = (((cs->soilC_ppm[layer] - cs->soil4C_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil3c[layer] / soilC;
 				}
 				else
 				{
@@ -448,9 +448,9 @@ int restart_input(const control_struct* ctrl, const epconst_struct* epc, const s
 				soilN = restart->soil1n[layer] + restart->soil2n[layer] + restart->soil3n[layer];
 				if (soilN)
 				{
-					ns->soil1n[layer] = ((ns->soilN_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil1n[layer] / soilN;
-					ns->soil2n[layer] = ((ns->soilN_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil2n[layer] / soilN;
-					ns->soil3n[layer] = ((ns->soilN_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil3n[layer] / soilN;
+					ns->soil1n[layer] = (((ns->soilN_ppm[layer] - ns->soil4N_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil1n[layer] / soilN;
+					ns->soil2n[layer] = (((ns->soilN_ppm[layer] - ns->soil4N_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil2n[layer] / soilN;
+					ns->soil3n[layer] = (((ns->soilN_ppm[layer] - ns->soil4N_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil3n[layer] / soilN;
 					
 				}
 				else
