@@ -3,7 +3,7 @@ groundwater_leaching.c
 Calculating soil mineral nitrogen and DOC-DON leaching in groundwater layers 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -18,29 +18,43 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_struct.h"
 #include "bgc_func.h"
 #include "bgc_constants.h"
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
-int groundwater_leaching(int dm, soilprop_struct* sprop, soilInfo_struct* soilInfo, wstate_struct* ws, wflux_struct* wf, 
+int groundwater_leaching(int dm, const siteconst_struct* sitec, soilprop_struct* sprop, soilInfo_struct* soilInfo, wstate_struct* ws, wflux_struct* wf,
 	                     double* dismatLeachNORM, double* dismatLeachCAPIL, double* dischargeNORM, double* dischargeCAPIL, double* rechargeNORM, double* rechargeCAPIL)
 {
 	int errorCode, CFlayer, GWlayer, layer;
 
 	double wflux, diff, diff_total;
-	double dismatLeach_NORMvsCAPIL, dismatLeach_NORMfromAbove, dismatLeach_CAPILfromAbove, percolDiffus_NORM, percolDiffus_CAPIL, dismatLeach_fromAbove;
+	double dismatLeach_NORMvsCAPIL, dismatLeach_NORMfromAbove, dismatLeach_CAPILfromAbove, percolDiffus_NORM, dismatLeach_fromAbove;
 	double dismatLeachNORM_act, dismatLeachCAPIL_act, dischargeNORM_act, dischargeCAPIL_act, rechargeNORM_act, rechargeCAPIL_act;
-	double soilw[N_SOILLAYERS];
+	double soilw[N_SOILLAYERS], soilwAVAIL[N_SOILLAYERS];
+	double soilw_NORMcf, soilw_NORMgw, soilw_CAPILgw, soilwAVAIL_NORMcf, soilwAVAIL_NORMgw, soilwAVAIL_CAPILgw;
 	double change_NORM, change_CAPIL;
 
 	errorCode = 0;
 
-	dismatLeachNORM_act = wflux = dismatLeach_NORMvsCAPIL = dismatLeach_NORMfromAbove = dismatLeach_CAPILfromAbove = dischargeNORM_act = dischargeCAPIL_act = rechargeNORM_act = rechargeCAPIL_act = dismatLeachCAPIL_act = percolDiffus_NORM = percolDiffus_CAPIL = dismatLeach_fromAbove = 0;
-
+	dismatLeachNORM_act = wflux = dismatLeach_NORMvsCAPIL = dismatLeach_NORMfromAbove = dismatLeach_CAPILfromAbove = dischargeNORM_act = dischargeCAPIL_act = rechargeNORM_act = rechargeCAPIL_act = dismatLeachCAPIL_act = percolDiffus_NORM  = dismatLeach_fromAbove = 0;
+	soilwAVAIL_NORMcf = soilwAVAIL_NORMgw = soilwAVAIL_CAPILgw = 0;
 	GWlayer = (int)sprop->GWlayer;
 	CFlayer = (int)sprop->CFlayer;
 
 	/*---------------------------------------------------------------------------------*/
 	/* for concentration calculation original soilw data (from the beginning of the simulation day) is used: top soil layer - infiltration is also counts in concentration calculation */
 
-	for (layer = 0; layer < N_SOILLAYERS; layer++) soilw[layer] = ws->soilw_pre[layer];
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
+	{
+		soilw[layer] = ws->soilw_pre[layer];
+		soilwAVAIL[layer] = ws->soilw_pre[layer] - sprop->VWChw[layer] / sitec->soillayer_thickness[layer] / water_density;
+	}
+	soilw_NORMcf = sprop->soilw_NORMcf_pre;
+	soilw_NORMgw = sprop->soilw_NORMgw_pre;
+	soilw_CAPILgw = sprop->soilw_CAPILgw_pre;
+	if (sprop->dz_NORMcf) soilwAVAIL_NORMcf = MAX(0, sprop->soilw_NORMcf_pre - sprop->VWChw[CFlayer] / sprop->dz_NORMcf / water_density);
+	if (sprop->dz_NORMgw) soilwAVAIL_NORMgw = MAX(0, sprop->soilw_NORMgw_pre - sprop->VWChw[GWlayer] / sprop->dz_NORMgw / water_density);
+	if (sprop->dz_CAPILgw) soilwAVAIL_CAPILgw = MAX(0, sprop->soilw_CAPILgw_pre - sprop->VWChw[GWlayer] / sprop->dz_CAPILgw / water_density);
+
 
 	/*-----------------------------------------------------------------*/
 	/* flux between NORM and CAPIL */
@@ -49,13 +63,13 @@ int groundwater_leaching(int dm, soilprop_struct* sprop, soilInfo_struct* soilIn
 		wflux = (wf->soilwPercol_NORMvsCAPILgw + wf->soilwDiffus_NORMvsCAPILgw);
 		if (wflux > 0)
 		{
-			if (wflux > sprop->soilw_NORMgw) wflux = sprop->soilw_NORMgw;
-			dismatLeach_NORMvsCAPIL = wflux * (soilInfo->content_NORMgw[dm] / sprop->soilw_NORMgw) * soilInfo->dissolv_prop[dm];
+			if (wflux > soilwAVAIL_NORMgw) wflux = soilwAVAIL_NORMgw;
+			dismatLeach_NORMvsCAPIL = wflux * (soilInfo->contentDISSOLV_NORMgw[dm] / soilw_NORMgw);
 		}
 		else
 		{
-			if (fabs(wflux) > sprop->soilw_CAPILgw) wflux = -1 * sprop->soilw_CAPILgw;
-			dismatLeach_NORMvsCAPIL = wflux * (soilInfo->content_CAPILgw[dm] / sprop->soilw_CAPILgw) * soilInfo->dissolv_prop[dm];
+			if (fabs(wflux) > soilwAVAIL_CAPILgw) wflux = -1 * soilwAVAIL_CAPILgw;
+			dismatLeach_NORMvsCAPIL = wflux * (soilInfo->contentDISSOLV_CAPILgw[dm] / soilwAVAIL_CAPILgw);
 		}
 	}
 	else
@@ -70,13 +84,13 @@ int groundwater_leaching(int dm, soilprop_struct* sprop, soilInfo_struct* soilIn
 			wflux = wf->soilwPercol[GWlayer - 1] + wf->soilwDiffus_aboveGWlayer_vs_NORMgw;
 			if (wflux > 0)
 			{
-				if (wflux > soilw[GWlayer - 1]) wflux = soilw[GWlayer - 1];
-				dismatLeach_NORMfromAbove = wflux * (soilInfo->content_soil[dm][GWlayer - 1] / soilw[GWlayer - 1]) * soilInfo->dissolv_prop[dm];
+				if (wflux > soilwAVAIL[GWlayer - 1]) wflux = soilwAVAIL[GWlayer - 1];
+				dismatLeach_NORMfromAbove = wflux * (soilInfo->contentDISSOLV_soil[dm][GWlayer - 1] / soilw[GWlayer - 1]);
 			}
 			else
 			{
-				if (fabs(wflux) > sprop->soilw_NORMgw) wflux = -1 * sprop->soilw_NORMgw;
-				dismatLeach_NORMfromAbove = wflux * (soilInfo->content_NORMgw[dm] / sprop->soilw_NORMgw) * soilInfo->dissolv_prop[dm];
+				if (fabs(wflux) > soilwAVAIL_NORMgw) wflux = -1 * soilwAVAIL_NORMgw;
+				dismatLeach_NORMfromAbove = wflux * (soilInfo->contentDISSOLV_NORMgw[dm] / soilw_NORMgw);
 			}
 		}
 		else
@@ -93,20 +107,20 @@ int groundwater_leaching(int dm, soilprop_struct* sprop, soilInfo_struct* soilIn
 
 			
 			/* if upper layer is CFlayer - leaching has already been calculated*/
-			if (GWlayer - 1 == CFlayer && sprop->dz_CAPILcf != 0)
+			if (GWlayer - 1 == CFlayer && (sprop->dz_CAPILcf+sprop->dz_NORMcf) != 0)
 				dismatLeach_CAPILfromAbove = soilInfo->dismatLeach[dm][CFlayer];
 			else
 			{
 				/* limitation of percolation */
 				if (wflux > 0)
 				{
-					if (wflux > soilw[GWlayer - 1]) wflux = soilw[GWlayer - 1];
-					dismatLeach_CAPILfromAbove = wflux * (soilInfo->content_soil[dm][GWlayer - 1] / soilw[GWlayer - 1]) * soilInfo->dissolv_prop[dm];
+					if (wflux > soilwAVAIL[GWlayer - 1]) wflux = soilwAVAIL[GWlayer - 1];
+					dismatLeach_CAPILfromAbove = wflux * (soilInfo->contentDISSOLV_soil[dm][GWlayer - 1] / soilw[GWlayer - 1]);
 				}
 				else
 				{
-					if (fabs(wflux) > sprop->soilw_CAPILgw) wflux = -1 * sprop->soilw_CAPILgw;
-					dismatLeach_CAPILfromAbove = wflux * (soilInfo->content_CAPILgw[dm] / sprop->soilw_CAPILgw) * soilInfo->dissolv_prop[dm];
+					if (fabs(wflux) > soilwAVAIL_CAPILgw) wflux = -1 * soilwAVAIL_CAPILgw;
+					dismatLeach_CAPILfromAbove = wflux * (soilInfo->contentDISSOLV_CAPILgw[dm] / soilw_CAPILgw);
 				}
 			}
 		}
@@ -137,8 +151,8 @@ int groundwater_leaching(int dm, soilprop_struct* sprop, soilInfo_struct* soilIn
 	if (sprop->dz_NORMgw)
 	{
 		wflux = wf->GWrecharge_NORMgw;
-		if (wflux > sprop->soilw_NORMgw) wflux = sprop->soilw_NORMgw;
-		rechargeNORM_act = wflux * (soilInfo->content_NORMgw[dm] / sprop->soilw_NORMgw) * soilInfo->dissolv_prop[dm];
+		if (wflux > soilwAVAIL_NORMgw) wflux = soilwAVAIL_NORMgw;
+		rechargeNORM_act = wflux * (soilInfo->contentDISSOLV_NORMgw[dm] / soilw_NORMgw);
 	}
 	else
 		rechargeNORM_act = 0;
@@ -146,8 +160,8 @@ int groundwater_leaching(int dm, soilprop_struct* sprop, soilInfo_struct* soilIn
 	if (sprop->dz_CAPILgw)
 	{
 		wflux = wf->GWrecharge_CAPILgw;
-		if (wflux > sprop->soilw_CAPILgw) wflux = sprop->soilw_CAPILgw;
-		rechargeCAPIL_act = wflux * (soilInfo->content_CAPILgw[dm] / sprop->soilw_CAPILgw) * soilInfo->dissolv_prop[dm];
+		if (wflux > soilwAVAIL_CAPILgw) wflux = soilwAVAIL_CAPILgw;
+		rechargeCAPIL_act = wflux * (soilInfo->contentDISSOLV_CAPILgw[dm] / soilw_CAPILgw);
 	}
 	else
 		rechargeCAPIL_act = 0;
@@ -158,28 +172,28 @@ int groundwater_leaching(int dm, soilprop_struct* sprop, soilInfo_struct* soilIn
 	if (sprop->dz_NORMcf)
 	{
 		wflux = wf->soilwPercolDiffus_fromNORM[GWlayer];
-		if (wflux > sprop->soilw_NORMcf) wflux = sprop->soilw_NORMcf;
-		percolDiffus_CAPIL = wflux * (soilInfo->content_NORMcf[dm] / sprop->soilw_NORMcf) * soilInfo->dissolv_prop[dm];
+		if (wflux > soilwAVAIL_NORMcf) wflux = soilwAVAIL_NORMcf;
+		percolDiffus_NORM = wflux * (soilInfo->contentDISSOLV_NORMcf[dm] / soilw_NORMcf);
 	}
 	else
-		percolDiffus_CAPIL = 0;
+		percolDiffus_NORM = 0;
 
 	/* state update */
 	change_NORM = dismatLeach_NORMfromAbove + dischargeNORM_act - dismatLeach_NORMvsCAPIL - percolDiffus_NORM - rechargeNORM_act;
-	change_CAPIL = dismatLeach_CAPILfromAbove + dischargeCAPIL_act + dismatLeach_NORMvsCAPIL + percolDiffus_CAPIL - rechargeCAPIL_act;
+	change_CAPIL = dismatLeach_CAPILfromAbove + dischargeCAPIL_act + dismatLeach_NORMvsCAPIL + percolDiffus_NORM - rechargeCAPIL_act;
 
-	soilInfo->content_NORMgw[dm] += change_NORM;
-	soilInfo->content_CAPILgw[dm] += change_CAPIL;
+	soilInfo->contentDISSOLV_NORMgw[dm] += change_NORM;
+	soilInfo->contentDISSOLV_CAPILgw[dm] += change_CAPIL;
 
-	if (soilInfo->content_NORMgw[dm] < 0 && fabs(soilInfo->content_NORMgw[dm]) < CRIT_PREC) soilInfo->content_NORMgw[dm] = 0;
-	if (soilInfo->content_CAPILgw[dm] < 0 && fabs(soilInfo->content_CAPILgw[dm]) < CRIT_PREC) soilInfo->content_CAPILgw[dm] = 0;
+	if (soilInfo->contentDISSOLV_NORMgw[dm] < 0 && fabs(soilInfo->contentDISSOLV_NORMgw[dm]) < CRIT_PREC) soilInfo->contentDISSOLV_NORMgw[dm] = 0;
+	if (soilInfo->contentDISSOLV_CAPILgw[dm] < 0 && fabs(soilInfo->contentDISSOLV_CAPILgw[dm]) < CRIT_PREC) soilInfo->contentDISSOLV_CAPILgw[dm] = 0;
 
 	/* avoiding negative pool */
-	if (soilInfo->content_NORMgw[dm] < 0)
+	if (soilInfo->contentDISSOLV_NORMgw[dm] < 0)
 	{
-		diff = soilInfo->content_NORMgw[dm];
-		soilInfo->content_NORMgw[dm] -= change_NORM;
-		soilInfo->content_CAPILgw[dm] -= change_CAPIL;
+		diff = soilInfo->contentDISSOLV_NORMgw[dm];
+		soilInfo->contentDISSOLV_NORMgw[dm] -= change_NORM;
+		soilInfo->contentDISSOLV_CAPILgw[dm] -= change_CAPIL;
 
 		diff_total = rechargeNORM_act;
 
@@ -196,15 +210,15 @@ int groundwater_leaching(int dm, soilprop_struct* sprop, soilInfo_struct* soilIn
 		soilInfo->dismatLeach[dm][GWlayer - 1] = dismatLeach_NORMfromAbove + dismatLeach_CAPILfromAbove;
 
 		change_NORM = dismatLeach_NORMfromAbove + dischargeNORM_act - dismatLeach_NORMvsCAPIL - percolDiffus_NORM - rechargeNORM_act - dismatLeachNORM_act;
-		change_CAPIL= dismatLeach_CAPILfromAbove + dischargeCAPIL_act + dismatLeach_NORMvsCAPIL + percolDiffus_CAPIL - rechargeCAPIL_act - dismatLeachCAPIL_act;
+		change_CAPIL= dismatLeach_CAPILfromAbove + dischargeCAPIL_act + dismatLeach_NORMvsCAPIL + percolDiffus_NORM - rechargeCAPIL_act - dismatLeachCAPIL_act;
 
-		soilInfo->content_NORMgw[dm] += change_NORM;
-		soilInfo->content_CAPILgw[dm] += change_CAPIL;
+		soilInfo->contentDISSOLV_NORMgw[dm] += change_NORM;
+		soilInfo->contentDISSOLV_CAPILgw[dm] += change_CAPIL;
 
-		if (soilInfo->content_NORMgw[dm] < 0 && fabs(soilInfo->content_NORMgw[dm]) < CRIT_PREC) soilInfo->content_NORMgw[dm] = 0;
-		if (soilInfo->content_CAPILgw[dm] < 0 && fabs(soilInfo->content_CAPILgw[dm]) < CRIT_PREC) soilInfo->content_CAPILgw[dm] = 0;
+		if (soilInfo->contentDISSOLV_NORMgw[dm] < 0 && fabs(soilInfo->contentDISSOLV_NORMgw[dm]) < CRIT_PREC) soilInfo->contentDISSOLV_NORMgw[dm] = 0;
+		if (soilInfo->contentDISSOLV_CAPILgw[dm] < 0 && fabs(soilInfo->contentDISSOLV_CAPILgw[dm]) < CRIT_PREC) soilInfo->contentDISSOLV_CAPILgw[dm] = 0;
 
-		if (soilInfo->content_NORMgw[dm] < 0)
+		if (soilInfo->contentDISSOLV_NORMgw[dm] < 0)
 		{
 			printf("\n");
 			printf("ERROR: negative content_CAPILgw in multilayer_leaching.c\n");
@@ -215,11 +229,11 @@ int groundwater_leaching(int dm, soilprop_struct* sprop, soilInfo_struct* soilIn
 
 
 	/* avoiding negative pool: propoertionally reduce the sink flows */
-	if (soilInfo->content_CAPILgw[dm] < 0)
+	if (soilInfo->contentDISSOLV_CAPILgw[dm] < 0)
 	{
-		diff = soilInfo->content_CAPILgw[dm];
-		soilInfo->content_NORMgw[dm] -= change_NORM;
-		soilInfo->content_CAPILgw[dm] -= change_CAPIL;
+		diff = soilInfo->contentDISSOLV_CAPILgw[dm];
+		soilInfo->contentDISSOLV_NORMgw[dm] -= change_NORM;
+		soilInfo->contentDISSOLV_CAPILgw[dm] -= change_CAPIL;
 
 		diff_total = rechargeCAPIL_act;
 
@@ -237,15 +251,15 @@ int groundwater_leaching(int dm, soilprop_struct* sprop, soilInfo_struct* soilIn
 		soilInfo->dismatLeach[dm][GWlayer - 1] = dismatLeach_NORMfromAbove + dismatLeach_CAPILfromAbove;
 
 		change_NORM = dismatLeach_NORMfromAbove + dischargeNORM_act - dismatLeach_NORMvsCAPIL - percolDiffus_NORM - rechargeNORM_act - dismatLeachNORM_act;
-		change_CAPIL = dismatLeach_CAPILfromAbove + dischargeCAPIL_act + dismatLeach_NORMvsCAPIL + percolDiffus_CAPIL - rechargeCAPIL_act - dismatLeachCAPIL_act;
+		change_CAPIL = dismatLeach_CAPILfromAbove + dischargeCAPIL_act + dismatLeach_NORMvsCAPIL + percolDiffus_NORM - rechargeCAPIL_act - dismatLeachCAPIL_act;
 
-		soilInfo->content_NORMgw[dm] += change_NORM;
-		soilInfo->content_CAPILgw[dm] += change_CAPIL;
+		soilInfo->contentDISSOLV_NORMgw[dm] += change_NORM;
+		soilInfo->contentDISSOLV_CAPILgw[dm] += change_CAPIL;
 
-		if (soilInfo->content_NORMgw[dm] < 0 && fabs(soilInfo->content_NORMgw[dm]) < CRIT_PREC) soilInfo->content_NORMgw[dm] = 0;
-		if (soilInfo->content_CAPILgw[dm] < 0 && fabs(soilInfo->content_CAPILgw[dm]) < CRIT_PREC) soilInfo->content_CAPILgw[dm] = 0;
+		if (soilInfo->contentDISSOLV_NORMgw[dm] < 0 && fabs(soilInfo->contentDISSOLV_NORMgw[dm]) < CRIT_PREC) soilInfo->contentDISSOLV_NORMgw[dm] = 0;
+		if (soilInfo->contentDISSOLV_CAPILgw[dm] < 0 && fabs(soilInfo->contentDISSOLV_CAPILgw[dm]) < CRIT_PREC) soilInfo->contentDISSOLV_CAPILgw[dm] = 0;
 
-		if (soilInfo->content_CAPILgw[dm] < 0)
+		if (soilInfo->contentDISSOLV_CAPILgw[dm] < 0)
 		{
 			printf("\n");
 			printf("ERROR: negative content_CAPILgw in multilayer_leaching.c\n");

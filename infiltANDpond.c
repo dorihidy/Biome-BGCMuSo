@@ -4,7 +4,7 @@ calculation of waterFromAbove, pond water accumulation and potential infiltratio
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -20,16 +20,20 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_struct.h"
 #include "bgc_constants.h"
 #include "bgc_func.h"
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
 
-int infiltANDpond(wstate_struct* ws, wflux_struct* wf)
+int infiltANDpond(control_struct* ctrl, wstate_struct* ws, wflux_struct* wf)
 {
 
 	
 	/* internal variables */
 	int errorCode, layer;
+	double remain, HOLD;
 
 	 errorCode=layer=0;
+	 remain = HOLD = 0;
      
 	/*------------------------------------------*/
 	/* 1. calculation of water from above */ 
@@ -53,12 +57,28 @@ int infiltANDpond(wstate_struct* ws, wflux_struct* wf)
 	else
 		wf->infiltPOT = wf->waterFromAbove;
 
-	/* rain flag for tipping calculation */
-	if (wf->infiltPOT)
-		wf->flagRAIN = 1;
-	else
-		wf->flagRAIN = 0;
 
+	/* rain flag for tipping calculation for each layer */
+	remain = wf->infiltPOT;
+
+
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
+	{
+		if (remain > 0)
+			ctrl->rain_flag[layer] = 1;
+		else
+			ctrl->rain_flag[layer] = 0;
+
+		HOLD = MAX(ws->soilwFCEQ[layer] - ws->soilw[layer], 0);
+		if (!errorCode && HOLD < 0 && HOLD > CRIT_PREC)
+		{
+			printf("ERROR in soilwSAT in infiltANDpond.c\n");
+			errorCode = 1;
+		}
+
+		remain -= HOLD;
+
+	}
 
 	return (errorCode);
 }

@@ -1,11 +1,10 @@
 /* 
 multilayer_hydrolprocess.c
-calculation of soil water content layer by layer taking into account soil hydrological processes 
-(precipitation, evaporation, runoff, percolation, diffusion)
+calculation of hydrological processes routine by routne
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -47,13 +46,12 @@ int multilayer_hydrolprocess(control_struct* ctrl, siteconst_struct* sitec, soil
 	int errorCode = 0;
 	double soilw_before = 0;
 
+	/* to check balance in check_virtualLayer_balance */
 	for (layer = 0; layer < N_SOILLAYERS; layer++) ws->soilw_pre[layer] = ws->soilw[layer];
 	sprop->soilw_NORMcf_pre = sprop->soilw_NORMcf;
 	sprop->soilw_CAPILcf_pre = sprop->soilw_CAPILcf;
 	sprop->soilw_NORMgw_pre = sprop->soilw_NORMgw;
 	sprop->soilw_CAPILgw_pre = sprop->soilw_CAPILgw;
-
-
 
 
 	/* update of hydrolparams */
@@ -66,7 +64,7 @@ int multilayer_hydrolprocess(control_struct* ctrl, siteconst_struct* sitec, soil
 
 
 	/* INFILTRATION AND PONDW FORMATION */
-	if (!errorCode && infiltANDpond(ws, wf))
+	if (!errorCode && infiltANDpond(ctrl, ws, wf))
 	{
 		printf("\n");
 		printf("ERROR in infiltANDpond.c from multilayer_hydrolprocess.c\n");
@@ -75,7 +73,7 @@ int multilayer_hydrolprocess(control_struct* ctrl, siteconst_struct* sitec, soil
 
 
 	/* PERCOLATION  in layers without groundwater */	
-	if (!errorCode && tipping(sitec, sprop, epv, ws, wf))
+	if (!errorCode && tipping(ctrl, sitec, sprop, epv, ws, wf))
 	{
 		printf("\n");
 		printf("ERROR in tipping.c from multilayer_hydrolprocess.c\n");
@@ -86,16 +84,17 @@ int multilayer_hydrolprocess(control_struct* ctrl, siteconst_struct* sitec, soil
 	if (sprop->GWlayer != DATA_GAP)
 	{
 		/* in layers in capillary zone(without GW) */
-
-		if (!errorCode && capillary_tipping(sitec, sprop, epv, ws, wf))
-		{
-			printf("\n");
-			printf("ERROR in capillary_tipping.c from multilayer_hydrolprocess.c\n");
-			errorCode = 52605;
+		if (sprop->dz_NORMcf + sprop->dz_CAPILcf)
+		{ 
+			if (!errorCode && capillary_tipping(ctrl, sitec, sprop, epv, ws, wf))
+			{
+				printf("\n");
+				printf("ERROR in capillary_tipping.c from multilayer_hydrolprocess.c\n");
+				errorCode = 52605;
+			}
 		}
-
 		/* in layers in capillary zone (with GW) */		
-		if (!errorCode && groundwater_tipping(sitec, sprop, epv, ws, wf))
+		if (!errorCode && groundwater_tipping(ctrl, sitec, sprop, epv, ws, wf))
 		{
 			printf("\n");
 			printf("ERROR in groundwater_tipping.c from multilayer_hydrolprocess.c\n");
@@ -181,11 +180,14 @@ int multilayer_hydrolprocess(control_struct* ctrl, siteconst_struct* sitec, soil
 	if (sprop->GWD == DATA_GAP || (sprop->GWlayer == DATA_GAP))
 	{
 		soilw_before              = ws->soilw[N_SOILLAYERS-1];
-		epv->VWC[N_SOILLAYERS-1]  = sprop->VWCfc[N_SOILLAYERS-1];
-		ws->soilw[N_SOILLAYERS-1] = epv->VWC[N_SOILLAYERS - 1] * (sitec->soillayer_thickness[N_SOILLAYERS-1]) * water_density;
+		if (epv->VWC[N_SOILLAYERS - 1] < sprop->VWCeq[N_SOILLAYERS - 1])
+		{ 
+			epv->VWC[N_SOILLAYERS - 1] = sprop->VWCeq[N_SOILLAYERS - 1];
+			ws->soilw[N_SOILLAYERS-1] = epv->VWC[N_SOILLAYERS - 1] * (sitec->soillayer_thickness[N_SOILLAYERS-1]) * water_density;
 
 
-		wf->soilwFlux[N_SOILLAYERS-1] += soilw_before - ws->soilw[N_SOILLAYERS-1];
+			wf->soilwFlux[N_SOILLAYERS-1] += soilw_before - ws->soilw[N_SOILLAYERS-1];
+		}
 
 	}
 

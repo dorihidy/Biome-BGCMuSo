@@ -1,10 +1,10 @@
 /*
 groundwater_tipping.c
-Calculation of percolation and diffusion fluxes 
+Calculation of percolation fluxes in groundwater layers
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -22,14 +22,14 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
-int groundwater_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf)
+int groundwater_tipping(const control_struct* ctrl, siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf)
 {
 
 	int errorCode = 0;
-	int  ll;
+	int  ll, rain_flag;
 
 	double VWC, soilw_sat1, soilw1;
-	double INFILT, conduct_cmday, conductSAT_cmday;
+	double INFILT, conductSAT_cmday, soilB;
 	double VWCsat, VWCcrit, dz0, dz1, dz0_cm, HOLD, soilw0;
 
 	double DC, DRN, EXCESS, VWCnew;
@@ -46,7 +46,7 @@ int groundwater_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 
 	/* hydraulic conductivity in actual GWlayer (cm/day = m/s * 100 * sec/day) */
 	conductSAT_cmday = sprop->hydrCONDUCTsat[GWlayer] * m_to_cm * nSEC_IN_DAY;
-	conduct_cmday = conductSAT_cmday;
+	soilB = sprop->soilB[GWlayer];
 
 	/* -----------------------------*/
 	/* 1. normZone */
@@ -64,9 +64,10 @@ int groundwater_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 		dz0_cm = dz0 * m_to_cm;
 
 		DC = sprop->drainCoeff[GWlayer];
+		rain_flag = ctrl->rain_flag[GWlayer];
 
 
-		if (!errorCode && calc_drainage(wf->flagRAIN, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conduct_cmday, &DRN, &EXCESS, &VWCnew))
+		if (!errorCode && calc_drainage(rain_flag, soilB, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conductSAT_cmday, &DRN, &EXCESS, &VWCnew))
 		{
 			printf("\n");
 			printf("ERROR calc_drainage.c for tipping.c\n");
@@ -94,7 +95,7 @@ int groundwater_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 
 
 		/* if there is excess water, redistribute it in layers above */
-		if (EXCESS > CRIT_PREC_lenient)
+		if (EXCESS > 0)
 		{
 			for (ll = GWlayer - 1; ll >= 0; ll--)
 			{
@@ -150,13 +151,9 @@ int groundwater_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 		dz0_cm = dz0 * m_to_cm;
 
 		DC = sprop->drainCoeff[GWlayer];
+		rain_flag = ctrl->rain_flag[GWlayer];
 
-		/* hydraulic conductivity in actual GWlayer (cm/day = m/s * 100 * sec/day) */
-		conductSAT_cmday = sprop->hydrCONDUCTsat[GWlayer] * m_to_cm * nSEC_IN_DAY;
-		conduct_cmday = conductSAT_cmday;
-
-
-		if (!errorCode && calc_drainage(wf->flagRAIN, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conduct_cmday, &DRN, &EXCESS, &VWCnew))
+		if (!errorCode && calc_drainage(rain_flag, soilB, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conductSAT_cmday, &DRN, &EXCESS, &VWCnew))
 		{
 			printf("\n");
 			printf("ERROR calc_drainage.c for tipping.c\n");
@@ -205,7 +202,7 @@ int groundwater_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 				wf->soilwPercol_NORMvsCAPILgw -= EXCESS / mm_to_cm;
 				EXCESS = EXCESS - HOLD;
 			}
-			if (EXCESS > CRIT_PREC_lenient)
+			if (EXCESS > 0)
 			{ 
 				for (ll = GWlayer - 1; ll >= 0; ll--)
 				{

@@ -4,7 +4,7 @@ Calculation of equilibrium VWC from groudnwater depth (or from lower boundary co
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -96,6 +96,12 @@ int calc_VWCeq(control_struct* ctrl, const siteconst_struct* sitec, soilprop_str
 				 
 				/* lower limitation of VWCeq: wilting point */
 				if (sprop->VWCeq[layer] < 1.01 * sprop->VWCwp[layer]) sprop->VWCeq[layer] = 1.01 * sprop->VWCwp[layer];
+
+				/* upper limitation of VWCeq: saturation  */
+				if (sprop->VWCeq[layer] > sprop->VWCsat[layer])
+				{
+					sprop->VWCeq[layer] = sprop->VWCsat[layer];
+				}
 		
 
 			}

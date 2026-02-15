@@ -6,7 +6,7 @@ transfer one day of phenological data from phenarr struct to phen struct
 Biome-BGCMuSo v7.0.
 Original code: Copyright 2000, Peter E. Thornton
 Numerical Terradynamic Simulation Group, The University of Montana, USA
-Modified code: Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Modified code: Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -41,7 +41,7 @@ int dayphen(control_struct* ctrl, const epconst_struct* epc, const phenarray_str
 		ctrl->plantyr = -1;
 	}
 
-	if (ctrl->GSI_flag)
+	if (ctrl->GSI_flag && !PLT->PLT_num)
 	{
 		phen->Tmin_index        = phenarr->Tmin_index[ctrl->simyr][ctrl->yday];
 		phen->vpd_index         = phenarr->vpd_index[ctrl->simyr][ctrl->yday];

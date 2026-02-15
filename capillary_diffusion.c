@@ -1,10 +1,10 @@
 /*
-groundwater_diffusion.c
-UPWARD WATER MOVEMENT in groundwater layers
+capillary_diffusion.c
+Calculate diffusion fluxes in  capillary layer
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2024, D. Hidy [dori.hidy@gmail.com]GWdischar
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]GWdischar
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -29,8 +29,8 @@ int capillary_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 	int GWlayer, CFlayer, layer, realCAPILlayer, ll;
 
 	double soilwDiffus_act, DBAR;
-	double VWC0, VWC0_sat, VWC0_eq, VWC0_wp, VWC0_EqFC, VWC1, VWC1_sat, VWC1_eq, VWC1_wp, VWC1_EqFC;
-	double rVWC0, rVWC1, rVWC_limit, VWC0_limit, VWC1_limit, EXCESS, soilwPercolDiffus_fromNORM_act;
+	double VWC0, VWC0_sat, VWC0_eq, VWC0_wp, VWC0_hw, VWC0_EqFC, VWC1, VWC1_sat, VWC1_eq, VWC1_wp, VWC1_hw, VWC1_EqFC;
+	double rVWC0, rVWC1, EXCESS, soilwPercolDiffus_fromNORM_act, fluxLimit, fl0, fl1;
 
 	double dz0, dz1, dLk;
 
@@ -53,6 +53,7 @@ int capillary_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 		VWC0_sat = sprop->VWCsat[layer];
 		VWC0_eq = sprop->VWCsat[layer];
 		VWC0_wp = sprop->VWCwp[layer];
+		VWC0_hw = sprop->VWChw[layer];
 		VWC0_EqFC = MAX(VWC0_eq, sprop->VWCfc[layer]);
 
 		/* if bottom neigbourg is GWlayer - diffusion between CAPIL zone of GWlayer */
@@ -70,26 +71,29 @@ int capillary_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 		VWC1_sat = sprop->VWCsat[layer + 1];
 		VWC1_eq = sprop->VWCsat[layer + 1];
 		VWC1_wp = sprop->VWCwp[layer + 1];
+		VWC1_hw = sprop->VWChw[layer + 1];
 		VWC1_EqFC = MAX(VWC1_eq, sprop->VWCfc[layer + 1]);
 
 		rVWC0 = (VWC0 - VWC0_wp) / (VWC0_EqFC - VWC0_wp);
 		rVWC1 = (VWC1 - VWC1_wp) / (VWC1_EqFC - VWC1_wp);
-		rVWC_limit = (rVWC0 + rVWC1) / 2;
-		VWC0_limit = rVWC_limit * (VWC0_eq - VWC0_wp) + VWC0_wp;
-		VWC1_limit = rVWC_limit * (VWC1_eq - VWC1_wp) + VWC1_wp;
-		if (VWC0_limit > VWC0_sat) VWC0_limit = VWC0_sat;
-		if (VWC1_limit > VWC1_sat) VWC1_limit = VWC1_sat;
+
+		fl0 = 1.0 / (dz0 * (VWC0_EqFC - VWC0_wp));
+		fl1 = 1.0 / (dz1 * (VWC1_EqFC - VWC1_wp));
+		fluxLimit = (rVWC1 - rVWC0) / (fl0 + fl1) * 1000;
+
 
 		dLk = DATA_GAP; // only interpreted in GW and CF layers
 
 
 
-		if (!errorCode && calc_diffus(layer, sprop, dz0, VWC0, VWC0_sat, VWC0_EqFC, VWC0_wp, VWC0_limit, dz1, VWC1, VWC1_sat, VWC1_EqFC, VWC1_wp,  VWC1_limit, dLk, &DBAR, &soilwDiffus_act))
+		if (!errorCode && calc_diffus(layer, sprop, dz0, VWC0, VWC0_sat, VWC0_EqFC, VWC0_wp, VWC0_hw, dz1, VWC1, VWC1_sat, VWC1_EqFC, VWC1_wp, VWC1_hw, fluxLimit, dLk, &DBAR, &soilwDiffus_act))
 		{
 			printf("\n");
 			printf("ERROR in calc_diffus.c for capillary_diffusion.c\n");
 			errorCode = 1;
 		}
+
+		sprop->DBARarray[layer] = DBAR;
 
 		/* udpate of pools and fluxes */
 		if (fabs(soilwDiffus_act) > CRIT_PREC_lenient)
@@ -125,6 +129,7 @@ int capillary_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 		VWC0_sat = sprop->VWCsat[CFlayer];
 		VWC0_eq = sprop->VWCeq[CFlayer] * sprop->ratioNORMcf + sprop->VWCsat[CFlayer] * sprop->ratioCAPILcf;
 		VWC0_wp = sprop->VWCwp[CFlayer];
+		VWC0_hw = sprop->VWChw[CFlayer];
 		VWC0_EqFC = MAX(VWC0_eq, sprop->VWCfc[CFlayer]);
 
 		if (CFlayer + 1 == GWlayer)
@@ -142,27 +147,27 @@ int capillary_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 
 		VWC1_sat = sprop->VWCsat[CFlayer + 1];
 		VWC1_wp = sprop->VWCwp[CFlayer + 1];
+		VWC1_hw = sprop->VWChw[CFlayer + 1];
 		VWC1_EqFC = MAX(VWC1_eq, sprop->VWCfc[CFlayer + 1]);
 
-		rVWC0 = (VWC0 - VWC0_wp) / (VWC0_eq - VWC0_wp);
-		rVWC1 = (VWC1 - VWC1_wp) / (VWC1_eq - VWC1_wp);
-		rVWC_limit = (rVWC0 + rVWC1) / 2;
-		VWC0_limit = rVWC_limit * (VWC0_eq - VWC0_wp) + VWC0_wp;
-		VWC1_limit = rVWC_limit * (VWC1_eq - VWC1_wp) + VWC1_wp;
-	
+		rVWC0 = (VWC0 - VWC0_wp) / (VWC0_EqFC - VWC0_wp);
+		rVWC1 = (VWC1 - VWC1_wp) / (VWC1_EqFC - VWC1_wp);
 
-		if (VWC0_limit > VWC0_sat) VWC0_limit = VWC0_sat;
-		if (VWC1_limit > VWC1_sat) VWC1_limit = VWC1_sat;
+		fl0 = 1.0 / (dz0 * (VWC0_EqFC - VWC0_wp));
+		fl1 = 1.0 / (dz1 * (VWC1_EqFC - VWC1_wp));
+		fluxLimit = (rVWC1 - rVWC0) / (fl0 + fl1) * 1000;
 
 		dLk = DATA_GAP;
 
 
-		if (!errorCode && calc_diffus(CFlayer, sprop, dz0, VWC0, VWC0_sat, VWC0_EqFC, VWC0_wp, VWC0_limit, dz1, VWC1, VWC1_sat, VWC1_EqFC, VWC1_wp, VWC1_limit, dLk, &DBAR, &soilwDiffus_act))
+		if (!errorCode && calc_diffus(CFlayer, sprop, dz0, VWC0, VWC0_sat, VWC0_EqFC, VWC0_wp, VWC0_hw, dz1, VWC1, VWC1_sat, VWC1_EqFC, VWC1_wp, VWC1_hw, fluxLimit, dLk, &DBAR, &soilwDiffus_act))
 		{
 			printf("\n");
 			printf("ERROR in calc_diffus.c for capillary_diffusion.c\n");
 			errorCode = 1;
 		}
+
+		sprop->DBARarray[CFlayer] = DBAR;
 
 		/* udpate of pools and fluxes */
 		if (fabs(soilwDiffus_act) > CRIT_PREC_lenient)
@@ -238,7 +243,7 @@ int capillary_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 	/* ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 	/* 3. NORMcf and CAPILcf  */
 
-	if (sprop->dz_NORMcf)
+	if (sprop->dz_NORMcf && sprop->dz_CAPILcf)
 	{
 		/* control */
 		if (GWlayer == CFlayer)
@@ -256,6 +261,7 @@ int capillary_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 		VWC0_sat = sprop->VWCsat[CFlayer];
 		VWC0_eq = sprop->VWCeq[CFlayer]; 
 		VWC0_wp = sprop->VWCwp[CFlayer];
+		VWC0_hw = sprop->VWChw[CFlayer];
 		VWC0_EqFC = MAX(VWC0_eq, sprop->VWCfc[CFlayer]);
 
 		dz1 = sprop->dz_CAPILcf;
@@ -263,30 +269,26 @@ int capillary_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 		VWC1_sat = sprop->VWCsat[CFlayer];
 		VWC1_eq = sprop->VWCsat[CFlayer]; 
 		VWC1_wp = sprop->VWCwp[CFlayer];
+		VWC1_hw = sprop->VWChw[CFlayer];
 		VWC1_EqFC = MAX(VWC1_eq, sprop->VWCfc[CFlayer]);
 
 		rVWC0 = (VWC0 - VWC0_wp) / (VWC0_EqFC - VWC0_wp);
 		rVWC1 = (VWC1 - VWC1_wp) / (VWC1_EqFC - VWC1_wp);
-		rVWC_limit = (rVWC0 + rVWC1) / 2;
-		VWC0_limit = rVWC_limit * (VWC0_eq - VWC0_wp) + VWC0_wp;
-		VWC1_limit = rVWC_limit * (VWC1_eq - VWC1_wp) + VWC1_wp;
-		
-
-		if (VWC0_limit > VWC0_sat) VWC0_limit = VWC0_sat;
-		if (VWC1_limit > VWC1_sat) VWC1_limit = VWC1_sat;
+	
+		fl0 = 1.0 / (dz0 * (VWC0_EqFC - VWC0_wp));
+		fl1 = 1.0 / (dz1 * (VWC1_EqFC - VWC1_wp));
+		fluxLimit = (rVWC1 - rVWC0) / (fl0 + fl1) * 1000;
 
 		dLk = DATA_GAP;
 		
 
-		if (!errorCode && calc_diffus(CFlayer, sprop, dz0, VWC0, VWC0_sat, VWC0_EqFC, VWC0_wp, VWC0_limit, dz1, VWC1, VWC1_sat, VWC1_EqFC, VWC1_wp, VWC1_limit, dLk, &DBAR, &soilwDiffus_act))
+		if (!errorCode && calc_diffus(CFlayer, sprop, dz0, VWC0, VWC0_sat, VWC0_EqFC, VWC0_wp, VWC0_hw, dz1, VWC1, VWC1_sat, VWC1_EqFC, VWC1_wp, VWC1_hw, fluxLimit, dLk, &DBAR, &soilwDiffus_act))
 		{
 			printf("\n");
 			printf("ERROR in calc_diffus.c for capillary_diffusion.c\n");
 			errorCode = 1;
 		}
-
-		/* element 9: bottom = CAPIcf */
-		sprop->DBARarray[10] = DBAR;
+		sprop->DBARarray[CFlayer] = DBAR;
 
 		/* update of pools and fluxes */
 		if (fabs(soilwDiffus_act) > CRIT_PREC_lenient)
@@ -367,6 +369,7 @@ int capillary_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 		VWC0_sat = sprop->VWCsat[CFlayer - 1];
 		VWC0_eq = sprop->VWCeq[CFlayer - 1];
 		VWC0_wp = sprop->VWCwp[CFlayer - 1];
+		VWC0_hw = sprop->VWChw[CFlayer - 1];
 		VWC0_EqFC =MAX(VWC0_eq, sprop->VWCfc[CFlayer-1]);
 	
 		dz1 = sitec->soillayer_thickness[CFlayer];
@@ -374,22 +377,22 @@ int capillary_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 		VWC1_sat = sprop->VWCsat[CFlayer];
 		VWC1_eq = sprop->VWCeq[CFlayer] * sprop->ratioNORMcf + sprop->VWCsat[CFlayer] * sprop->ratioCAPILcf;
 		VWC1_wp = sprop->VWCwp[CFlayer];
+		VWC1_hw = sprop->VWChw[CFlayer];
 		VWC1_EqFC = MAX(VWC1_eq, sprop->VWCfc[CFlayer]);
 
 		soilwNORM_pre = sprop->soilw_NORMcf;
 
 		rVWC0 = (VWC0 - VWC0_wp) / (VWC0_EqFC - VWC0_wp);
 		rVWC1 = (VWC1 - VWC1_wp) / (VWC1_EqFC - VWC1_wp);
-		rVWC_limit = (rVWC0 + rVWC1) / 2;
-		VWC0_limit = rVWC_limit * (VWC0_eq - VWC0_wp) + VWC0_wp;
-		VWC1_limit = rVWC_limit * (VWC1_eq - VWC1_wp) + VWC1_wp;
-		if (VWC0_limit > VWC0_sat) VWC0_limit = VWC0_sat;
-		if (VWC1_limit > VWC1_sat) VWC1_limit = VWC1_sat;
+	
+		fl0 = 1.0 / (dz0 * (VWC0_EqFC - VWC0_wp));
+		fl1 = 1.0 / (dz1 * (VWC1_EqFC - VWC1_wp));
+		fluxLimit = (rVWC1 - rVWC0) / (fl0 + fl1) * 1000;
 
 		dLk = DATA_GAP;
 
 
-		if (!errorCode && calc_diffus(CFlayer, sprop, dz0, VWC0, VWC0_sat, VWC0_EqFC, VWC0_wp, VWC0_limit, dz1, VWC1, VWC1_sat, VWC1_EqFC, VWC1_wp, VWC1_limit, dLk, &DBAR, &soilwDiffus_act))
+		if (!errorCode && calc_diffus(CFlayer, sprop, dz0, VWC0, VWC0_sat, VWC0_EqFC, VWC0_wp, VWC0_hw, dz1, VWC1, VWC1_sat, VWC1_EqFC, VWC1_wp, VWC1_hw, fluxLimit, dLk, &DBAR, &soilwDiffus_act))
 		{
 			printf("\n");
 			printf("ERROR in calc_diffus.c for capillary_diffusion.c\n");
@@ -397,14 +400,14 @@ int capillary_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 		}
 
 		/* element 11: top = noGW */
-		sprop->DBARarray[11] = DBAR;
+		sprop->DBARarray[CFlayer - 1] = DBAR;
 
 		if (fabs(soilwDiffus_act) > CRIT_PREC_lenient)
 		{
 			/*  avoiding downward percolation into NORMgw from above layer and upward diffusion from CAPILgw into above layer in the same time - source of diffusion is NORMgw primaraly  */
 			if (soilwDiffus_act < 0 && wf->soilwPercol[CFlayer - 1] > fabs(soilwDiffus_act))
 			{
-				soilw_hwNORM = sprop->VWChw[CFlayer - 1] * sitec->soillayer_thickness[CFlayer - 1] * water_density;
+				soilw_hwNORM = sprop->VWChw[CFlayer] * sprop->dz_NORMcf * water_density;
 				if (sprop->soilw_NORMcf - soilw_hwNORM + soilwDiffus_act > 0)
 					wf->soilwDiffus_aboveCFlayer_vs_NORMcf = soilwDiffus_act;
 				else
@@ -417,6 +420,23 @@ int capillary_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_s
 			{
 				wf->soilwDiffus_aboveCFlayer_vs_NORMcf = soilwDiffus_act * sprop->ratioNORMcf;
 				wf->soilwDiffus_aboveCFlayer_vs_CAPILcf = soilwDiffus_act * sprop->ratioCAPILcf;
+
+				/* avoid overdrainage - limitation: VWC_hw */
+				if (wf->soilwDiffus_aboveCFlayer_vs_NORMcf && (sprop->soilw_NORMcf + wf->soilwDiffus_aboveCFlayer_vs_NORMcf - VWC1_hw * sprop->dz_NORMcf * water_density < CRIT_PREC))
+				{
+					wf->soilwDiffus_aboveCFlayer_vs_NORMcf = sprop->soilw_NORMcf - VWC1_hw * sprop->dz_NORMcf * water_density;
+					wf->soilwDiffus_aboveCFlayer_vs_CAPILcf = soilwDiffus_act - wf->soilwDiffus_aboveCFlayer_vs_NORMcf;
+
+				}
+				else
+				{ 
+					if (wf->soilwDiffus_aboveCFlayer_vs_CAPILcf && (sprop->soilw_CAPILcf + wf->soilwDiffus_aboveCFlayer_vs_CAPILcf - VWC1_hw * sprop->dz_CAPILcf * water_density < CRIT_PREC))
+					{
+						wf->soilwDiffus_aboveCFlayer_vs_CAPILcf = sprop->soilw_CAPILcf - VWC1_hw * sprop->dz_CAPILcf * water_density;
+						wf->soilwDiffus_aboveCFlayer_vs_NORMcf = soilwDiffus_act - wf->soilwDiffus_aboveCFlayer_vs_CAPILcf;
+
+					}
+				}
 			}
 
 			/* avoiding oversaturation of NORM and CAPIL */

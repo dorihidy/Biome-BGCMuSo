@@ -6,7 +6,7 @@ header file for function prototypes
 Biome-BGCMuSo v7.0.
 Original code: Copyright 2000, Peter E. Thornton
 Numerical Terradynamic Simulation Group, The University of Montana, USA
-Modified code: Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Modified code: Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -50,10 +50,8 @@ int management(control_struct* ctrl, fertilizing_struct* FRZ, grazing_struct* GR
 
 int groundwater_calculations(control_struct* ctrl, const siteconst_struct* sitec, const groundwaterINIT_struct* GWS, soilprop_struct* sprop, soilInfo_struct* soilInfo, epvar_struct* epv,
 	                         wstate_struct* ws, wflux_struct* wf, cstate_struct* cs, nstate_struct* ns);
-	int groundwater_preproc(control_struct* ctrl, const groundwaterINIT_struct* GWS, const siteconst_struct* sitec, soilprop_struct* sprop, soilInfo_struct* soilInfo,
-		                    wstate_struct* ws, wflux_struct* wf, cstate_struct* cs, nstate_struct* ns);
-	int groundwater_concentration(int md, const groundwaterINIT_struct* GWS, soilprop_struct* sprop, soilInfo_struct* soilInfo,
-		                          wstate_struct* ws, cstate_struct* cs, nstate_struct* ns);
+	int groundwater_preproc(control_struct* ctrl, const groundwaterINIT_struct* GWS, const siteconst_struct* sitec, soilprop_struct* sprop, soilInfo_struct* soilInfo, wstate_struct* ws, wflux_struct* wf);
+	int groundwater_concentration(int md, const groundwaterINIT_struct* GWS, soilprop_struct* sprop, soilInfo_struct* soilInfo, wstate_struct* ws);
 	int calc_VWCeq(control_struct* ctrl, const siteconst_struct* sitec, soilprop_struct* sprop);
 	int groundwater_movement(const siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, soilInfo_struct* soilInfo,
 		                     wstate_struct* ws, wflux_struct* wf, cstate_struct* cs, nstate_struct* ns);
@@ -128,21 +126,21 @@ int irrigating(const control_struct* ctrl, const irrigating_struct* IRG, const s
 
 int multilayer_hydrolprocess(control_struct* ctrl, siteconst_struct* sitec, soilprop_struct* sprop, soilInfo_struct* soilInfo, const epconst_struct* epc, epvar_struct* epv,
 	                         wstate_struct* ws, wflux_struct* wf, nstate_struct* ns, nflux_struct* nf, cstate_struct* cs, cflux_struct* cf, flooding_struct* FLS, int* mondays);
-	int infiltANDpond(wstate_struct* ws, wflux_struct* wf);
+	int infiltANDpond(control_struct* ctrl, wstate_struct* ws, wflux_struct* wf);
 	int pondANDrunoffD(control_struct* ctrl, siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
-	int tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
-		int calc_drainage(int flagRAIN, double INFILT, double VWC, double VWCsat, double VWCfc, double dz0, double DC, double conduct_cmday, double* DRN, double* EXCESS, double* VWCnew);
-	int capillary_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
-	int groundwater_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
+	int tipping(const control_struct* ctrl, siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
+		int calc_drainage(int rain_flag, double soilB, double INFILT, double VWC, double VWCsat, double VWCfc, double dz0, double DC, double conductSAT_cmday, double* DRN, double* EXCESS, double* VWCnew);
+	int capillary_tipping(const control_struct* ctrl, siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
+	int groundwater_tipping(const control_struct* ctrl, siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
 	int diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
 	int capillary_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
 	int groundwater_diffusion(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
-	int calc_diffus(int layer, const soilprop_struct* sprop, double dz0, double VWC0, double VWC0_sat, double VWC0_EqFC, double VWC0_wp, double VWC0_limit,
-		            double dz1, double VWC1, double VWC1_sat, double VWC1_EqFC, double VWC1_wp, double VWC1_limit, double dLk, double* DBAR, double* soilwDiffus);
+	int calc_diffus(int layer, const soilprop_struct* sprop, double dz0, double VWC0, double VWC0_sat, double VWC0_EqFC, double VWC0_wp, double VWC0_hw,
+		            double dz1, double VWC1, double VWC1_sat, double VWC1_EqFC, double VWC1_wp, double VWC1_hw, double fluxLimit, double dLk, double* DBAR, double* soilwDiffus);
 	int soilstress_calculation(const control_struct* ctrl, const epconst_struct* epc, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
 	int flooding(control_struct* ctrl, const siteconst_struct* sitec, const flooding_struct* FLS, soilprop_struct* sprop, epvar_struct* epv,
 		         wstate_struct* ws, wflux_struct* wf, cstate_struct* cs, cflux_struct* cf, nstate_struct* ns, nflux_struct* nf, soilInfo_struct* soilInfo, int* mondays);
-		int flooding_concentration(int md, const flooding_struct* FLS, soilInfo_struct* soilInfo, wstate_struct* ws, cstate_struct* cs, nstate_struct* ns);
+		int flooding_concentration(int md, const flooding_struct* FLS, soilInfo_struct* soilInfo, wstate_struct* ws);
 	int potEVPsurface_to_actEVPsurface(soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
 		int EVPphase1TOphase2(const soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf);
 	int hydrol_control(siteconst_struct* sitec, soilprop_struct* sprop, wstate_struct* ws, wflux_struct* wf, epvar_struct* epv);
@@ -166,15 +164,14 @@ int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv, const site
 	int nitrification(int layer, const soilprop_struct* sprop, double net_miner, double Tsoil, double pH, double WFPS, double NH4dissolv, epvar_struct* epv, double* N2OfluxNITRIF, double* NH4_to_nitrif);
 	int denitrification(int soiltype, double NO3avail_ppm, double pH, double WFPS, double SR_total,  double* NO3_to_denitr, double* ratioN2_N2O);
 
-int multilayer_leaching(soilprop_struct* sprop, soilInfo_struct* soilInfo, cstate_struct* cs, nstate_struct* ns,  wstate_struct* ws, wflux_struct* wf);
-	int capillary_leaching(int dm, soilprop_struct* sprop, soilInfo_struct* soilInfo, wstate_struct* ws, wflux_struct* wf,
+int multilayer_leaching(const siteconst_struct* sitec, soilprop_struct* sprop, soilInfo_struct* soilInfo, cstate_struct* cs, nstate_struct* ns,  wstate_struct* ws, wflux_struct* wf);
+	int capillary_leaching(int dm, const siteconst_struct* sitec, soilprop_struct* sprop, soilInfo_struct* soilInfo, wstate_struct* ws, wflux_struct* wf,
 		                   double* dismatLeachNORM, double* dismatLeachCAPIL, double* dischargeNORM, double* dischargeCAPIL, double* rechargeNORM, double* rechargeCAPIL);
-	int groundwater_leaching(int dm, soilprop_struct* sprop, soilInfo_struct* soilInfo, wstate_struct* ws, wflux_struct* wf,
+	int groundwater_leaching(int dm, const siteconst_struct* sitec, soilprop_struct* sprop, soilInfo_struct* soilInfo, wstate_struct* ws, wflux_struct* wf,
 		                     double* dismatLeachNORM, double* dismatLeachCAPIL, double* dischargeNORM, double* dischargeCAPIL, double* rechargeNORM, double* rechargeCAPIL);
 	int check_soilcontent(int layerFlag, int pool2content_flag, const soilprop_struct* sprop, cstate_struct* cs, nstate_struct* ns, soilInfo_struct* soilInfo);
-	int calc_leach(control_struct* ctrl, soilInfo_struct* soilInfo,  double wflux, double wstate0, double wstate1, double state0[N_DISSOLVMATER], double state1[N_DISSOLVMATER],
-		                                                              double conc0[N_DISSOLVMATER], double conc1[N_DISSOLVMATER], double leachFlux[N_DISSOLVMATER]);
-	int check_virtualLayer_balance(const control_struct* ctrl, soilInfo_struct* soilInfo, soilprop_struct* sprop, wflux_struct* wf);
+	int calc_DISSOLVandBOUND(int firsttime_flag, int partlyORtotal_flag, const soilprop_struct* sprop, soilInfo_struct* soilInfo);
+	int check_virtualLayer_balance(control_struct* ctrl, soilInfo_struct* soilInfo, soilprop_struct* sprop, wflux_struct* wf);
 
 int planting(control_struct* ctrl, const siteconst_struct* sitec, const soilprop_struct* sprop, const planting_struct* PLT, epconst_struct* epc,
 	         epvar_struct* epv, phenology_struct* phen, cstate_struct* cs, nstate_struct*ns, cflux_struct* cf, nflux_struct* nf);
@@ -193,7 +190,7 @@ int grazing(control_struct* ctrl, const epconst_struct* epc, const soilprop_stru
 int harvesting(file econout, control_struct* ctrl, phenology_struct* phen, const epconst_struct* epc, const harvesting_struct* HRV, const irrigating_struct* IRG,
 	           epvar_struct* epv, cstate_struct* cs, nstate_struct* ns, wstate_struct* ws, cflux_struct* cf, nflux_struct* nf, wflux_struct* wf);
 
-int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_struct* sitec, soilprop_struct* sprop, metvar_struct* metv, epvar_struct* epv, 
+int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_struct* sitec, soilprop_struct* sprop, soilInfo_struct* soilInfo, metvar_struct* metv, epvar_struct* epv,
 	          ploughing_struct* PLG, cstate_struct* cs, nstate_struct* ns, wstate_struct* ws, cflux_struct* cf, nflux_struct* nf, wflux_struct* wf);
 
 int fertilizing(const control_struct* ctrl, const siteconst_struct* sitec, soilprop_struct* sprop, soilInfo_struct* soilInfo, epvar_struct* epv, fertilizing_struct* FRZ,
@@ -205,8 +202,8 @@ int CWDextract(control_struct* ctrl, const CWDextract_struct* CWE, cstate_struct
 
 int cutdown2litter(const soilprop_struct* sprop, const epconst_struct* epc, const epvar_struct* epv, cstate_struct* cs, cflux_struct* cf, nstate_struct* ns, nflux_struct* nf);
 
-int precision_control(wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, soilprop_struct* sprop, soilInfo_struct* soilInfo);
-	int precision_reset(int flagLITTER, int layer, cstate_struct* cs, nstate_struct* ns, double* cpool, double* npool, int* errorCode);
+int precision_control(control_struct* ctrl, soilprop_struct* sprop, wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, soilInfo_struct* soilInfo);
+	int precision_reset(int dm, int layer, control_struct* ctrl, soilprop_struct* sprop, cstate_struct* cs, nstate_struct* ns, soilInfo_struct* soilInfo, double* cpool, double* npool, int* errorCode);
 
 int check_water_balance (wstate_struct* ws, int first_balance);
 int check_carbon_balance(cstate_struct* cs, int first_balance);

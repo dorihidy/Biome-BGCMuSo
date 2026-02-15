@@ -1,13 +1,12 @@
 /*
 daily_allocation.c  
-daily allocation of carbon and nitrogen, as well as the final reconciliation
-of N immobilization by microbes (see decomp.c)
+daily allocation of carbon and nitrogen, as well as the final reconciliation of N immobilization by microbes (see decomp.c)
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
 Original code: Copyright 2000, Peter E. Thornton
 Numerical Terradynamic Simulation Group, The University of Montana, USA
-Modified code: Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Modified code: Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -226,6 +225,15 @@ int daily_allocation(const control_struct* ctrl, const epconst_struct* epc, cons
 		f6 = epc->alloc_deadstemc[ap];
 		f7 = epc->alloc_livecrootc[ap];
 		f8 = epc->alloc_deadcrootc[ap];
+
+		/* control of allocation */
+		if (f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8 == 0)
+		{
+			printf("\n");
+			printf("ERROR: Sum of allocation parameters is equal to 0 in phase: %i\n", ap);
+			printf("Check EPC file and try again.\n");
+			errorCode = 1;
+		}
 
 		/* proportion of growth displayed on current day is the function of air temperature */ 
 		pnow_Tcoeff = 1;
@@ -543,8 +551,6 @@ int daily_allocation(const control_struct* ctrl, const epconst_struct* epc, cons
 		if (ns->soil4n[layer] > 0.0) cn_s4 = cs->soil4c[layer]/ns->soil4n[layer];
 
 
-	
-		/* labile litter fluxes */
 		if (cs->litr1c[layer] > 0.0 && ns->litr1n[layer] > 0.0)
 		{
 

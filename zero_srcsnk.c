@@ -6,7 +6,7 @@ fill the source and sink variables with 0.0 at the start of the simulation
 Biome-BGCMuSo v7.0.
 Original code: Copyright 2000, Peter E. Thornton
 Numerical Terradynamic Simulation Group, The University of Montana, USA
-Modified code: Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Modified code: Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -168,6 +168,7 @@ int zero_srcsnk(cstate_struct* cs, nstate_struct* ns, wstate_struct* ws, summary
 	summary->cumAR = 0;
 	summary->cumTR = 0;
 	summary->cumSR = 0;
+	summary->cumNflux = 0;
 	summary->cumN2Oflux = 0;
 	summary->cumN2OfluxCeq = 0;
 	summary->cumCH4flux = 0;
@@ -201,23 +202,23 @@ int zero_srcsnk(cstate_struct* cs, nstate_struct* ns, wstate_struct* ws, summary
 	summary->cumPET = 0;
 	summary->cumPETsurface = 0;
 	summary->cumPETcanopy = 0;
+	summary->cumIMMOBflux_RZ = 0;
+	summary->cumNdemand = 0;
 
 	summary->cumTOTALchangeGW_orgN = 0;
+	summary->cumTOTALchangeGW_NH4 = 0;
+	summary->cumTOTALchangeGW_NO3 = 0;
 	summary->cumTOTALplantUPto_orgN = 0;
 	summary->cumTOTALecofunc_orgN = 0;
 	summary->cumTOTALfertil_orgN = 0;
 	summary->cumTOTALdischarge_orgN = 0;
 	summary->cumTOTALrecharge_orgN = 0;
 
-	summary->cumUNSATchangeGW_orgN = 0;
 	summary->cumUNSATplantUPto_orgN = 0;
 	summary->cumUNSATecofunc_orgN = 0;
 	summary->cumUNSATfertil_orgN = 0;
 	summary->cumUNSATdischarge_orgN = 0;
 	summary->cumUNSATrecharge_orgN = 0;
-
-	summary->cumUNSATchangeGW_NH4 = 0;
-	summary->cumUNSATchangeGW_NO3 = 0;
 	summary->cumUNSATecofunc_NH4 = 0;
 	summary->cumUNSATecofunc_NO3 = 0;
 
@@ -252,6 +253,11 @@ int zero_srcsnk(cstate_struct* cs, nstate_struct* ns, wstate_struct* ws, summary
 	summary->cumGWsnk = 0;
 	summary->cumWinput = 0;
 	summary->cumWoutput = 0;
+
+	summary->cumGWbalance = 0;
+	summary->cumGWbalance_NH4 = 0;
+	summary->cumGWbalance_NO3 = 0;
+	summary->cumGWbalance_orgN = 0;
 
 	summary->cumCflux_lateral = 0;
 	summary->harvestIndex = 0;

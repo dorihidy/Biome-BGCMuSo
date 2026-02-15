@@ -1,11 +1,11 @@
 /* 
 multilayer_hydrolparams.c
-calcultion of soil water potential, hydr. conductivity and hydr. diffusivity as a function of volumetric water content and
-constants related to texture
+calcultion of soil water potential, hydr. conductivity and hydr. diffusivity as a function of volumetric water content and constants related to texture
+calculation of relative VWC data and critical VWC data for rootzone 
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -77,7 +77,13 @@ int multilayer_hydrolparams(siteconst_struct* sitec, soilprop_struct* sprop, wst
 		/* convert kg/m2 --> m3/m2 --> m3/m3 */
 		epv->VWC[layer]  = ws->soilw[layer] / (water_density * sitec->soillayer_thickness[layer]);
 
+		if (sprop->VWCeq[layer] > sprop->VWCfc[layer])
+			ws->soilwFCEQ[layer] = sprop->VWCeq[layer] * water_density * sitec->soillayer_thickness[layer];
+		else
+			ws->soilwFCEQ[layer] = sprop->VWCfc[layer] * water_density * sitec->soillayer_thickness[layer];
+
 		epv->WFPS[layer] = epv->VWC[layer] / sprop->VWCsat[layer];	
+
    
 		/* PSI, hydrCONDUCT and hydrDIFFUS ( Cosby et al.) from VWC ([1MPa=100m] [m/s] [m2/s] */
 		epv->PSI[layer]  = sprop->PSIsat[layer] * pow( (epv->VWC[layer] /sprop->VWCsat[layer]), -1* sprop->soilB[layer]);
@@ -180,6 +186,7 @@ int multilayer_hydrolparams(siteconst_struct* sitec, soilprop_struct* sprop, wst
 	epv->PSI_RZ = PSI_RZ;
 	ws->soilw_RZ = soilw_RZ;
 	ws->soilwAVAIL_RZ = soilwAVAIL_RZ;
+
 
 
 	return(errorCode);

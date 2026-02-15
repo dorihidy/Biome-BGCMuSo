@@ -7,7 +7,7 @@ for use with pointbgc front-end to BBGC MuSo v4 library
 Biome-BGCMuSo v7.0.
 Original code: Copyright 2000, Peter E. Thornton
 Numerical Terradynamic Simulation Group, The University of Montana, USA
-Modified code: Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Modified code: Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -31,7 +31,7 @@ int mgm_init(file init, control_struct* ctrl,
 			 thinning_struct* THN, irrigating_struct* IRG, mulching_struct* MUL, CWDextract_struct* CWE);
 int simctrl_init(file init, control_struct* ctrl, epconst_struct* epc, soilprop_struct* sprop, planting_struct* PLT);
 int wstate_init(file init, control_struct* ctrl, const siteconst_struct* sitec, const soilprop_struct* sprop, wstate_struct* ws);
-int cnstate_init(file init, const epconst_struct* epc, const soilprop_struct* sprop, const siteconst_struct* sitec, 
+int cnstate_init(file init, const control_struct* ctrl, const epconst_struct* epc, const soilprop_struct* sprop, const siteconst_struct* sitec,
 	             cstate_struct* cs, cinit_struct* cinit, nstate_struct* ns);
 int output_init(file init, int transient, harvesting_struct* HRV, output_struct* output);
 int end_init(file init);

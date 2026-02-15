@@ -4,7 +4,7 @@ calculation of actual soil evaporation from potential soil evaporation regarding
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -118,6 +118,7 @@ int EVPphase1TOphase2(const soilprop_struct* sprop, epvar_struct* epv, wstate_st
 	if (ws->EVPsurface1cum > sprop->soilEVPcrit)
 	{
 		wf->EVPsoilw = wf->potEVPsurface - sprop->coeff_EVPlim*(ws->EVPsurface1cum - sprop->soilEVPcrit);
+		if (wf->EVPsoilw < 0) wf->EVPsoilw = 0;
 		ws->EVPsurface2cum = (1-sprop->coeff_EVPlim)*(ws->EVPsurface1cum - sprop->soilEVPcrit);
 		epv->DSR = pow(ws->EVPsurface2cum/sprop->coeff_EVPcum,2);
 		ws->EVPsurface1cum = sprop->soilEVPcrit;

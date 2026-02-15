@@ -1,11 +1,10 @@
 /* 
 multilayer_sminn.c
-Calculating the soilInfo->dismatTOTALecofunc in content of soil mineral nitrogen in multilayer soil (plant N upate, soil processes, 
-depostion and fixing). 
+Calculating the content of soil mineral nitrogen in multilayer soil (plant N upate, soil processes, nitrification and denitrification, depostion and fixing). 
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -36,14 +35,23 @@ int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv,const sitec
 	double sminn_to_soilCTRL, sminn_to_npoolCTRL, ndep_to_sminnCTRL, nfix_to_sminnCTRL;
 	double SR_total,NO3_to_denitr,ratioN2_N2O;
 	double NH4_to_soilSUM_total, NO3_to_soilSUM_total;
-	double ratioNORM, ratioCAPIL, ratioSAT, diffNORM, diffCAPIL, diffSAT, diff, VWCcritDENIT;
+	double ratioNORM, ratioCAPIL, ratioSAT, diffNORM, diffCAPIL, diffSAT, VWCcritDENIT;
 	
-	NH4_prop=net_miner=SR_layer=sminn_to_soilCTRL=sminn_to_npoolCTRL=ndep_to_sminnCTRL=nfix_to_sminnCTRL= NH4_to_soilSUM_total=NO3_to_soilSUM_total= VWCcritDENIT=0;
+NH4_prop=net_miner=SR_layer=sminn_to_soilCTRL=sminn_to_npoolCTRL=ndep_to_sminnCTRL=nfix_to_sminnCTRL= NH4_to_soilSUM_total=NO3_to_soilSUM_total= VWCcritDENIT=0;
 
 
 
 	GWlayer = (int)sprop->GWlayer;
 	CFlayer = (int)sprop->CFlayer;
+	
+	/* *****************************************************************************************************/
+	/* firsttime_flag=0 (before calculation note initial values, partlyORtotal_flag=1 (TOTAL (BOUND+DISSOLV) is affected  */
+	if (!errorCode && calc_DISSOLVandBOUND(0, 1, sprop, soilInfo))
+	{
+		printf("ERROR in calc_DISSOLVandBOUND.c for multilayer_sminn.c\n");
+		errorCode = 1;
+	}
+
 	/* *****************************************************************************************************
 
 	1.Deposition and fixation - INPUT
@@ -80,26 +88,28 @@ int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv,const sitec
 			NH4_prop = ndep->NdepNH4_coeff;
 
 
-		/* Deposition  only in 0-30 cm */
+		/* Deposition and N-fixation only in 0-30 cm */
 		if (layer < 3)
 		{
 			weight = sitec->soillayer_thickness[layer] / sitec->soillayer_depth[2];
 			nf->ndep_to_NH4[layer] = (nf->ndep_to_sminn_total * weight) * ndep->NdepNH4_coeff;
 			nf->ndep_to_NO3[layer] = (nf->ndep_to_sminn_total * weight) * (1 - ndep->NdepNH4_coeff);
+			nf->nfix_to_NH4[layer] = nf->nfix_to_sminn_total * weight;
 		}
 		else
 		{
 			nf->ndep_to_NH4[layer] = 0;
 			nf->ndep_to_NO3[layer] = 0;
+			nf->nfix_to_NH4[layer] = 0;
 		}
 
-		/* N-fixation in rootlayer (based on rootlength proportion) or in absence of root: top 30 cm */
+		/* N-fixation old method: in rootlayer based on rootlength proportion - before MuSo7.0)
 		if (epv->n_rootlayers == 0)
-		{
+		{ 
 			if (layer < 3)
 			{
 				weight = sitec->soillayer_thickness[layer] / sitec->soillayer_depth[2];
-				nf->nfix_to_NH4[layer] = nf->nfix_to_sminn_total * weight;
+				
 			}
 			else
 				nf->nfix_to_NH4[layer] = 0;
@@ -107,14 +117,15 @@ int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv,const sitec
 		else
 		{
 			nf->nfix_to_NH4[layer] = nf->nfix_to_sminn_total * epv->rootlengthProp[layer];
-			/* no root is assumed in the top soil layer, but N fixation should occur also in top soil layer  */
+			no root is assumed in the top soil layer, but N fixation should occur also in top soil layer  
 			if (epv->rootlengthProp[0] == 0 && layer < 2)
 			{
 				nf->nfix_to_NH4[layer] = nf->nfix_to_sminn_total * epv->rootlengthProp[1] * (sitec->soillayer_thickness[layer] / sitec->soillayer_depth[1]);
 			}
 			else
 				nf->nfix_to_NH4[layer] = nf->nfix_to_sminn_total * epv->rootlengthProp[layer];
-		}
+		}*/
+
 
 		nf->environment_to_sminn[layer] = nf->ndep_to_NH4[layer] + nf->ndep_to_NO3[layer] + nf->nfix_to_NH4[layer];
 
@@ -298,7 +309,7 @@ int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv,const sitec
 	{
 
 		/* if capillary zone exists in unsaturated zone (not in GWlayer) */
-		if (sprop->dz_CAPILcf)
+		if (sprop->dz_CAPILcf + sprop->dz_NORMcf)
 		{
 
 			for (dm = 0; dm < N_DISSOLVN; dm++)
@@ -385,83 +396,110 @@ int multilayer_sminn(control_struct* ctrl, const metvar_struct* metv,const sitec
 
 					diffNORM = soilInfo->dismatTOTALecofunc[dm][layer] * ratioNORM;
 					diffCAPIL = soilInfo->dismatTOTALecofunc[dm][layer] * ratioCAPIL;
-					diffSAT = soilInfo->dismatTOTALecofunc[dm][layer] * ratioSAT;
-
+					
 
 					/* NORM zone: negative storage value is not possible - covered by GW */
-					if (soilInfo->content_NORMgw[dm] + diffNORM < 0)
-						diff = -1 * diffNORM - soilInfo->content_NORMgw[dm];
-					else
-						diff = 0;
-
-					soilInfo->dismatGWecofunc_NORM[dm] = diff;
-					soilInfo->content_NORMgw[dm] += diffNORM + soilInfo->dismatGWecofunc_NORM[dm];
+					soilInfo->contentBOUND_NORMgw[dm] += diffNORM * (1 - soilInfo->dissolv_prop[dm]);
+					soilInfo->contentDISSOLV_NORMgw[dm] += diffNORM * soilInfo->dissolv_prop[dm];
+					if (soilInfo->contentBOUND_NORMgw[dm] < 0)
+					{
+						diffNORM -= soilInfo->contentBOUND_NORMgw[dm];
+						soilInfo->contentBOUND_NORMgw[dm] = 0;
+					}
+					if (soilInfo->contentDISSOLV_NORMgw[dm] < 0)
+					{
+						diffNORM -= soilInfo->contentDISSOLV_NORMgw[dm];
+						soilInfo->contentDISSOLV_NORMgw[dm] = 0;
+					}
 
 					/* CAPIL zone: negative storage value is not possible - covered by GW */
-					if (soilInfo->content_CAPILgw[dm] + diffCAPIL < 0)
-						diff = -1 * diffCAPIL - soilInfo->content_CAPILgw[dm];
-					else
-						diff = 0;
+					soilInfo->contentBOUND_CAPILgw[dm] += diffCAPIL * (1 - soilInfo->dissolv_prop[dm]);
+					soilInfo->contentDISSOLV_CAPILgw[dm] += diffCAPIL * soilInfo->dissolv_prop[dm];
+					if (soilInfo->contentBOUND_CAPILgw[dm] < 0)
+					{
+						diffCAPIL -= soilInfo->contentBOUND_CAPILgw[dm];
+						soilInfo->contentBOUND_CAPILgw[dm] = 0;
+					}
+					if (soilInfo->contentDISSOLV_CAPILgw[dm] < 0)
+					{
+						diffCAPIL -= soilInfo->contentDISSOLV_CAPILgw[dm];
+						soilInfo->contentDISSOLV_CAPILgw[dm] = 0;
+					}
 
-					soilInfo->dismatGWecofunc_CAPIL[dm] = diff;
-					soilInfo->content_CAPILgw[dm] += diffCAPIL + soilInfo->dismatGWecofunc_CAPIL[dm];
 
 					/* SAT zone: no soilInfo->dismatTOTALecofunc is possible (constant conc) - covered by GW  */
-					soilInfo->dismatGWecofunc[dm][layer] = -1 * diffSAT;
-					soilInfo->content_SATgw[dm] += diffSAT + soilInfo->dismatGWecofunc[dm][layer];
+					diffSAT = soilInfo->dismatTOTALecofunc[dm][layer]  - diffNORM - diffCAPIL;
 
-	
-			
-					/* UNSAT soilInfo->dismatTOTALecofunc */
+					soilInfo->contentBOUND_SATgw[dm] += diffSAT * (1 - soilInfo->dissolv_prop[dm]);
+					soilInfo->dismatGWecofunc[dm][layer] = -1 * diffSAT * soilInfo->dissolv_prop[dm];
+					/* negative content is not possible - covered by groundwater */
+					if (soilInfo->contentBOUND_SATgw[dm] < 0)
+					{
+						soilInfo->dismatGWecofunc[dm][layer] -= soilInfo->contentBOUND_SATgw[dm];
+						soilInfo->contentBOUND_SATgw[dm] = 0;
+					}
+							
+					/* UNSAT zone */
 					soilInfo->dismatUNSATecofunc[dm][layer] = diffNORM + diffCAPIL;
-
-	                soilInfo->content_soil[dm][layer] = soilInfo->content_NORMgw[dm] + soilInfo->content_CAPILgw[dm] + soilInfo->content_SATgw[dm];
 				}
 
 			}
 			else
 			{
-				for (dm = 0; dm < N_DISSOLVN; dm++)
+				/* below GWlayer - dissolv part of dismatGWecofunc is covered by GW*/
+				for (dm = 0; dm < N_DISSOLVMATER; dm++)
 				{
-					soilInfo->dismatGWecofunc[dm][layer] = -1 * soilInfo->dismatTOTALecofunc[dm][layer];
-					soilInfo->content_soil[dm][layer]   += soilInfo->dismatGWecofunc[dm][layer];
+					soilInfo->contentBOUND_soil[dm][layer] += soilInfo->dismatTOTALecofunc[dm][layer] * (1 - soilInfo->dissolv_prop[dm]);
+					soilInfo->dismatGWecofunc[dm][layer] = -1 * soilInfo->dismatTOTALecofunc[dm][layer] * soilInfo->dissolv_prop[dm];
+
+					/* negative content is not possible - covered by groundwater */
+					if (soilInfo->contentBOUND_soil[dm][layer] < 0)
+					{
+						soilInfo->dismatGWecofunc[dm][layer] -= soilInfo->contentBOUND_soil[dm][layer];
+						soilInfo->contentBOUND_soil[dm][layer] = 0;
+					}
 				}
 			}
-
-			/* transfer value: content_array ->NH4, NO3, DOC, DON  etc.*/
-			if (!errorCode && check_soilcontent(layer, 1, sprop, cs, ns, soilInfo))
-			{
-				printf("ERROR in check_soilcontent.c for multilayer_sminn.c\n");
-				errorCode = 1;
-			}
-
 		}
 
-		/* src/snk variables*/
-		for (dm = 0; dm < N_DISSOLVN; dm++)
-		{
-			if (soilInfo->dismatGWecofunc_NORM[dm] > 0)
-				ns->GWsrc_N += soilInfo->dismatGWecofunc_NORM[dm];
-			else
-				ns->GWsnk_N += -1 * soilInfo->dismatGWecofunc_NORM[dm];
-
-			if (soilInfo->dismatGWecofunc_CAPIL[dm] > 0)
-				ns->GWsrc_N += soilInfo->dismatGWecofunc_CAPIL[dm];
-			else
-				ns->GWsnk_N += -1 * soilInfo->dismatGWecofunc_CAPIL[dm];
-
-			for (layer = 0; layer < N_SOILLAYERS; layer++)
-			{
-				if (soilInfo->dismatGWecofunc[dm][layer] > 0)
-					ns->GWsrc_N += soilInfo->dismatGWecofunc[dm][layer];
-				else
-					ns->GWsnk_N += -1 * soilInfo->dismatGWecofunc[dm][layer];
-			}
-		}
-
-
 		
-		
+	}
+
+	/* *****************************************************************************************************/
+	/* src/snk variables*/
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
+	{
+		for (dm = 0; dm < N_DISSOLVN; dm++) soilInfo->dismatGWecofuncN_total += soilInfo->dismatGWecofunc[dm][layer];
+		for (dm = N_DISSOLVN; dm < N_DISSOLVMATER; dm++) soilInfo->dismatGWecofuncC_total += soilInfo->dismatGWecofunc[dm][layer];
+	}
+
+
+	if (soilInfo->dismatGWecofuncN_total > 0)
+		ns->GWsrc_N += soilInfo->dismatGWecofuncN_total;
+	else
+		ns->GWsnk_N += -1 * soilInfo->dismatGWecofuncN_total;
+
+
+	if (soilInfo->dismatGWecofuncC_total > 0)
+		cs->GWsrc_C += soilInfo->dismatGWecofuncC_total;
+	else
+		cs->GWsnk_C += -1 * soilInfo->dismatGWecofuncC_total;
+
+	/* *****************************************************************************************************/
+	/* udpate pools */
+
+	/* firsttime_flag=1 (after calculation note initial values, int partlyORtotal_flag=1 (TOTAL (BOUND+DISSOLV) is affected  */
+	if (!errorCode && calc_DISSOLVandBOUND(1, 1, sprop, soilInfo))
+	{
+		printf("ERROR in calc_DISSOLVandBOUND.c for multilayer_sminn.c\n");
+		errorCode = 1;
+	}
+
+	/* transfer value: content_array ->NH4, NO3, DOC, DON  etc.*/
+	if (!errorCode && check_soilcontent(-1, 1, sprop, cs, ns, soilInfo))
+	{
+		printf("ERROR in check_soilcontent.c for multilayer_sminn.c\n");
+		errorCode = 1;
 	}
 
 

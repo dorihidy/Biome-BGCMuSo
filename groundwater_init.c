@@ -4,7 +4,7 @@ read groundwater depth information if it is available
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -89,7 +89,7 @@ int groundwater_init(groundwaterINIT_struct* GWS, control_struct* ctrl)
 			if (!enddays)
 			{
 				printf("ERROR allocating for enddays in bgc.c\n");
-				errorCode=1;
+				errorCode=219;
 			}
 		}
 
@@ -99,7 +99,7 @@ int groundwater_init(groundwaterINIT_struct* GWS, control_struct* ctrl)
 			if (!mondays)
 			{
 				printf("ERROR allocating for enddays in bgc.c\n");
-				errorCode=1;
+				errorCode=219;
 			}
 		}
 
@@ -165,13 +165,13 @@ int groundwater_init(groundwaterINIT_struct* GWS, control_struct* ctrl)
 				if (!errorCode && leapControl(GWyear_array[ndata], enddays, mondays, &leap))
 				{
 					printf("ERROR in call to leapControl.c from flooding_init.c\n");
-					errorCode=1;
+					errorCode=219;
 				}
 				if (leap == 1 && GWmonth_array[ndata] == 12 && GWday_array[ndata] == 31)
 				{
 					printf("ERROR in groundwater date in groundwater_init.c: data from 31 December in a leap year is found in groundwater file\n");
 					printf("Please read the manual and modify the input data\n");
-					errorCode=1;
+					errorCode=219;
 				}
 
 				if (leap != 1 && GWmonth_array[ndata] == 2 && GWday_array[ndata] == 29)
@@ -235,7 +235,7 @@ int groundwater_init(groundwaterINIT_struct* GWS, control_struct* ctrl)
 		if (nmgm > maxGWnum)
 		{
 			printf("ERROR in groundwater data reading groundwater_init.c\n");
-			errorCode=1;
+			errorCode=219;
 		}
 
 		/* read year and GWD for each simday in each simyear */

@@ -4,7 +4,7 @@ calculate GWD, CFD, GWeff, CFeff in function of GWD
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -23,8 +23,7 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "bgc_func.h"
 
 
-int groundwater_preproc(control_struct* ctrl, const groundwaterINIT_struct* GWS, const siteconst_struct* sitec, soilprop_struct* sprop, soilInfo_struct* soilInfo,
-	                    wstate_struct* ws, wflux_struct* wf, cstate_struct* cs, nstate_struct* ns)
+int groundwater_preproc(control_struct* ctrl, const groundwaterINIT_struct* GWS, const siteconst_struct* sitec, soilprop_struct* sprop, soilInfo_struct* soilInfo, wstate_struct* ws, wflux_struct* wf)
 {
 	int layer,errorCode,md, year, GWlayer, CFlayer, dm;
 	double CFact;
@@ -77,25 +76,6 @@ int groundwater_preproc(control_struct* ctrl, const groundwaterINIT_struct* GWS,
 				
 			}
 
-
-	
-
-/*			else
-			{
-
-
-				sprop->soilw_NORMcf = ws->soilw[(int)sprop->CFlayer] * sprop->dz_NORMcf / sitec->soillayer_thickness[(int)sprop->CFlayer];
-				sprop->soilw_CAPILcf = ws->soilw[(int)sprop->CFlayer] * sprop->dz_CAPILcf / sitec->soillayer_thickness[(int)sprop->CFlayer];
-				sprop->soilw_NORMgw = ws->soilw[(int)sprop->GWlayer] * sprop->dz_NORMgw / sitec->soillayer_thickness[(int)sprop->GWlayer];
-				sprop->soilw_CAPILgw = ws->soilw[(int)sprop->GWlayer] * sprop->dz_CAPILgw / sitec->soillayer_thickness[(int)sprop->GWlayer];
-				sprop->soilw_SATgw = ws->soilw[(int)sprop->GWlayer] * sprop->dz_SATgw / sitec->soillayer_thickness[(int)sprop->GWlayer];
-
-				sprop->VWC_NORMcf = sprop->soilw_NORMcf / (water_density * sprop->dz_NORMcf);
-				sprop->VWC_CAPILcf = sprop->soilw_CAPILcf / (water_density * sprop->dz_CAPILcf);
-				sprop->VWC_NORMgw = sprop->soilw_NORMgw / (water_density * sprop->dz_NORMgw);
-				sprop->VWC_CAPILgw = sprop->soilw_CAPILgw / (water_density * sprop->dz_CAPILgw);
-			}
-			}*/
 		}
 		else
 		{
@@ -123,22 +103,7 @@ int groundwater_preproc(control_struct* ctrl, const groundwaterINIT_struct* GWS,
 				sprop->CFeff[layer] = -1;
 			}
 
-			/* pre values */	
-			sprop->soilw_NORMcf_pre = sprop->soilw_NORMcf;
-			sprop->soilw_CAPILcf_pre = sprop->soilw_CAPILcf;
-			sprop->soilw_NORMgw_pre = sprop->soilw_NORMgw;
-			sprop->soilw_CAPILgw_pre = sprop->soilw_CAPILgw;
-			sprop->soilw_SATgw_pre = sprop->soilw_SATgw;
-
-			for (dm = 0; dm < N_DISSOLVMATER; dm++)
-			{
-				soilInfo->content_NORMcf_pre[dm] = soilInfo->content_NORMcf[dm];
-				soilInfo->content_CAPILcf_pre[dm] = soilInfo->content_CAPILcf[dm];
-				soilInfo->content_NORMgw_pre[dm] = soilInfo->content_NORMgw[dm];
-				soilInfo->content_CAPILgw_pre[dm] = soilInfo->content_CAPILgw[dm];
-				soilInfo->content_SATgw_pre[dm] = soilInfo->content_SATgw[dm];
-			}
-
+	
 		
 			/* 2.1: GWlayer and CFlayer */
 			if (sprop->GWD == 0)
@@ -334,7 +299,7 @@ int groundwater_preproc(control_struct* ctrl, const groundwaterINIT_struct* GWS,
 		}
 
 		/* concentration of GW - from file or from contant value of MuSo */
-		if (!errorCode && GWlayer != DATA_GAP && groundwater_concentration(md, GWS, sprop, soilInfo, ws, cs, ns))
+		if (!errorCode && sprop->GWD != DATA_GAP && groundwater_concentration(md, GWS, sprop, soilInfo, ws))
 		{
 			printf("\n");
 			printf("ERROR in groundwater_concentration.c for groundwater_preproc.c\n");
@@ -409,28 +374,13 @@ int groundwater_preproc(control_struct* ctrl, const groundwaterINIT_struct* GWS,
 	return (errorCode);
 }
 
-int groundwater_concentration(int md, const groundwaterINIT_struct* GWS, soilprop_struct* sprop, soilInfo_struct* soilInfo,
-	                          wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
+int groundwater_concentration(int md,  const groundwaterINIT_struct* GWS, soilprop_struct* sprop, soilInfo_struct* soilInfo, wstate_struct* ws)
 {
-	int dm, GWlayer;
+	int dm;
 	int errorCode = 0;
 	double GWconc_fromFILE[N_DISSOLVMATER];
-	double soilconc_array[N_DISSOLVMATER];      
-
-	GWlayer = (int)sprop->GWlayer;
 
 	/* calculation of soil concentration */
-	
-	soilconc_array[0] = (ns->NH4[GWlayer] * soilInfo->dissolv_prop[0]) / ws->soilw[GWlayer];
-	soilconc_array[1] = (ns->NO3[GWlayer] * soilInfo->dissolv_prop[1]) / ws->soilw[GWlayer];
-	soilconc_array[2] = (ns->soil1n[GWlayer] * soilInfo->dissolv_prop[2]) / ws->soilw[GWlayer];
-	soilconc_array[3] = (ns->soil2n[GWlayer] * soilInfo->dissolv_prop[3]) / ws->soilw[GWlayer];
-	soilconc_array[4] = (ns->soil3n[GWlayer] * soilInfo->dissolv_prop[4]) / ws->soilw[GWlayer];
-	soilconc_array[5] = (ns->soil4n[GWlayer] * soilInfo->dissolv_prop[5]) / ws->soilw[GWlayer];
-	soilconc_array[6] = (cs->soil1c[GWlayer] * soilInfo->dissolv_prop[6]) / ws->soilw[GWlayer];
-	soilconc_array[7] = (cs->soil2c[GWlayer] * soilInfo->dissolv_prop[7]) / ws->soilw[GWlayer];
-	soilconc_array[8] = (cs->soil3c[GWlayer] * soilInfo->dissolv_prop[8]) / ws->soilw[GWlayer];
-	soilconc_array[9] = (cs->soil4c[GWlayer] * soilInfo->dissolv_prop[9]) / ws->soilw[GWlayer];
 
 	GWconc_fromFILE[0] = GWS->GW_NH4ppm_array[md] * 1e-6;
 	GWconc_fromFILE[1] = GWS->GW_NO3ppm_array[md] * 1e-6;
@@ -443,13 +393,15 @@ int groundwater_concentration(int md, const groundwaterINIT_struct* GWS, soilpro
 	GWconc_fromFILE[8] = GWS->GW_DOC3ppm_array[md] * 1e-6;
 	GWconc_fromFILE[9] = GWS->GW_DOC4ppm_array[md] * 1e-6;
 
-	/* if input data is avaialbe ins GWfile - concentration from file; else: concentration from soil (no effect of GW) */
+	/* if input data is avaialbe ins GWfile - concentration from file; else: concentration from soil (no effect of GW) - but only on first simulateóion day is udated */
 	for (dm = 0; dm < N_DISSOLVMATER; dm++)
 	{
-		if (GWconc_fromFILE[dm] >= 0)
-			soilInfo->GWconc[dm] = GWconc_fromFILE[dm];
+		if (GWconc_fromFILE[dm] < 0)
+		{ 
+			if (sprop->GWD_pre == DATA_GAP) soilInfo->GWconc[dm] = soilInfo->contentDISSOLV_soil[dm][9] / ws->soilw[9];
+		}
 		else
-			soilInfo->GWconc[dm] = soilconc_array[dm];
+			soilInfo->GWconc[dm] = GWconc_fromFILE[dm];			
 	}
 		
 	

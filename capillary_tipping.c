@@ -1,10 +1,10 @@
 /*
 capillary_tipping.c
-Calculation of percolation and diffusion fluxes 
+Calculation of percolation fluxes in capillary layers
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -22,14 +22,14 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
-int capillary_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf)
+int capillary_tipping(const control_struct* ctrl, siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf)
 {
 
 	int errorCode = 0;
-	int  ll, layer;
+	int  ll, layer, rain_flag;
 
-	double VWC, soilw_sat1, soilw1;
-	double INFILT, conduct_cmday, conductSAT_cmday;
+	double VWC, soilw_sat1, soilw1, soilB;
+	double INFILT, conductSAT_cmday;
 	double VWCsat, VWCcrit, dz0, dz0_cm, dz1, HOLD, soilw0;
 
 	double DC, DRN, EXCESS, VWCnew;
@@ -44,8 +44,6 @@ int capillary_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_str
 	else
 		INFILT = wf->soilwPercol[CFlayer - 1] * mm_to_cm;
 
-	/* saturated hydraulic conductivity in actual CFlayer (cm/day = m/s * 100 * sec/day) */
-	conduct_cmday = sprop->hydrCONDUCTsat[CFlayer] * m_to_cm * nSEC_IN_DAY;
 
 	/* -----------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 	/* I. normZone in CFlayer without GW */
@@ -58,18 +56,19 @@ int capillary_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_str
 		VWCcrit = MAX(sprop->VWCfc[CFlayer], sprop->VWCeq[CFlayer]);
 		soilw0 = sprop->soilw_NORMcf;
 
+
 		/* unit change from m to cm */
 		dz0 = sprop->dz_NORMcf;
 		dz0_cm = dz0 * m_to_cm;
 
 		DC = sprop->drainCoeff[CFlayer];
+		soilB = sprop->soilB[CFlayer];
+		rain_flag = ctrl->rain_flag[CFlayer];
 
-		/* hydraulic conductivity in actual CFlayer (cm/day = m/s * 100 * sec/day) */
+		/* saturated hydraulic conductivity in actual CFlayer (cm/day = m/s * 100 * sec/day) */
 		conductSAT_cmday = sprop->hydrCONDUCTsat[CFlayer] * m_to_cm * nSEC_IN_DAY;
-		conduct_cmday = conductSAT_cmday;
 
-
-		if (!errorCode && calc_drainage(wf->flagRAIN, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conduct_cmday, &DRN, &EXCESS, &VWCnew))
+		if (!errorCode && calc_drainage(rain_flag, soilB, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conductSAT_cmday, &DRN, &EXCESS, &VWCnew))
 		{
 			printf("\n");
 			printf("ERROR calc_drainage.c for capillary_tipping.c\n");
@@ -140,13 +139,13 @@ int capillary_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_str
 		dz0_cm = dz0 * m_to_cm;
 
 		DC = sprop->drainCoeff[CFlayer];
+		soilB = sprop->soilB[CFlayer];
+		rain_flag = ctrl->rain_flag[CFlayer];
 
 		/* hydraulic conductivity in actual CFlayer (cm/day = m/s * 100 * sec/day) */
 		conductSAT_cmday = sprop->hydrCONDUCTsat[CFlayer] * m_to_cm * nSEC_IN_DAY;
-		conduct_cmday = conductSAT_cmday;
 
-
-		if (!errorCode && calc_drainage(wf->flagRAIN, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conduct_cmday, &DRN, &EXCESS, &VWCnew))
+		if (!errorCode && calc_drainage(rain_flag, soilB, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conductSAT_cmday, &DRN, &EXCESS, &VWCnew))
 		{
 			printf("\n");
 			printf("ERROR calc_drainage.c for capillary_tipping.c\n");
@@ -173,7 +172,7 @@ int capillary_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_str
 		INFILT = DRN;
 
 		/* if there is excess water, redistribute it in layers above */
-		if (EXCESS > CRIT_PREC_lenient)
+		if (EXCESS > 0)
 		{
 			/* first of all: normal layer is saturated */
 			if (sprop->dz_NORMcf)
@@ -196,7 +195,7 @@ int capillary_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_str
 
 				EXCESS = EXCESS - HOLD;
 			}
-			if (EXCESS > CRIT_PREC_lenient)
+			if (EXCESS > 0)
 			{
 				for (ll = CFlayer - 1; ll >= 0; ll--)
 				{
@@ -224,15 +223,17 @@ int capillary_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_str
 			wf->soilw_to_pondw += EXCESS / mm_to_cm;
 		}
 
+	}
+	else
+	{ 
+		wf->soilwPercol[CFlayer] = wf->soilwPercol_NORMvsCAPILcf;
+		wf->soilwPercol_NORMvsCAPILcf = 0;
 
-
-
-		/* state update: with new VWC calcualte soilw */
-		ws->soilw[CFlayer] = sprop->soilw_NORMcf + sprop->soilw_CAPILcf;
-		epv->VWC[CFlayer] = ws->soilw[CFlayer] / (sitec->soillayer_thickness[CFlayer] * water_density);
 	}
 
-
+	/* state update: with new VWC calcualte soilw */
+	ws->soilw[CFlayer] = sprop->soilw_NORMcf + sprop->soilw_CAPILcf;
+	epv->VWC[CFlayer] = ws->soilw[CFlayer] / (sitec->soillayer_thickness[CFlayer] * water_density);
 
 	/* -----------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 	/* 3. Capillary layers betwen CFlayer and GWlayer */
@@ -252,12 +253,13 @@ int capillary_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_str
 		dz0_cm = dz0 * m_to_cm;
 
 		DC = sprop->drainCoeff[layer];
+		soilB = sprop->soilB[layer];
+		rain_flag = ctrl->rain_flag[layer];
 
 		/* hydraulic conductivity in actual layer (cm/day = m/s * 100 * sec/day) */
 		conductSAT_cmday = sprop->hydrCONDUCTsat[layer] * m_to_cm * nSEC_IN_DAY;
-		conduct_cmday = conductSAT_cmday;
 
-		if (!errorCode && calc_drainage(wf->flagRAIN, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conduct_cmday, &DRN, &EXCESS, &VWCnew))
+		if (!errorCode && calc_drainage(rain_flag, soilB, INFILT, VWC, VWCsat, VWCcrit, dz0_cm, DC, conductSAT_cmday, &DRN, &EXCESS, &VWCnew))
 		{
 			printf("\n");
 			printf("ERROR calc_drainage.c for tipping.c\n");
@@ -283,7 +285,7 @@ int capillary_tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_str
 		INFILT = DRN;
 
 		/* if there is excess water, redistribute it in layers above */
-		if (EXCESS > CRIT_PREC_lenient)
+		if (EXCESS > 0)
 		{
 			for (ll = layer - 1; ll >= 0; ll--)
 			{

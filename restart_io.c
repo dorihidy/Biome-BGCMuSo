@@ -25,242 +25,453 @@ Missoula, MT 59812
 int restart_input(const control_struct* ctrl, const epconst_struct* epc, const siteconst_struct* sitec,
 	wstate_struct* ws, cstate_struct* cs, nstate_struct* ns, epvar_struct* epv, soilprop_struct* sprop, restart_data_struct* restart)
 {
-	int errorCode=0;
+	int errorCode = 0;
 	int layer;
-	double soilw_sat,soilw_hw;
-	
+	double soilw_sat, soilw_hw;
+	double litrC, litrN, soilC, soilN;
+
 
 
 	/* 1. water: special case to initalize soil water from INI file - WSATE section (read_restart = 2) */
 	if (ctrl->read_restart == 1)
 	{
-		for (layer =0; layer < N_SOILLAYERS; layer++)
-		{ 
-			ws->soilw[layer]                  = restart->soilw[layer];
+		for (layer = 0; layer < N_SOILLAYERS; layer++)
+		{
+			ws->soilw[layer] = restart->soilw[layer];
 			soilw_sat = sprop->VWCsat[layer] * sitec->soillayer_thickness[layer] * water_density;
 			soilw_hw = sprop->VWChw[layer] * sitec->soillayer_thickness[layer] * water_density;
 			if (soilw_sat < ws->soilw[layer]) ws->soilw[layer] = soilw_sat;
 			if (soilw_hw > ws->soilw[layer]) ws->soilw[layer] = soilw_hw;
-	
+
 		}
-		ws->snoww                             = restart->snoww;
+		ws->snoww = restart->snoww;
 	}
 
 
-	ws->canopyw                           = restart->canopyw;
+	ws->canopyw = restart->canopyw;
 
 	/* 2. carbon and nitrogen plant pools */
-	cs->leafc                             = restart->leafc;
-	cs->leafc_storage                     = restart->leafc_storage;
-	cs->leafc_transfer                    = restart->leafc_transfer;
-	cs->frootc                            = restart->frootc;
-	cs->frootc_storage                    = restart->frootc_storage;
-	cs->frootc_transfer                   = restart->frootc_transfer;
-	cs->yieldc                            = restart->yield;
-	cs->yieldc_storage                    = restart->yieldc_storage;
-	cs->yieldc_transfer                   = restart->yieldc_transfer;
-	cs->softstemc                         = restart->softstemc;
-	cs->softstemc_storage                 = restart->softstemc_storage;
-	cs->softstemc_transfer                = restart->softstemc_transfer;
+	cs->leafc = restart->leafc;
+	cs->leafc_storage = restart->leafc_storage;
+	cs->leafc_transfer = restart->leafc_transfer;
+	cs->frootc = restart->frootc;
+	cs->frootc_storage = restart->frootc_storage;
+	cs->frootc_transfer = restart->frootc_transfer;
+	cs->yieldc = restart->yield;
+	cs->yieldc_storage = restart->yieldc_storage;
+	cs->yieldc_transfer = restart->yieldc_transfer;
+	cs->softstemc = restart->softstemc;
+	cs->softstemc_storage = restart->softstemc_storage;
+	cs->softstemc_transfer = restart->softstemc_transfer;
 
-	cs->livestemc                         = restart->livestemc;
-	cs->livestemc_storage                 = restart->livestemc_storage;
-	cs->livestemc_transfer                = restart->livestemc_transfer;
-	cs->deadstemc                         = restart->deadstemc;
-	cs->deadstemc_storage                 = restart->deadstemc_storage;
-	cs->deadstemc_transfer                = restart->deadstemc_transfer;
-	cs->livecrootc                        = restart->livecrootc;
-	cs->livecrootc_storage                = restart->livecrootc_storage;
-	cs->livecrootc_transfer               = restart->livecrootc_transfer;
-	cs->deadcrootc                        = restart->deadcrootc;
-	cs->deadcrootc_storage                = restart->deadcrootc_storage;
-	cs->deadcrootc_transfer               = restart->deadcrootc_transfer;
-	cs->gresp_storage                     = restart->gresp_storage;
-	cs->gresp_transfer                    = restart->gresp_transfer;
+	cs->livestemc = restart->livestemc;
+	cs->livestemc_storage = restart->livestemc_storage;
+	cs->livestemc_transfer = restart->livestemc_transfer;
+	cs->deadstemc = restart->deadstemc;
+	cs->deadstemc_storage = restart->deadstemc_storage;
+	cs->deadstemc_transfer = restart->deadstemc_transfer;
+	cs->livecrootc = restart->livecrootc;
+	cs->livecrootc_storage = restart->livecrootc_storage;
+	cs->livecrootc_transfer = restart->livecrootc_transfer;
+	cs->deadcrootc = restart->deadcrootc;
+	cs->deadcrootc_storage = restart->deadcrootc_storage;
+	cs->deadcrootc_transfer = restart->deadcrootc_transfer;
+	cs->gresp_storage = restart->gresp_storage;
+	cs->gresp_transfer = restart->gresp_transfer;
 
-	cs->cpool                             = restart->cpool;
-	
-	ns->npool                             = restart->npool;
+	cs->cpool = restart->cpool;
 
-	ns->retransn			              = restart->retransn;
+	ns->npool = restart->npool;
+
+	ns->retransn = restart->retransn;
 
 	/* spinup - normal C and N pool adjustment in order to avoud negative N pools in case of land use change (changing EOC) */
 	if (epc->leaf_cn > 0)
 	{
-		ns->leafn                         = cs->leafc           / epc->leaf_cn;
-		ns->leafn_storage                 = cs->leafc_storage   / epc->leaf_cn;
-		ns->leafn_transfer                = cs->leafc_transfer  / epc->leaf_cn;
+		ns->leafn = cs->leafc / epc->leaf_cn;
+		ns->leafn_storage = cs->leafc_storage / epc->leaf_cn;
+		ns->leafn_transfer = cs->leafc_transfer / epc->leaf_cn;
 	}
 	else
 	{
-		ns->leafn                         = 0;
-		ns->leafn_storage                 = 0;
-		ns->leafn_transfer                = 0;
+		ns->leafn = 0;
+		ns->leafn_storage = 0;
+		ns->leafn_transfer = 0;
 	}
 
 	if (epc->froot_cn)
 	{
-		ns->frootn                        = cs->frootc          / epc->froot_cn;
-		ns->frootn_storage                = cs->frootc_storage  / epc->froot_cn;
-		ns->frootn_transfer               = cs->frootc_transfer / epc->froot_cn;
+		ns->frootn = cs->frootc / epc->froot_cn;
+		ns->frootn_storage = cs->frootc_storage / epc->froot_cn;
+		ns->frootn_transfer = cs->frootc_transfer / epc->froot_cn;
 	}
 	else
 	{
-		ns->frootn                        = 0;
-		ns->frootn_storage                = 0;
-		ns->frootn_transfer               = 0;
+		ns->frootn = 0;
+		ns->frootn_storage = 0;
+		ns->frootn_transfer = 0;
 	}
 
 	if (epc->yield_cn > 0)
 	{
-		ns->yieldn                        = cs->yieldc          / epc->yield_cn;
-		ns->yieldn_storage                = cs->yieldc_storage  / epc->yield_cn;
-		ns->yieldn_transfer               = cs->yieldc_transfer / epc->yield_cn;
+		ns->yieldn = cs->yieldc / epc->yield_cn;
+		ns->yieldn_storage = cs->yieldc_storage / epc->yield_cn;
+		ns->yieldn_transfer = cs->yieldc_transfer / epc->yield_cn;
 	}
 	else
 	{
-		ns->yieldn                        =	0;
-		ns->yieldn_storage                = 0;
-		ns->yieldn_transfer               = 0;
+		ns->yieldn = 0;
+		ns->yieldn_storage = 0;
+		ns->yieldn_transfer = 0;
 	}
-	
+
 	if (epc->softstem_cn)
 	{
-		ns->softstemn                     = cs->softstemc          / epc->softstem_cn;
-		ns->softstemn_storage             = cs->softstemc_storage  / epc->softstem_cn;
-		ns->softstemn_transfer            = cs->softstemc_transfer / epc->softstem_cn;
+		ns->softstemn = cs->softstemc / epc->softstem_cn;
+		ns->softstemn_storage = cs->softstemc_storage / epc->softstem_cn;
+		ns->softstemn_transfer = cs->softstemc_transfer / epc->softstem_cn;
 	}
 	else
 	{
-		ns->softstemn                     = 0;
-		ns->softstemn_storage             = 0;
-		ns->softstemn_transfer            = 0;
+		ns->softstemn = 0;
+		ns->softstemn_storage = 0;
+		ns->softstemn_transfer = 0;
 	}
 
 	if (epc->livewood_cn > 0)
 	{
-		ns->livestemn                     = cs->livestemc          / epc->livewood_cn;
-		ns->livestemn_storage             = cs->livestemc_storage  / epc->livewood_cn;
-		ns->livestemn_transfer            = cs->livestemc_transfer / epc->livewood_cn;
-		ns->livecrootn                    = cs->livecrootc         / epc->livewood_cn;
-		ns->livecrootn_storage            = cs->livecrootc_storage / epc->livewood_cn;
-		ns->livecrootn_transfer           = cs->livecrootc_transfer/ epc->livewood_cn;
+		ns->livestemn = cs->livestemc / epc->livewood_cn;
+		ns->livestemn_storage = cs->livestemc_storage / epc->livewood_cn;
+		ns->livestemn_transfer = cs->livestemc_transfer / epc->livewood_cn;
+		ns->livecrootn = cs->livecrootc / epc->livewood_cn;
+		ns->livecrootn_storage = cs->livecrootc_storage / epc->livewood_cn;
+		ns->livecrootn_transfer = cs->livecrootc_transfer / epc->livewood_cn;
 	}
 	else
 	{
-		ns->livestemn                     = 0;
-		ns->livestemn_storage             = 0;
-		ns->livestemn_transfer            = 0;
-		ns->livecrootn                    = 0;
-		ns->livecrootn_storage            = 0;
-		ns->livecrootn_transfer           = 0;
+		ns->livestemn = 0;
+		ns->livestemn_storage = 0;
+		ns->livestemn_transfer = 0;
+		ns->livecrootn = 0;
+		ns->livecrootn_storage = 0;
+		ns->livecrootn_transfer = 0;
 	}
-	
+
 	if (epc->deadwood_cn > 0)
 	{
-		ns->deadstemn                     = cs->deadstemc          / epc->deadwood_cn; 
-		ns->deadstemn_storage             = cs->deadstemc_storage  / epc->deadwood_cn;
-		ns->deadstemn_transfer            = cs->deadstemc_transfer / epc->deadwood_cn;
-		ns->deadcrootn                    = cs->deadcrootc         / epc->deadwood_cn;
-		ns->deadcrootn_storage            = cs->deadcrootc_storage / epc->deadwood_cn;
-		ns->deadcrootn_transfer           = cs->deadcrootc_transfer/ epc->deadwood_cn;
-	
+		ns->deadstemn = cs->deadstemc / epc->deadwood_cn;
+		ns->deadstemn_storage = cs->deadstemc_storage / epc->deadwood_cn;
+		ns->deadstemn_transfer = cs->deadstemc_transfer / epc->deadwood_cn;
+		ns->deadcrootn = cs->deadcrootc / epc->deadwood_cn;
+		ns->deadcrootn_storage = cs->deadcrootc_storage / epc->deadwood_cn;
+		ns->deadcrootn_transfer = cs->deadcrootc_transfer / epc->deadwood_cn;
+
 	}
 	else
 	{
-		ns->deadstemn                     = 0; 
-		ns->deadstemn_storage             = 0;
-		ns->deadstemn_transfer            = 0;
-		ns->deadcrootn                    = 0;
-		ns->deadcrootn_storage            = 0;
-		ns->deadcrootn_transfer           = 0;
-	
+		ns->deadstemn = 0;
+		ns->deadstemn_storage = 0;
+		ns->deadstemn_transfer = 0;
+		ns->deadcrootn = 0;
+		ns->deadcrootn_storage = 0;
+		ns->deadcrootn_transfer = 0;
+
 	}
 
 	/* 3. standing dead biomass, cut-down dead biomass and litter pools */
-	cs->STDBc_leaf		= restart->STDBc_leaf;
-	cs->STDBc_froot		= restart->STDBc_froot;
-	cs->STDBc_yield		= restart->STDBc_yield;
-	cs->STDBc_softstem	= restart->STDBc_softstem;
-	cs->CTDBc_leaf		= restart->CTDBc_leaf;
-	cs->CTDBc_froot		= restart->CTDBc_froot;
-	cs->CTDBc_yield		= restart->CTDBc_yield;
-	cs->CTDBc_softstem	= restart->CTDBc_softstem;
-	cs->CTDBc_cstem		= restart->CTDBc_cstem;
-	cs->CTDBc_croot		= restart->CTDBc_croot;
-	
-	ns->STDBn_leaf		= restart->STDBn_leaf;
-	ns->STDBn_froot		= restart->STDBn_froot;
-	ns->STDBn_yield		= restart->STDBn_yield;
-	ns->STDBn_softstem	= restart->STDBn_softstem;
-	ns->CTDBn_leaf		= restart->CTDBn_leaf;
-	ns->CTDBn_froot		= restart->CTDBn_froot;
-	ns->CTDBn_yield		= restart->CTDBn_yield;
-	ns->CTDBn_softstem	= restart->CTDBn_softstem;
-	ns->CTDBn_cstem		= restart->CTDBn_cstem;
-	ns->CTDBn_croot		= restart->CTDBn_croot;
+	cs->STDBc_leaf = restart->STDBc_leaf;
+	cs->STDBc_froot = restart->STDBc_froot;
+	cs->STDBc_yield = restart->STDBc_yield;
+	cs->STDBc_softstem = restart->STDBc_softstem;
+	cs->CTDBc_leaf = restart->CTDBc_leaf;
+	cs->CTDBc_froot = restart->CTDBc_froot;
+	cs->CTDBc_yield = restart->CTDBc_yield;
+	cs->CTDBc_softstem = restart->CTDBc_softstem;
+	cs->CTDBc_cstem = restart->CTDBc_cstem;
+	cs->CTDBc_croot = restart->CTDBc_croot;
 
-	/* 4. litter*/
+	ns->STDBn_leaf = restart->STDBn_leaf;
+	ns->STDBn_froot = restart->STDBn_froot;
+	ns->STDBn_yield = restart->STDBn_yield;
+	ns->STDBn_softstem = restart->STDBn_softstem;
+	ns->CTDBn_leaf = restart->CTDBn_leaf;
+	ns->CTDBn_froot = restart->CTDBn_froot;
+	ns->CTDBn_yield = restart->CTDBn_yield;
+	ns->CTDBn_softstem = restart->CTDBn_softstem;
+	ns->CTDBn_cstem = restart->CTDBn_cstem;
+	ns->CTDBn_croot = restart->CTDBn_croot;
 
+	/* 4. cwdc */
 
 	/* if no user-defined data from INI file CN_state block, restart data is used */
-	for (layer=0; layer < N_SOILLAYERS; layer++)
+	/* if all data are from restart, also cwdc_above and below from restart */
+
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
 	{
-		
-		cs->litr1c[layer] = restart->litr1c[layer];
-		ns->litr1n[layer] = restart->litr1n[layer];
-		cs->litr2c[layer] = restart->litr2c[layer];
-		ns->litr2n[layer] = restart->litr2n[layer];
-		cs->litr3c[layer] = restart->litr3c[layer];
-		ns->litr3n[layer] = restart->litr3n[layer];
-		cs->litr4c[layer] = restart->litr4c[layer];
-		ns->litr4n[layer] = restart->litr4n[layer];
-		cs->cwdc[layer] = restart->cwdc[layer];
-		ns->cwdn[layer] = restart->cwdn[layer];
+		if (cs->cwdc[layer] == 0)
+		{
+			cs->cwdc[layer] = restart->cwdc[layer];
+			ns->cwdn[layer] = restart->cwdn[layer];
+			cs->cwdCabove[layer] = restart->cwdCabove[layer];
+			cs->cwdCbelow[layer] = restart->cwdCbelow[layer];
+		}
+		else
+		{
+			if (layer == 0)
+			{
+				cs->cwdCabove[layer] = cs->cwdc[layer];
+				cs->cwdCbelow[layer] = 0;
+			}
+			else
+			{ 
+				cs->cwdCabove[layer] = cs->cwdc[layer];
+				cs->cwdCbelow[layer] = 0;
+			}
 
-		/* aboveground buomass estimation */
-		cs->litrCabove[layer] = restart->litrCabove[layer];
-		cs->litrCbelow[layer] = restart->litrCbelow[layer];
-		cs->cwdCabove[layer] = restart->cwdCabove[layer];
-		cs->cwdCbelow[layer] = restart->cwdCbelow[layer];
+		}
+	}
 
-		if (cs->soil1c[layer] == 0)
+	
+	/* 5. litter */
+
+	/* if no user-defined data from INI file CN_state block, restart data is used */
+	/* if all data are from restart, also cwdc_above and below from restart */
+
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
+	{
+		/* 5.1 carbon */
+		if (cs->litrC_ppm[layer] == 0)
+		{
+			cs->litr1c[layer] = restart->litr1c[layer];
+			cs->litr2c[layer] = restart->litr2c[layer];
+			cs->litr3c[layer] = restart->litr3c[layer];
+			cs->litr4c[layer] = restart->litr4c[layer];
+			cs->litrCabove[layer] = restart->litrCabove[layer];
+			cs->litrCbelow[layer] = restart->litrCbelow[layer];
+		}
+		else
+		{
+			/* if lignin propotrion is set (litr4C_ppm), litr4c is calculated from that */
+			if (cs->litr4C_ppm[layer] == 0)
+			{ 
+				litrC = restart->litr1c[layer] + restart->litr2c[layer] + restart->litr3c[layer] + restart->litr4c[layer];
+				if (litrC)
+				{
+					cs->litr1c[layer] = ((cs->litrC_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr1c[layer] / litrC;
+					cs->litr2c[layer] = ((cs->litrC_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr2c[layer] / litrC;
+					cs->litr3c[layer] = ((cs->litrC_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr3c[layer] / litrC;
+					cs->litr4c[layer] = ((cs->litrC_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr4c[layer] / litrC;
+				}
+				else
+				{
+					cs->litr1c[layer] = 0;
+					cs->litr2c[layer] = 0;
+					cs->litr3c[layer] = 0;
+					cs->litr4c[layer] = 0;
+				}
+			}
+			else
+			{
+				cs->litr4c[layer] = ((cs->litr4C_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer]));
+
+				litrC = restart->litr1c[layer] + restart->litr2c[layer] + restart->litr3c[layer];
+				if (litrC)
+				{
+					cs->litr1c[layer] = (((cs->litrC_ppm[layer]- cs->litr4C_ppm[layer])  / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr1c[layer] / litrC;
+					cs->litr2c[layer] = (((cs->litrC_ppm[layer] - cs->litr4C_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr2c[layer] / litrC;
+					cs->litr3c[layer] = (((cs->litrC_ppm[layer] - cs->litr4C_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr3c[layer] / litrC;
+
+				}
+				else
+				{
+					cs->litr1c[layer] = 0;
+					cs->litr2c[layer] = 0;
+					cs->litr3c[layer] = 0;
+				}
+			}
+
+			/* litrC_above and below from litrc data */
+			if (layer == 0)
+			{
+				cs->litrCabove[layer] = cs->litr1c[layer] + cs->litr2c[layer] + cs->litr3c[layer] + cs->litr4c[layer];
+				cs->litrCbelow[layer] = 0;
+			}
+			else
+			{
+				cs->litrCabove[layer] = 0;
+				cs->litrCbelow[layer] = cs->litr1c[layer] + cs->litr2c[layer] + cs->litr3c[layer] + cs->litr4c[layer];
+			}
+
+		}
+
+		/* 5.2 nitrogen */
+		if (ns->litrN_ppm[layer] == 0)
+		{
+			ns->litr1n[layer] = restart->litr1n[layer];
+			ns->litr2n[layer] = restart->litr2n[layer];
+			ns->litr3n[layer] = restart->litr3n[layer];
+			ns->litr4n[layer] = restart->litr4n[layer];
+		}
+		else
+		{
+			/* if lignin propotrion is set (litr4N_ppm), litr4n is nalnulated from that */
+			if (ns->litr4N_ppm[layer] == 0)
+			{
+				litrN = restart->litr1n[layer] + restart->litr2n[layer] + restart->litr3n[layer] + restart->litr4n[layer];
+				if (litrN)
+				{
+					ns->litr1n[layer] = ((ns->litrN_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr1n[layer] / litrN;
+					ns->litr2n[layer] = ((ns->litrN_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr2n[layer] / litrN;
+					ns->litr3n[layer] = ((ns->litrN_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr3n[layer] / litrN;
+					ns->litr4n[layer] = ((ns->litrN_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr4n[layer] / litrN;
+				}
+				else
+				{
+					ns->litr1n[layer] = 0;
+					ns->litr2n[layer] = 0;
+					ns->litr3n[layer] = 0;
+					ns->litr4n[layer] = 0;
+				}
+			}
+			else
+			{
+				ns->litr4n[layer] = ((ns->litr4N_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer]));
+
+				litrN = restart->litr1n[layer] + restart->litr2n[layer] + restart->litr3n[layer];
+				if (litrN)
+				{
+					ns->litr1n[layer] = (((ns->litrN_ppm[layer] - ns->litr4N_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr1n[layer] / litrN;
+					ns->litr2n[layer] = (((ns->litrN_ppm[layer] - ns->litr4N_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr2n[layer] / litrN;
+					ns->litr3n[layer] = (((ns->litrN_ppm[layer] - ns->litr4N_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->litr3n[layer] / litrN;
+				}
+				else
+				{
+					ns->litr1n[layer] = 0;
+					ns->litr2n[layer] = 0;
+					ns->litr3n[layer] = 0;
+				}
+			}	
+		}
+	}
+
+
+	/* 6. soil */
+
+	/* if no user-defined data from INI file CN_state block, restart data is used */
+	/* if all data are from restart, also cwdc_above and below from restart */
+
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
+	{
+		/* 5.1 carbon */
+		if (cs->soilC_ppm[layer] == 0)
 		{
 			cs->soil1c[layer] = restart->soil1c[layer];
-			ns->soil1n[layer] = restart->soil1n[layer];
-		}
-		else
-			ns->soil1n[layer] = cs->soil1c[layer] / sprop->soil1_CN;
-
-		if (cs->soil2c[layer] == 0)
-		{
 			cs->soil2c[layer] = restart->soil2c[layer];
-			ns->soil2n[layer] = restart->soil2n[layer];
-		}
-		else
-			ns->soil2n[layer] = cs->soil2c[layer] / sprop->soil2_CN;
-
-		if (cs->soil3c[layer] == 0)
-		{
 			cs->soil3c[layer] = restart->soil3c[layer];
-			ns->soil3n[layer] = restart->soil3n[layer];
+			cs->soil4c[layer] = restart->soil4c[layer];
 		}
 		else
-			ns->soil3n[layer] = cs->soil3c[layer] / sprop->soil3_CN;
-
-		if (cs->soil4c[layer] == 0)
 		{
-			cs->soil4c[layer] = restart->soil4c[layer];
+			/* if lignin propotrion is set (soil4C_ppm), soil4c is calculated from that */
+			if (cs->soil4C_ppm[layer] == 0)
+			{
+				soilC = restart->soil1c[layer] + restart->soil2c[layer] + restart->soil3c[layer] + restart->soil4c[layer];
+				if (soilC)
+				{
+					cs->soil1c[layer] = ((cs->soilC_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil1c[layer] / soilC;
+					cs->soil2c[layer] = ((cs->soilC_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil2c[layer] / soilC;
+					cs->soil3c[layer] = ((cs->soilC_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil3c[layer] / soilC;
+					cs->soil4c[layer] = ((cs->soilC_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil4c[layer] / soilC;
+				}
+				else
+				{
+					cs->soil1c[layer] = 0;
+					cs->soil2c[layer] = 0;
+					cs->soil3c[layer] = 0;
+					cs->soil4c[layer] = 0;
+				}
+			}
+			else
+			{
+				cs->soil4c[layer] = ((cs->soil4C_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer]));
+
+				soilC = restart->soil1c[layer] + restart->soil2c[layer] + restart->soil3c[layer];
+				if (soilC)
+				{
+					cs->soil1c[layer] = (((cs->soilC_ppm[layer] - cs->soil4C_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil1c[layer] / soilC;
+					cs->soil2c[layer] = (((cs->soilC_ppm[layer] - cs->soil4C_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil2c[layer] / soilC;
+					cs->soil3c[layer] = (((cs->soilC_ppm[layer] - cs->soil4C_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil3c[layer] / soilC;
+				}
+				else
+				{
+					cs->soil1c[layer] = 0;
+					cs->soil2c[layer] = 0;
+					cs->soil3c[layer] = 0;
+				}
+			}
+		}
+
+		/* 5.2 nitrogen */
+		if (ns->soilN_ppm[layer] == 0)
+		{
+			ns->soil1n[layer] = restart->soil1n[layer];
+			ns->soil2n[layer] = restart->soil2n[layer];
+			ns->soil3n[layer] = restart->soil3n[layer];
 			ns->soil4n[layer] = restart->soil4n[layer];
 		}
 		else
-			ns->soil4n[layer] = cs->soil4c[layer] / sprop->soil4_CN;
+		{
+			/* if lignin propotrion is set (soil4N_ppm), soil4n is nalnulated from that */
+			if (ns->soil4N_ppm[layer] == 0)
+			{
+				soilN = restart->soil1n[layer] + restart->soil2n[layer] + restart->soil3n[layer] + restart->soil4n[layer];
+				if (soilN)
+				{
+					ns->soil1n[layer] = ((ns->soilN_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil1n[layer] / soilN;
+					ns->soil2n[layer] = ((ns->soilN_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil2n[layer] / soilN;
+					ns->soil3n[layer] = ((ns->soilN_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil3n[layer] / soilN;
+					ns->soil4n[layer] = ((ns->soilN_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil4n[layer] / soilN;
+				}
+				else
+				{
+					ns->soil1n[layer] = 0;
+					ns->soil2n[layer] = 0;
+					ns->soil3n[layer] = 0;
+					ns->soil4n[layer] = 0;
+				}
 
-		/* in case of ammonium and nitrate, user can set their values also in case of using restart file*/
+			}
+			else
+			{
+				ns->soil4n[layer] = ((ns->soil4N_ppm[layer] / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer]));
+
+				soilN = restart->soil1n[layer] + restart->soil2n[layer] + restart->soil3n[layer];
+				if (soilN)
+				{
+					ns->soil1n[layer] = (((ns->soilN_ppm[layer] - ns->soil4N_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil1n[layer] / soilN;
+					ns->soil2n[layer] = (((ns->soilN_ppm[layer] - ns->soil4N_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil2n[layer] / soilN;
+					ns->soil3n[layer] = (((ns->soilN_ppm[layer] - ns->soil4N_ppm[layer]) / multi_ppm) * (sprop->BD[layer] * sitec->soillayer_thickness[layer])) * restart->soil3n[layer] / soilN;
+					
+				}
+				else
+				{
+					ns->soil1n[layer] = 0;
+					ns->soil2n[layer] = 0;
+					ns->soil3n[layer] = 0;
+				}
+			}
+		}
+	}
+
+
+	/* 7. mineralized N */
+
+	/* in case of ammonium and nitrate, user can set their values also in case of using restart file*/
+
+	for (layer = 0; layer < N_SOILLAYERS; layer++)
+	{
 		if (ns->NH4[layer] == 0) ns->NH4[layer] = restart->NH4[layer];	
 		if (ns->NO3[layer] == 0) ns->NO3[layer] = restart->NO3[layer];
-
-
 	}
 
 

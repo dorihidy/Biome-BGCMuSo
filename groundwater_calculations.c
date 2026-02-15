@@ -1,10 +1,10 @@
 /* 
-groundwater_preproc.c
-calculate GWD, CFD, GWeff, CFeff in function of GWD
+groundwater_calculations.c
+Summarize groundwater routines
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -36,7 +36,7 @@ int groundwater_calculations(control_struct* ctrl, const siteconst_struct* sitec
 	if (ctrl->spinup != 1)
 	{
 		sprop->GWD_pre = sprop->GWD;
-		if (!errorCode && groundwater_preproc(ctrl, GWS, sitec, sprop, soilInfo, ws, wf, cs, ns))
+		if (!errorCode && groundwater_preproc(ctrl, GWS, sitec, sprop, soilInfo, ws, wf))
 		{
 			printf("\n");
 			printf("ERROR in groundwater_preproc.c for groundwater_calculation.c\n");

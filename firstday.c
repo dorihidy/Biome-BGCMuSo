@@ -1,13 +1,12 @@
 /* 
 firstday.c
-Initializes the state variables for the first day of a simulation that
-is not using a restart file.
+Initializes the state variables for the first day of a simulation that is not using a restart file.
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
 Original code: Copyright 2000, Peter E. Thornton
 Numerical Terradynamic Simulation Group, The University of Montana, USA
-Modified code: Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Modified code: Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -262,6 +261,16 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 			soilInfo->content_NORMgw[dm] = 0;
 			soilInfo->content_CAPILgw[dm] = 0;
 			soilInfo->content_SATgw[dm] = 0;
+			soilInfo->contentBOUND_NORMcf[dm] = 0;
+			soilInfo->contentBOUND_CAPILcf[dm] = 0;
+			soilInfo->contentBOUND_NORMgw[dm] = 0;
+			soilInfo->contentBOUND_CAPILgw[dm] = 0;
+			soilInfo->contentBOUND_SATgw[dm] = 0;
+			soilInfo->contentDISSOLV_NORMcf[dm] = 0;
+			soilInfo->contentDISSOLV_CAPILcf[dm] = 0;
+			soilInfo->contentDISSOLV_NORMgw[dm] = 0;
+			soilInfo->contentDISSOLV_CAPILgw[dm] = 0;
+			soilInfo->contentDISSOLV_SATgw[dm] = 0;
 		}
 	}
 		
@@ -403,12 +412,7 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 		cs->cpool = 0.0;
 		
 		/* initalization of above- and belowground litter */
-		cs->litrCabove[0] = cs->litr1c[0] + cs->litr2c[0] + cs->litr3c[0] + cs->litr4c[0];
-		cs->litrCbelow[0] = 0;
-		cs->cwdCabove[0] = cs->cwdc[0];
-		cs->cwdCbelow[0] = 0;
-
-		for (layer = 1; layer < N_SOILLAYERS; layer++) 
+		for (layer = 0; layer < N_SOILLAYERS; layer++) 
 		{ 
 			cs->litrCabove[layer] = 0;
 			cs->litrCbelow[layer] = cs->litr1c[layer] + cs->litr2c[layer] + cs->litr3c[layer] + cs->litr4c[layer]; 
@@ -752,13 +756,50 @@ int firstday(const control_struct* ctrl, const epconst_struct* epc, const planti
 	soilInfo->dissolv_prop[8] = sprop->SOIL3dissolv_prop;
 	soilInfo->dissolv_prop[9] = sprop->SOIL4dissolv_prop;
 
+
+	for (dm = 0; dm < N_DISSOLVMATER; dm++)
+	{
+		for (layer = 0; layer < N_SOILLAYERS; layer++)
+		{
+			soilInfo->content_soil[dm][layer] = 0;
+			soilInfo->contentBOUND_soil[dm][layer] = 0;
+			soilInfo->contentDISSOLV_soil[dm][layer] = 0;
+		}
+		soilInfo->contentBOUND_NORMcf[dm] = 0;
+		soilInfo->contentBOUND_CAPILcf[dm] = 0;
+		soilInfo->contentBOUND_NORMgw[dm] = 0;
+		soilInfo->contentBOUND_CAPILgw[dm] = 0;
+		soilInfo->contentBOUND_SATgw[dm] = 0;
+		soilInfo->contentDISSOLV_NORMcf[dm] = 0;
+		soilInfo->contentDISSOLV_CAPILcf[dm] = 0;
+		soilInfo->contentDISSOLV_NORMgw[dm] = 0;
+		soilInfo->contentDISSOLV_CAPILgw[dm] = 0;
+		soilInfo->contentDISSOLV_SATgw[dm] = 0;
+		soilInfo->content_NORMcf[dm] = 0;
+		soilInfo->content_CAPILcf[dm] = 0;
+		soilInfo->content_NORMgw[dm] = 0;
+		soilInfo->content_CAPILgw[dm] = 0;
+		soilInfo->content_SATgw[dm] = 0;
+	}
 	
-	
+	/* firsttime_flag=0 (before calculation note initial values, partlyORtotal_flag=1 (TOTAL (BOUND+DISSOLV) is affected  */
+	if (!errorCode && calc_DISSOLVandBOUND(0, 1, sprop, soilInfo))
+	{
+		printf("ERROR in calc_DISSOLVandBOUND.c for firstday.c\n");
+		errorCode = 1;
+	}
 
 	/* call soil concentration calculation routine to calculate the concetration of soil (-1: all layers, NH4 -> content_soil*/
 	if (!errorCode && check_soilcontent(-1, 0, sprop, cs, ns, soilInfo))
 	{
 		printf("ERROR in check_soilcontent.c for firstday.c\n");
+		errorCode = 1;
+	}
+
+	/*  firsttime_flag=1 (after calculation note initial values, int partlyORtotal_flag=1 (TOTAL (BOUND+DISSOLV) is affected  */
+	if (!errorCode && calc_DISSOLVandBOUND(1, 1, sprop, soilInfo))
+	{
+		printf("ERROR in calc_DISSOLVandBOUND.c for firstday.c\n");
 		errorCode = 1;
 	}
 

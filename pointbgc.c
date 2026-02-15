@@ -7,7 +7,7 @@ Uses BBGC MuSo v6 library function
 Biome-BGCMuSo v7.0.
 Original code: Copyright 2000, Peter E. Thornton
 Numerical Terradynamic Simulation Group, The University of Montana, USA
-Modified code: Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Modified code: Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* initialize carbon and nitrogen state structures */
-	errorCode = cnstate_init(init, &bgcin.epc, &bgcin.sprop, &bgcin.sitec, &bgcin.cs, &bgcin.cinit, &bgcin.ns);
+	errorCode = cnstate_init(init, &bgcin.ctrl, &bgcin.epc, &bgcin.sprop, &bgcin.sitec, &bgcin.cs, &bgcin.cinit, &bgcin.ns);
 	if (errorCode)
 	{
 		printf("ERROR in call to cstate_init.c from pointbgc.c... Exiting\n");
@@ -366,6 +366,13 @@ int main(int argc, char *argv[])
 	}
 	else
 	{   
+		if (bgcin.ctrl.read_restart == 0)
+		{
+			fprintf(output.log_file.ptr, "\n");
+			fprintf(output.log_file.ptr, "WARNING: in normal run: \n");
+			fprintf(output.log_file.ptr, " read_restart=0 means only using W_STATE block of INI file instead of soilw walues of restart file \n");
+			bgcin.ctrl.read_restart = 2;
+		}
 		errorCode = bgc(&bgcin, &bgcout);
 		if (errorCode)
 		{

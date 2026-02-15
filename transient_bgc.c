@@ -1,17 +1,10 @@
 /*
 transient_bgc.c
-Core BGC model logic
-
-Includes in-line output handling routines get the bgcin struct of spinup run
-with contans CO2 and Ndep data without management and calculate ws, cs, ns
-stuctures with increasing CO2 and Ndep value (with management) in order to
-terminate the disruption between normal and spiup run
-This run has no output and it is optional 
-(spinup_ini: CO2_CONTROL block varCO2 flag=1)
+Core BGC model logic: part of spinup simulation phase)
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -371,6 +364,7 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 		/* output to screen to indicate start of simulation year */
 		if (ctrl.onscreen) printf("Year: %6d\n",ctrl.simstartyear+simyr);
 		
+		/* deciding wether leap year of not */
 		if (!errorCode && leapControl(ctrl.simstartyear+simyr, enddays, mondays, &leap))
 		{
 			printf("ERROR in call to leapControl.c from transient_bgc.c\n");
@@ -428,7 +422,7 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=5010;
 			}
 			
-
+		
 			/* initalizing annmax and cumulative variables */
 			if (yday == 0)
 			{
@@ -464,6 +458,7 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				printf("ERROR in groundwater_calculations.c from bgc.c\n");
 				errorCode = 5050;
 			}
+
 
 			/* daily meteorological variables from metarrays */
 			if (!errorCode && daymet(&ctrl, &metarr, &epc, &metv, ws.snoww))
@@ -574,6 +569,7 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=5190;
 			}
 					
+	
 			/* daily litter and soil decomp and nitrogen fluxes */
 			if (!errorCode && decomp(&metv,&epc,&sprop,&sitec,&cs,&ns,&epv,&cf,&nf,&nt))
 			{
@@ -603,7 +599,7 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 			/* reassess the annual turnover rates for livewood --> deadwood, and for evergreen leaf and fine root litterfall. 
 			This happens once each year, on the annual_alloc day (the last litterfall day - test for annual allocation day) */
 			
-				if (phen.remdays_litfall == 1) 
+			if (phen.remdays_litfall == 1) 
 				annual_alloc = 1;
 			else 
 				annual_alloc = 0;
@@ -690,6 +686,7 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=5300;
 			}
 			
+
 	
 			/* calculate the change of soil mineralized N in multilayer soil */ 
 			if (!errorCode && multilayer_sminn(&ctrl, &metv, &sitec, &ndep, &cs, &cf, &ns, &nf, &sprop, &epv, &soilInfo))
@@ -698,16 +695,16 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				errorCode=5310;
 			}
 			
-
+	
 			/* calculate the leaching of N, DOC and DON from multilayer soil */
-			if (!errorCode && multilayer_leaching(&sprop, &soilInfo, &cs, &ns,  &ws, &wf))
+			if (!errorCode && multilayer_leaching(&sitec, &sprop, &soilInfo, &cs, &ns,  &ws, &wf))
 			{
 				printf("ERROR in multilayer_leaching.c from transient_bgc.c\n");
 				errorCode=5320;
 			}
 
 	
-			/* calculate summary variables */
+			/* estimate above- and belowground litter */
 			if (!errorCode && aboveANDbelow(&sprop, &epv, &cs, &cf))
 			{
 				printf("ERROR in aboveANDbelow.c from bgc.c\n");
@@ -757,7 +754,7 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 			
  
 			/* PLOUGHING */
- 			if (!errorCode && ploughing(&ctrl, &epc, &sitec, &sprop, &metv, &epv, &PLG, &cs, &ns, &ws, &cf, &nf, &wf))
+ 			if (!errorCode && ploughing(&ctrl, &epc, &sitec, &sprop, &soilInfo, &metv, &epv, &PLG, &cs, &ns, &ws, &cf, &nf, &wf))
 			{
 				printf("ERROR in ploughing.c from transient_bgc.c\n");
 				errorCode=5390;
@@ -809,13 +806,17 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 			/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 			/* 7. ERROR CHECKING AND SUMMARY VARIABLES  */
 			
+	
+
 			/* test for very low state variable values and force them to 0.0 to avoid rounding and floating point overflow errors */
-			if (!errorCode && precision_control(&ws, &cs, &ns, &sprop, &soilInfo))
+			if (!errorCode && precision_control(&ctrl, &sprop, &ws, &cs, &ns, &soilInfo))
 			{
 				printf("ERROR in call to precision_control.c from transient_bgc.c\n");
 				errorCode=5450;
 			} 
 			
+
+
 			/* test for virtual layer balance*/
 			if (!errorCode && sprop.GWlayer != DATA_GAP && check_virtualLayer_balance(&ctrl, &soilInfo, &sprop, &wf))
 			{
@@ -927,7 +928,7 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 	fprintf(bgcout->log_file.ptr, "Soil carbon content (in 0-30 cm soil layer) [%%]:         %12.2f\n",summary.SOCpercent_top30);
 	fprintf(bgcout->log_file.ptr, "Total litter carbon content [kgC/m2/year]:               %12.2f\n",summary.litrC_total);
 	fprintf(bgcout->log_file.ptr, "Total soil carbon content [kgC/m2/year]:                 %12.2f\n",summary.soilC_total);
-	fprintf(bgcout->log_file.ptr, "Total stable soil carbon content [kgC/m2/year]:          %12.2f\n", cs.soil4c_total);
+	fprintf(bgcout->log_file.ptr, "Total stable soil carbon content [kgC/m2]:               %12.2f\n", cs.soil4c_total);
 	fprintf(bgcout->log_file.ptr, "Averaged available soil ammonium content (0-30 cm) [ppm]:%12.2f\n",summary.NH4ppmAVAIL_top30);
 	fprintf(bgcout->log_file.ptr, "Averaged available soil nitrate content (0-30 cm) [ppm]: %12.2f\n",summary.NO3ppmAVAIL_top30);
 	fprintf(bgcout->log_file.ptr, "Averaged soil water content  [m3/m3]:                    %12.2f\n",epv.VWC_avg);
@@ -988,6 +989,12 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 		{
 			fprintf(bgcout->log_file.ptr, "Limited denitrification due high soil respiration\n");
 			ctrl.limitDENIT_flag = -1;
+		}
+
+		if (ctrl.CNratio_flag)
+		{
+			fprintf(bgcout->log_file.ptr, "CN ratio is less than 1 in case of litter or soil pools\n");
+			ctrl.CNratio_flag = -1;
 		}
 
 		if (ctrl.noTRP_flag)
@@ -1069,7 +1076,7 @@ int transient_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 	{
 		free(phenarr.onday_arr);
 		free(phenarr.offday_arr);
-		if (ctrl.GSI_flag)
+		if (ctrl.GSI_flag && !PLT.PLT_num)
 		{
 			free(phenarr.Tmin_index);
 			free(phenarr.vpd_index);

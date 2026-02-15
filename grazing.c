@@ -1,13 +1,12 @@
 /* 
 grazing.c
 grazing  - decrease the plant material (leafc, leafn, canopy water) and increase N-content (mature)
-
 method: Vuichard et al, 2007
 NOTE: LSU: livestock unit = unit used to compare or aggregate different species and it is equivalnet to the liveweight of an average cattle (1 adult cattle = 1 LSU)
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -166,7 +165,7 @@ int grazing(control_struct* ctrl, const epconst_struct* epc, const soilprop_stru
 		cf->gresp_transfer_to_GRZ     = cs->gresp_transfer * GRZcoeff * 0.1;
 		cf->gresp_storage_to_GRZ      = cs->gresp_storage  * GRZcoeff * 0.1;
 
-		nf->retransn_to_GRZ           = 0; // ns->retransn* GRZcoeff;
+		nf->retransn_to_GRZ           = 0; 
 
 	
 		/* 1.2.  standing dead biome */

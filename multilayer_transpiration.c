@@ -4,7 +4,7 @@ Calculation of part-transpiration (regarding to the different layers of the soil
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -75,7 +75,7 @@ int multilayer_transpiration(control_struct* ctrl, const siteconst_struct* sitec
 		soilw_wp = sprop->VWCwp[layer] * sitec->soillayer_thickness[layer] * water_density;
 
 		/* TRP_lack: control parameter to avoid negative soil water content (due to overestimated transpiration + dry soil) */
-		ws->soilwAVAIL[layer] = (ws->soilw[layer] - soilw_wp);
+		ws->soilwAVAIL[layer] = MAX(0, (ws->soilw[layer] - soilw_wp));
 	}
 	
 	
@@ -246,12 +246,12 @@ int multilayer_transpiration(control_struct* ctrl, const siteconst_struct* sitec
 	wf->TRPsoilw_SUM = TRPsoilw_SUM;
 
 	/* if capillary zone exists in unsaturated zone (not in GWlayer) and capillary zone is in the top soil layer */
-	if (sprop->dz_CAPILcf && wf->TRPsoilw[CFlayer] > 0)
+	if ((sprop->dz_CAPILcf+sprop->dz_NORMcf) && wf->TRPsoilw[CFlayer] > 0)
 	{
 		soilwAVAIL_NORMcf = MAX(0, sprop->soilw_NORMcf - sprop->VWCwp[CFlayer] * sprop->dz_NORMcf * water_density);
 		soilwAVAIL_CAPILcf = MAX(0, sprop->soilw_CAPILcf - sprop->VWCwp[CFlayer] * sprop->dz_CAPILcf * water_density);
 
-		if (soilwAVAIL_CAPILcf)
+		if (soilwAVAIL_NORMcf+soilwAVAIL_CAPILcf)
 		{
 			ratioNORM = soilwAVAIL_NORMcf / (soilwAVAIL_NORMcf + soilwAVAIL_CAPILcf);
 			ratioCAPIL = soilwAVAIL_CAPILcf / (soilwAVAIL_NORMcf + soilwAVAIL_CAPILcf);

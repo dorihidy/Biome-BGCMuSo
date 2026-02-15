@@ -55,39 +55,39 @@ int scc_init(file init, climchange_struct* scc)
 	if (!errorCode && scan_value(init, &scc->s_Tmin, 'd'))
 	{
 		printf("ERROR reading scalar for Tmin, scc_init.c\n");
-		errorCode=21401;
+		errorCode=21402;
 	}
 	if (!errorCode && scan_value(init, &scc->s_prcp, 'd'))
 	{
 		printf("ERROR reading scalar for prcp, scc_init.c\n");
-		errorCode=21401;
+		errorCode=21403;
 	}
 	if (!errorCode && scan_value(init, &scc->s_vpd, 'd'))
 	{
 		printf("ERROR reading scalar for vpd, scc_init.c\n");
-		errorCode=21401;
+		errorCode=21404;
 	}
 	if (!errorCode && scan_value(init, &scc->s_swavgfd, 'd'))
 	{
 		printf("ERROR reading scalar for swavgfd, scc_init.c\n");
-		errorCode=21401;
+		errorCode=21405;
 	}
 	
 	/* some error checking on scalar climate change values */
 	if (scc->s_prcp < 0.0)
 	{
 		printf("ERROR in scc_init.c: prcp scalar must be positive\n");
-		errorCode=21401;
+		errorCode=21403;
 	}
 	if (scc->s_vpd < 0.0)
 	{
 		printf("ERROR in scc_init.c: vpd scalar must be positive\n");
-		errorCode=21401;
+		errorCode=21404;
 	}
 	if (scc->s_swavgfd < 0.0)
 	{
 		printf("ERROR in scc_init.c: swavgfd scalar must be positive\n");
-		errorCode=21401;
+		errorCode=21405;
 	}
 
 	return (errorCode);

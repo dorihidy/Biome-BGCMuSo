@@ -4,7 +4,7 @@ do fertilization  - increase the mineral soil nitrogen (sminn)
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -50,17 +50,8 @@ int fertilizing(const control_struct* ctrl, const siteconst_struct* sitec, soilp
 
 	int md, year, dm, GWlayer, CFlayer;
 
-	/* 0. Initialization of local variables */
-	for (layer = 0; layer < N_SOILLAYERS; layer++)
-	{ 
-		for (dm = 0; dm < N_DISSOLVMATER; dm++)
-		{
-			 soilInfo->dismatTOTALfertil[dm][layer] = 0;
-			 if (dm < N_DISSOLVorgN) soilInfo->FRZ_to_litrN[dm][layer] = 0;
-		}
-	}
-	GWlayer = (int)sprop->GWlayer;
-	CFlayer = (int)sprop->CFlayer;
+	/*----------------------------------------------------------------------------------------------------------*/
+	/* I. Initialization of local variables */
 
 	year = ctrl->simstartyear + ctrl->simyr;
 	md = FRZ->mgmdFRZ-1;
@@ -68,8 +59,12 @@ int fertilizing(const control_struct* ctrl, const siteconst_struct* sitec, soilp
 	FRZ_to_litrc=FRZ_to_litrn=ratio=ratioSUM=0;
 	ha_to_m2 = 1./10000;
 
-	/* meg kell csnálni az urea-t*/
-	/* On management days fertilizer is put on the field */
+
+	GWlayer = (int)sprop->GWlayer;
+	CFlayer = (int)sprop->CFlayer;
+
+	/*----------------------------------------------------------------------------------------------------------*/
+	/* II. On management days fertilizer is put on the field */
 	if (FRZ->FRZ_num && md >= 0)
 	{
 		if (year == FRZ->FRZyear_array[md] && ctrl->month == FRZ->FRZmonth_array[md] && ctrl->day == FRZ->FRZday_array[md]) 
@@ -200,22 +195,25 @@ int fertilizing(const control_struct* ctrl, const siteconst_struct* sitec, soilp
 				ns->NH4[layer]  += nf->FRZ_to_NH4 * ratio;
 				ns->NO3[layer]  += nf->FRZ_to_NO3 * ratio;
 
+				/* NH4 and NO3 from fertilization are in dissolved state */
+				soilInfo->contentDISSOLV_soil[0][layer] += nf->FRZ_to_NH4 * ratio;
+				soilInfo->contentDISSOLV_soil[1][layer] += nf->FRZ_to_NO3 * ratio;
+				soilInfo->content_soil[0][layer] = soilInfo->contentBOUND_soil[0][layer] + soilInfo->contentDISSOLV_soil[0][layer];
+				soilInfo->content_soil[1][layer] = soilInfo->contentBOUND_soil[1][layer] + soilInfo->contentDISSOLV_soil[1][layer];
+
 				soilInfo->dismatTOTALfertil[0][layer] = nf->FRZ_to_NH4 * ratio;
 				soilInfo->dismatTOTALfertil[1][layer] = nf->FRZ_to_NO3 * ratio;
+				soilInfo->dismatTOTALfertil[2][layer] = nf->FRZ_to_litr1n * ratio;
+				soilInfo->dismatTOTALfertil[3][layer] = nf->FRZ_to_litr2n * ratio;
+				soilInfo->dismatTOTALfertil[4][layer] = nf->FRZ_to_litr3n * ratio;
+				soilInfo->dismatTOTALfertil[5][layer] = nf->FRZ_to_litr4n * ratio;
+				soilInfo->dismatTOTALfertil[6][layer] = cf->FRZ_to_litr1c * ratio;
+				soilInfo->dismatTOTALfertil[7][layer] = cf->FRZ_to_litr2c * ratio;
+				soilInfo->dismatTOTALfertil[8][layer] = cf->FRZ_to_litr3c * ratio;
+				soilInfo->dismatTOTALfertil[9][layer] = cf->FRZ_to_litr4c * ratio;
 
-				soilInfo->FRZ_to_litrN[0][layer] = nf->FRZ_to_litr1n * ratio;
-				soilInfo->FRZ_to_litrN[1][layer] = nf->FRZ_to_litr2n * ratio;
-				soilInfo->FRZ_to_litrN[2][layer] = nf->FRZ_to_litr3n * ratio;
-				soilInfo->FRZ_to_litrN[3][layer] = nf->FRZ_to_litr4n * ratio;
-				soilInfo->FRZ_to_litrC[0][layer] = cf->FRZ_to_litr1c * ratio;
-				soilInfo->FRZ_to_litrC[1][layer] = cf->FRZ_to_litr2c * ratio;
-				soilInfo->FRZ_to_litrC[2][layer] = cf->FRZ_to_litr3c * ratio;
-				soilInfo->FRZ_to_litrC[3][layer] = cf->FRZ_to_litr4c * ratio;
-
-				if (layer < GWlayer)
-				{
-					for (dm = 0; dm<N_DISSOLVinorgN; dm++) soilInfo->dismatUNSATfertil[dm][layer] = soilInfo->dismatTOTALfertil[dm][layer];
-				}
+				if (layer < GWlayer) for (dm = 0; dm< N_DISSOLVinorgN; dm++) soilInfo->dismatUNSATfertil[dm][layer] = soilInfo->dismatTOTALfertil[dm][layer];
+				 
 
 				/* water from fertilization -> soil layers, in case of oversaturation: pondw */	
 
@@ -231,7 +229,7 @@ int fertilizing(const control_struct* ctrl, const siteconst_struct* sitec, soilp
 
 				epv->VWC[layer] = ws->soilw[layer] / (water_density * sitec->soillayer_thickness[layer]);
 
-				/* filling of NORMgw and after CAPILgw with soilw[layer] - soilw_pre */
+				/* updateing of NORMcf and after CAPILcf with soilw[layer] - soilw_pre and  DISSOLV-DISSOLVpre */
 				if (layer == CFlayer && CFlayer != GWlayer)
 				{
 					soilw_sat = sprop->VWCsat[layer] * sprop->dz_NORMcf * water_density;
@@ -267,6 +265,7 @@ int fertilizing(const control_struct* ctrl, const siteconst_struct* sitec, soilp
 					sprop->soilw_CAPILgw += wf->FRZ_to_CAPIL[layer];
 					if (sprop->dz_NORMgw) sprop->VWC_NORMgw = sprop->soilw_NORMgw / sprop->dz_NORMgw / water_density;
 					if (sprop->dz_CAPILgw) sprop->VWC_CAPILgw = sprop->soilw_CAPILgw / sprop->dz_CAPILgw/ water_density;
+
 				}
 
 	
@@ -289,26 +288,23 @@ int fertilizing(const control_struct* ctrl, const siteconst_struct* sitec, soilp
 
 		} /* endif  */
 
-		/* transfer value: NH4, NO3, DOC, DON - > content_array  etc. */
-		if (!errorCode && check_soilcontent(-1, 0, sprop, cs, ns, soilInfo))
-		{
-			printf("ERROR in check_soilcontent.c for fertilizing.c\n");
-			errorCode = 1;
-		}
 
 		if (sprop->GWlayer != DATA_GAP)
 		{
 
 			/* in unsat CF layer is avaialbe */
-			if (sprop->dz_CAPILcf)
+			if (sprop->dz_CAPILcf + sprop->dz_NORMcf)
 			{
 				for (dm = 0; dm < N_DISSOLVinorgN; dm++)
 				{
 					diffNORM = soilInfo->dismatTOTALfertil[dm][CFlayer] * sprop->ratioNORMcf;
 					diffCAPIL = soilInfo->dismatTOTALfertil[dm][CFlayer] * sprop->ratioCAPILcf;
 
-					soilInfo->content_NORMcf[dm] += diffNORM;
-					soilInfo->content_CAPILcf[dm] += diffCAPIL;
+					soilInfo->contentDISSOLV_NORMcf[dm]         += diffNORM;
+					soilInfo->contentDISSOLV_CAPILcf[dm]        += diffCAPIL;
+
+					soilInfo->content_NORMcf[dm] = soilInfo->contentBOUND_NORMcf[dm] + soilInfo->contentDISSOLV_NORMcf[dm];
+					soilInfo->content_CAPILcf[dm] = soilInfo->contentBOUND_CAPILcf[dm] + soilInfo->contentDISSOLV_CAPILcf[dm];
 				}
 			}
 			/* SAT zone: no soilInfo->dismatTOTALfertil is possible (constant conc) - covered by GW */
@@ -331,44 +327,52 @@ int fertilizing(const control_struct* ctrl, const siteconst_struct* sitec, soilp
 						diffCAPIL = soilInfo->dismatTOTALfertil[dm][layer] * ratioCAPIL;
 						diffSAT = soilInfo->dismatTOTALfertil[dm][layer] * ratioSAT;
 
-						soilInfo->content_NORMgw[dm] += diffNORM;
-						soilInfo->content_CAPILgw[dm] += diffCAPIL;
-						soilInfo->content_SATgw[dm] += diffSAT;
+						/* fertilization affects only the dissolved part of pools - except of SATgw, of which changes is covered by GW */
+						soilInfo->contentDISSOLV_NORMgw[dm]         += diffNORM;
+						soilInfo->contentDISSOLV_CAPILgw[dm]        += diffCAPIL;
 
-						
-						soilInfo->dismatGWfertil[dm][layer] = -1 * diffSAT;
-						soilInfo->content_soil[dm][GWlayer] += soilInfo->dismatGWfertil[dm][GWlayer];
+						soilInfo->content_NORMgw[dm] = soilInfo->contentBOUND_NORMgw[dm] + soilInfo->contentDISSOLV_NORMgw[dm];
+						soilInfo->content_CAPILgw[dm] = soilInfo->contentBOUND_CAPILgw[dm] + soilInfo->contentDISSOLV_CAPILgw[dm];
 
+						/* SATgw - dissolved part of dismatTOTALfertil is covered by GW */
+						soilInfo->dismatGWfertil[dm][layer]         = -1 * diffSAT;
+
+
+						/* change of UNSAT zone*/
 						soilInfo->dismatUNSATfertil[dm][layer] = diffNORM + diffCAPIL;
-
 						
 					}
 
 				}
 				else
 				{
-					/* below GWlayer - soilInfo->dismatTOTALfertil is covered by GW*/
-					for (dm = 0; dm < N_DISSOLVinorgN; dm++)
-					{
-						soilInfo->dismatGWfertil[dm][layer] = -1 * soilInfo->dismatTOTALfertil[dm][layer];
-						soilInfo->content_soil[dm][layer] += soilInfo->dismatGWfertil[dm][layer];
-					}
+					/* below GWlayer - dissolved part of dismatTOTALfertil is covered by GW */
+					for (dm = 0; dm < N_DISSOLVinorgN; dm++) soilInfo->dismatGWfertil[dm][layer] = -1 * soilInfo->dismatTOTALfertil[dm][layer];
+				}
+
+				for (dm = 0; dm < N_DISSOLVinorgN; dm++)
+				{ 
+					soilInfo->contentDISSOLV_soil[dm][layer] += soilInfo->dismatGWfertil[dm][layer];
+					soilInfo->content_soil[dm][layer] += soilInfo->dismatGWfertil[dm][layer];
+
+					if (dm == 0) ns->NH4[layer] = soilInfo->content_soil[dm][layer];
+					if (dm == 1) ns->NO3[layer] = soilInfo->content_soil[dm][layer];
 				}
 			}
-			/* src update*/
-			for (dm = 0; dm < N_DISSOLVinorgN; dm++)
-			{
-				for (layer = 0; layer < N_SOILLAYERS; layer++) ns->GWsrc_N += soilInfo->dismatGWfertil[dm][layer];
-			}
-
-			/* transfer value: content_array -> NH4, NO3, DOC, DON */
-			if (!errorCode && check_soilcontent(-1, 1, sprop, cs, ns, soilInfo))
-			{
-				printf("ERROR in check_soilcontent.c for fertilizing.c\n");
-				errorCode = 1;
-			}
 		}
-	
+
+		/* src update*/
+		for (dm = 0; dm < N_DISSOLVinorgN; dm++)
+		{
+			for (layer = 0; layer < N_SOILLAYERS; layer++) soilInfo->dismatGWfertilN_total += soilInfo->dismatGWfertil[dm][layer];
+		}
+
+		if (soilInfo->dismatGWfertilN_total > 0)
+			ns->GWsrc_N += soilInfo->dismatGWfertilN_total;
+		else
+			ns->GWsnk_N += -1 * soilInfo->dismatGWfertilN_total;
+
+			
 
 
 	}

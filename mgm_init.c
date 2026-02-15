@@ -6,7 +6,7 @@ read mgm file for pointbgc simulation
 Biome-BGCMuSo v7.0.
 Original code: Copyright 2000, Peter E. Thornton
 Numerical Terradynamic Simulation Group, The University of Montana, USA
-Modified code: Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Modified code: Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -42,11 +42,11 @@ int mgm_init(file init, control_struct* ctrl,
 	char keyword[STRINGSIZE];
 	char header[STRINGSIZE];
 
-	int mgm, PLTyday, HRVyday, GRZstart_yday,GRZend_yday,doy,leap;
+	int mgm, PLTyday, HRVyday, lastPLTyday, lastHRVyday, GRZstart_yday,GRZend_yday,doy,leap;
 	int* mondays=0;
 	int* enddays=0;
 
-
+	lastPLTyday = lastHRVyday = 0;
 	/********************************************************************
 	**                                                                 **
 	** Begin reading initialization file block starting with keyword:  **
@@ -259,10 +259,30 @@ int mgm_init(file init, control_struct* ctrl,
 
 				if (HRVyday <= PLTyday)
 				{
-					printf("ERROR in management data: PLANTING must be before HARVESTING date\n");
+					printf("ERROR in management data: PLANTING must be before HARVEST date\n");
 					errorCode=2100006;
 				}
 
+				if (PLTyday <= lastPLTyday)
+				{
+					printf("ERROR in management data: PLANTING dates must increase monotonically\n");
+					errorCode = 2100006;
+				}
+
+				if (PLTyday <= lastHRVyday)
+				{
+					printf("ERROR in management data: PLANTING date must be before HARVEST date\n");
+					errorCode = 2100006;
+				}
+
+				if (HRVyday <= lastHRVyday)
+				{
+					printf("ERROR in management data: HARVEST dates must increase monotonically\n");
+					errorCode = 2100006;
+				}
+
+				lastHRVyday = HRVyday;
+				lastPLTyday = PLTyday;
 
 			}
 		}

@@ -12,7 +12,7 @@ output files.
 Biome-BGCMuSo v7.0.
 Original code: Copyright 2000, Peter E. Thornton
 Numerical Terradynamic Simulation Group, The University of Montana, USA
-Modified code: Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Modified code: Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -162,7 +162,8 @@ int spinup_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 	FLS	= bgcin->FLS;		/* flooding variables */
 	GWS = bgcin->GWS;       /* groundwater variables */
 
-
+	/* management in spinup phase is not possible - management information set in spinup INI is used in transient phase */
+	PLT.PLT_num = 0;
 
 	/* temporal solution for spinup tolerance differentiate (woody vs non-woody) r */
 	if (epc.woody)
@@ -360,9 +361,8 @@ int spinup_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 		fprintf(bgcout->log_file.ptr, "MSC data - annual varying\n");
 		if (ctrl.onscreen) printf("INFORMATION: reading conductance file: annual varying MSC data\n");
 	}
-
-	if (PLT.PLT_num || THN.THN_num || MOW.MOW_num || GRZ.GRZ_num || HRV.HRV_num || PLG.PLG_num || FRZ.FRZ_num || IRG.IRG_num || 
-		ctrl.condIRG_flag || ctrl.condMOW_flag)
+ 
+	if (PLT.PLT_num || THN.THN_num || MOW.MOW_num || GRZ.GRZ_num || HRV.HRV_num || PLG.PLG_num || FRZ.FRZ_num || IRG.IRG_num || MUL.MUL_num || CWE.CWE_num || ctrl.condIRG_flag || ctrl.condMOW_flag)
 		fprintf(bgcout->log_file.ptr, "management  - YES (in transient phase)\n");
 	else
 		fprintf(bgcout->log_file.ptr, "management  - NO\n");
@@ -399,6 +399,7 @@ int spinup_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 	fprintf(bgcout->log_file.ptr, "drainage coefficient [prop]:           %14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f\n", sprop.drainCoeff[0], sprop.drainCoeff[1], sprop.drainCoeff[2], sprop.drainCoeff[3], sprop.drainCoeff[4], sprop.drainCoeff[5], sprop.drainCoeff[6], sprop.drainCoeff[7], sprop.drainCoeff[8], sprop.drainCoeff[9]);
 	fprintf(bgcout->log_file.ptr, "hydr. conduct. at saturation [m/day]:  %14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f\n", sprop.hydrCONDUCTsat[0] * nSEC_IN_DAY, sprop.hydrCONDUCTsat[1] * nSEC_IN_DAY, sprop.hydrCONDUCTsat[2] * nSEC_IN_DAY, sprop.hydrCONDUCTsat[3] * nSEC_IN_DAY, sprop.hydrCONDUCTsat[4] * nSEC_IN_DAY, sprop.hydrCONDUCTsat[5] * nSEC_IN_DAY, sprop.hydrCONDUCTsat[6] * nSEC_IN_DAY, sprop.hydrCONDUCTsat[7] * nSEC_IN_DAY, sprop.hydrCONDUCTsat[8] * nSEC_IN_DAY, sprop.hydrCONDUCTsat[9] * nSEC_IN_DAY);
 	fprintf(bgcout->log_file.ptr, "capillary fringe [m]:                  %14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f%14.3f\n", sprop.CapillFringe[0], sprop.CapillFringe[1], sprop.CapillFringe[2], sprop.CapillFringe[3], sprop.CapillFringe[4], sprop.CapillFringe[5], sprop.CapillFringe[6], sprop.CapillFringe[7], sprop.CapillFringe[8], sprop.CapillFringe[9]);
+	fprintf(bgcout->log_file.ptr, "limit of diffusivity [cm/day]:         %14.1f%14.1f%14.1f%14.1f%14.1f%14.1f%14.1f%14.1f%14.1f%14.1f\n", sprop.p3diffus[0], sprop.p3diffus[1], sprop.p3diffus[2], sprop.p3diffus[3], sprop.p3diffus[4], sprop.p3diffus[5], sprop.p3diffus[6], sprop.p3diffus[7], sprop.p3diffus[8], sprop.p3diffus[9]);
 	fprintf(bgcout->log_file.ptr, " \n");
 
 	/********************************************************************************************************* */
@@ -633,7 +634,7 @@ int spinup_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 			/* set current month to 0 (january) at the beginning of each year */
 			ctrl.curmonth = 0;
 
-	
+			/* deciding wether leap year of not */
 			if (!errorCode && leapControl(ctrl.simstartyear+simyr, enddays, mondays, &leap))
 			{
 				printf("ERROR in call to leapControl.c from spinup_bgc.c\n");
@@ -738,13 +739,13 @@ int spinup_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				}
 
 
-				/* setting MANAGEMENTdays based on input data */
+				/* setting MANAGEMENTdays based on input data 
 				if (!errorCode && management(&ctrl, &FRZ, &GRZ, &HRV, &MOW, &PLT, &PLG, &THN, &IRG, &MUL, &CWE, &FLS, &GWS, mondays))
 				{
 					printf("ERROR in management days.c from bgc.c\n");
 					errorCode = 503;
 				}
-
+				*/
 	
 				/* GROUNDWATER calculations */
 				if (!errorCode && groundwater_calculations(&ctrl, &sitec, &GWS, &sprop, &soilInfo, &epv, &ws, &wf, &cs, &ns))
@@ -1016,15 +1017,16 @@ int spinup_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				}
 			
 	
+
 		
 				/* calculate the leaching of N, DOC and DON from multilayer soil */
-				if (!errorCode && multilayer_leaching(&sprop, &soilInfo, &cs, &ns, &ws, &wf))
+				if (!errorCode && multilayer_leaching(&sitec, &sprop, &soilInfo, &cs, &ns, &ws, &wf))
 				{
 					printf("ERROR in multilayer_leaching.c from spinup_bgc.c\n");
 					errorCode=532;
 				}
 
-				/* calculate summary variables */
+				/* estimate above- and belowground litter */
 				if (!errorCode && aboveANDbelow(&sprop, &epv, &cs, &cf))
 				{
 					printf("ERROR in aboveANDbelow.c from bgc.c\n");
@@ -1044,7 +1046,7 @@ int spinup_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 				/* 6. ERROR CHECKING AND SUMMARY VARIABLES  */
 			
 				/* test for very low state variable values and force them to 0.0 to avoid rounding and floating point overflow errors */
-				if (!errorCode && precision_control(&ws, &cs, &ns, &sprop, &soilInfo))
+				if (!errorCode && precision_control(&ctrl, &sprop, &ws, &cs, &ns, &soilInfo))
 				{
 					printf("ERROR in call to precision_control.c from spinup_bgc.c\n");
 					errorCode=545;
@@ -1268,7 +1270,7 @@ int spinup_bgc(bgcin_struct* bgcin, bgcout_struct* bgcout)
 	fprintf(bgcout->log_file.ptr, "Soil carbon content (in 0-30 cm soil layer) [%%]:         %12.2f\n",summary.SOCpercent_top30);
 	fprintf(bgcout->log_file.ptr, "Total litter carbon content [kgC/m2/year]:               %12.2f\n",summary.litrC_total);
 	fprintf(bgcout->log_file.ptr, "Total soil carbon content [kgC/m2/year]:                 %12.2f\n",summary.soilC_total);
-	fprintf(bgcout->log_file.ptr, "Total stable soil carbon content [kgC/m2/year]:          %12.2f\n",cs.soil4c_total);
+	fprintf(bgcout->log_file.ptr, "Total stable soil carbon content [kgC/m2]     :          %12.2f\n",cs.soil4c_total);
 	fprintf(bgcout->log_file.ptr, "Averaged available soil ammonium content (0-30 cm) [ppm]:%12.2f\n",summary.NH4ppmAVAIL_top30);
 	fprintf(bgcout->log_file.ptr, "Averaged available soil nitrate content (0-30 cm) [ppm]: %12.2f\n",summary.NO3ppmAVAIL_top30);
 	fprintf(bgcout->log_file.ptr, "Averaged soil water content  [m3/m3]:                    %12.2f\n",epv.VWC_avg);

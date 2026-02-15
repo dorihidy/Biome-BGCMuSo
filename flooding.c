@@ -4,7 +4,7 @@ Calculate the effect of flooding (water, NH4 and NO3 from river)
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -47,10 +47,19 @@ int flooding(control_struct* ctrl, const siteconst_struct* sitec, const flooding
 	
 		if (year == FLS->FLstart_year_array[md] && ctrl->yday >= FLyday_start && ctrl->yday <= FLyday_end) 
 		{	
+
+
+			/* firsttime_flag=0 (before calculation note initial values, partlyORtotal_flag=1 (TOTAL (BOUND+DISSOLV) is affected  */
+			if (!errorCode && calc_DISSOLVandBOUND(0, 1, sprop, soilInfo))
+			{
+				printf("ERROR in calc_DISSOLVandBOUND.c for flooding.c\n");
+				errorCode = 1;
+			}
+
 			sprop->FLD = FLS->FLheight_array[md];
 
 			/* concentration of GW - from file or from contant value of MuSo */
-			if (!errorCode && flooding_concentration(md, FLS, soilInfo, ws, cs, ns))
+			if (!errorCode && flooding_concentration(md, FLS, soilInfo, ws))
 			{
 				printf("\n");
 				printf("ERROR in flooding_concentration.c for flooding.c\n");
@@ -70,7 +79,7 @@ int flooding(control_struct* ctrl, const siteconst_struct* sitec, const flooding
 					for (dm = 0; dm < N_DISSOLVMATER; dm++)
 					{
 						material_fromFL[dm]              = soilInfo->FLconc[dm] * FL_to_soilw;
-						soilInfo->content_soil[dm][layer] += material_fromFL[dm];
+						soilInfo->contentDISSOLV_soil[dm][layer] += material_fromFL[dm];
 					}
 				
 
@@ -116,6 +125,14 @@ int flooding(control_struct* ctrl, const siteconst_struct* sitec, const flooding
 				wf->pondw_to_runoff += ws->pondw - sprop->FLD;
 				ws->pondw             = sprop->FLD;
 			}
+
+			/*---------------------------------------------------------------------------------*/
+			/*  firsttime_flag=1 (after calculation note initial values, int partlyORtotal_flag=1 (TOTAL (BOUND+DISSOLV) is affected  */
+			if (!errorCode && calc_DISSOLVandBOUND(1, 0, sprop, soilInfo))
+			{
+				printf("ERROR in calc_DISSOLVandBOUND.c for flooding.c\n");
+				errorCode = 1;
+			}
 		}
 		else
 		{
@@ -133,27 +150,17 @@ int flooding(control_struct* ctrl, const siteconst_struct* sitec, const flooding
 	return (errorCode);
 }
 
-int flooding_concentration(int md, const flooding_struct* FLS, soilInfo_struct* soilInfo, wstate_struct* ws, cstate_struct* cs, nstate_struct* ns)
+int flooding_concentration(int md, const flooding_struct* FLS, soilInfo_struct* soilInfo, wstate_struct* ws)
 {
 	int dm, FLlayer;
 	int errorCode = 0;
 	double FLconc_fromFILE[N_DISSOLVMATER];
-	double soilconc_array[N_DISSOLVMATER];
+
 
 	FLlayer = 0;
 
 	/* calculation of soil concentration */
 
-	soilconc_array[0] = (ns->NH4[FLlayer] * soilInfo->dissolv_prop[0]) / ws->soilw[FLlayer];
-	soilconc_array[1] = (ns->NO3[FLlayer] * soilInfo->dissolv_prop[1]) / ws->soilw[FLlayer];
-	soilconc_array[2] = (ns->soil1n[FLlayer] * soilInfo->dissolv_prop[2]) / ws->soilw[FLlayer];
-	soilconc_array[3] = (ns->soil2n[FLlayer] * soilInfo->dissolv_prop[3]) / ws->soilw[FLlayer];
-	soilconc_array[4] = (ns->soil3n[FLlayer] * soilInfo->dissolv_prop[4]) / ws->soilw[FLlayer];
-	soilconc_array[5] = (ns->soil4n[FLlayer] * soilInfo->dissolv_prop[5]) / ws->soilw[FLlayer];
-	soilconc_array[6] = (cs->soil1c[FLlayer] * soilInfo->dissolv_prop[6]) / ws->soilw[FLlayer];
-	soilconc_array[7] = (cs->soil2c[FLlayer] * soilInfo->dissolv_prop[7]) / ws->soilw[FLlayer];
-	soilconc_array[8] = (cs->soil3c[FLlayer] * soilInfo->dissolv_prop[8]) / ws->soilw[FLlayer];
-	soilconc_array[9] = (cs->soil4c[FLlayer] * soilInfo->dissolv_prop[9]) / ws->soilw[FLlayer];
 
 	FLconc_fromFILE[0] = FLS->FL_NH4ppm_array[md] * 1e-6;
 	FLconc_fromFILE[1] = FLS->FL_NO3ppm_array[md] * 1e-6;
@@ -172,7 +179,7 @@ int flooding_concentration(int md, const flooding_struct* FLS, soilInfo_struct* 
 		if (FLconc_fromFILE[dm] >= 0)
 			soilInfo->FLconc[dm] = FLconc_fromFILE[dm];
 		else
-			soilInfo->FLconc[dm] = soilconc_array[dm];
+			soilInfo->FLconc[dm] = soilInfo->contentDISSOLV_soil[dm][FLlayer] / ws->soilw[FLlayer];;
 	}
 
 

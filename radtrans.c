@@ -1,14 +1,12 @@
 /* 
 radtrans.c
-calculate leaf area index, sun and shade fractions, and specific
-leaf area for sun and shade canopy fractions, then calculate
-canopy radiation interception and transmission 
+calculate leaf area index, sun and shade fractions, and specific leaf area for sun and shade canopy fractions, then calculate canopy radiation interception and transmission 
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
 Original code: Copyright 2000, Peter E. Thornton
 Numerical Terradynamic Simulation Group, The University of Montana, USA
-Modified code: Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Modified code: Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -91,9 +89,26 @@ int radtrans(const control_struct* ctrl, const phenology_struct* phen, const cst
 		epv->allLAI = epv->projLAI * epc->lai_ratio;
 		epv->SLA_avg = SLA_avg;
 
-		/* Calculate projected LAI for sunlit and shaded canopy portions */
-		epv->plaisun = 1.0 - exp(-epv->projLAI);
-		epv->plaishade = epv->projLAI - epv->plaisun;
+		/* Calculate projected LAI for sunlit and shaded canopy portions  - avoid numeric error in exp function (only used if leafc is greater than a CRIT_PREC value */
+		if (cs->leafc)
+		{ 
+			if (cs->leafc > CRIT_PREC_lenient)
+			{
+				epv->plaisun = 1.0 - exp(-epv->projLAI);
+				epv->plaishade = epv->projLAI - epv->plaisun;
+			}
+			else
+			{
+				epv->plaisun = 0.5 * epv->projLAI;
+				epv->plaishade = 0.5 * epv->projLAI;
+			}
+		}
+		else
+		{
+			epv->plaisun = 0;
+			epv->plaishade = 0;
+		}
+
 		if (epv->plaishade < 0.0)
 		{
 			printf("\n");

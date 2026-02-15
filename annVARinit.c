@@ -4,7 +4,7 @@ initalization of annual, cumulative variables on first day of every simulation y
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -56,6 +56,7 @@ int annVARinit(summary_struct* summary, epvar_struct* epv, cstate_struct* cs, ws
 	summary->cumAR = 0.0;
 	summary->cumTR  = 0;
 	summary->cumSR  = 0;
+	summary->cumNflux = 0;
 	summary->cumN2Oflux  = 0;
 	summary->cumN2OfluxCeq = 0;
 	summary->cumCH4fluxCeq = 0;
@@ -66,6 +67,7 @@ int annVARinit(summary_struct* summary, epvar_struct* epv, cstate_struct* cs, ws
 	summary->cumCloss_THN_w = 0;
 	summary->cumCloss_THN_nw = 0;
 	summary->cumCloss_MOW  = 0;
+	summary->cumCloss_SNSC = 0;
 
 	summary->cumCloss_GRZ  = 0;
 	summary->cumCplus_GRZ  = 0;
@@ -84,12 +86,13 @@ int annVARinit(summary_struct* summary, epvar_struct* epv, cstate_struct* cs, ws
 	summary->cumNplus_FRZ_org = 0;
 	summary->cumNplus_FRZ_NH4 = 0;
 	summary->cumNplus_FRZ_NO3 = 0;
-	summary->cumCloss_SNSC  = 0;
 	summary->cumCplus_STDB  = 0;
 	summary->cumCplus_CTDB  = 0;
 	summary->cumEVPsurface  = 0;
 	summary->cumETcanopy  = 0;
 	summary->cumET  = 0;
+	summary->cumIMMOBflux_RZ = 0;
+	summary->cumNdemand = 0;
 	
 	summary->cumMRdeficit_NSC  = 0;
 	summary->cumMRdeficit_SC   = 0;
@@ -127,13 +130,15 @@ int annVARinit(summary_struct* summary, epvar_struct* epv, cstate_struct* cs, ws
 	epv->annmax_livecrootc = 0;
 
 
-	summary->cumUNSATchangeGW_orgN= 0;
+
 	summary->cumUNSATplantUPto_orgN = 0;
 	summary->cumUNSATecofunc_orgN = 0;
 	summary->cumUNSATfertil_orgN = 0;
 	summary->cumUNSATdischarge_orgN = 0;
 	summary->cumUNSATrecharge_orgN = 0;
 
+	summary->cumTOTALchangeGW_NH4 = 0;
+	summary->cumTOTALchangeGW_NO3 = 0;
 	summary->cumTOTALchangeGW_orgN = 0;
 	summary->cumTOTALplantUPto_orgN = 0;
 	summary->cumTOTALecofunc_orgN = 0;
@@ -141,8 +146,6 @@ int annVARinit(summary_struct* summary, epvar_struct* epv, cstate_struct* cs, ws
 	summary->cumTOTALdischarge_orgN = 0;
 	summary->cumTOTALrecharge_orgN = 0;
 
-	summary->cumUNSATchangeGW_NH4 = 0;
-	summary->cumUNSATchangeGW_NO3 = 0;
 	summary->cumUNSATecofunc_NH4= 0;
 	summary->cumUNSATecofunc_NO3= 0;
 	summary->cumUNSATfertil_NH4= 0;
@@ -174,6 +177,15 @@ int annVARinit(summary_struct* summary, epvar_struct* epv, cstate_struct* cs, ws
 	summary->cumPETcanopy = 0;
 	summary->cumPETsurface = 0;
 	summary->cumFLsoilw = 0;
+	summary->cumGWrecharge_NH4 = 0;
+	summary->cumGWrecharge_NO3 = 0;
+	summary->cumGWdischarge_NH4 = 0;
+	summary->cumGWdischarge_NO3 = 0;
+	summary->cumGWdischarge_orgN = 0;
+	summary->cumGWbalance = 0;
+	summary->cumGWbalance_NH4 = 0;
+	summary->cumGWbalance_NO3 = 0;
+	summary->cumGWbalance_orgN = 0;
 
 
 	return (errorCode);

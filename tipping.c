@@ -1,10 +1,10 @@
  /*
 tipping.c
-Calculation of percolation and diffusion fluxes (optionally GWdischarge)
+Calculation of percolation fluxes in normal (non affected by GW) layers
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -22,25 +22,26 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
-int tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf)
+int tipping(const control_struct* ctrl, siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, wstate_struct* ws, wflux_struct* wf)
 {
 
 	int errorCode = 0;
-	int layer, ll, N_NAGlayers;
+	int layer, ll, N_NAGlayers, rain_flag;
 
-	double VWC, soilw_sat1, soilw1;
-	double INFILT, conduct_cmday, conductSAT_cmday;
+	double VWC, soilw_sat1, soilw1, soilB;
+	double INFILT, conductSAT_cmday;
 	double VWCsat, VWCfc, dz0, dz1, dz0_cm, HOLD;
 
 	double DC, DRN, EXCESS, VWCnew, soilw0;
 
 	/* tipping is used only for layers without GW */
-	if (sprop->GWD == DATA_GAP)
+	if (sprop->CFlayer == DATA_GAP)
 		N_NAGlayers = N_SOILLAYERS;
 	else
 		N_NAGlayers = (int) sprop->CFlayer;
 
-	
+
+
 	/* --------------------------------------------------------------------------------------------------------------------*/
 	/* 1.PERCOLATION */
 
@@ -61,13 +62,14 @@ int tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, 
 		dz0_cm = dz0 * m_to_cm;
 
 		DC = sprop->drainCoeff[layer];
+		soilB = sprop->soilB[layer];
+		rain_flag = ctrl->rain_flag[layer];
 
 		/* hydraulic conductivity in actual layer (cm/day = m/s * 100 * sec/day) */
 		conductSAT_cmday = sprop->hydrCONDUCTsat[layer] * m_to_cm * nSEC_IN_DAY;
-		conduct_cmday = conductSAT_cmday;
 
 
-		if (!errorCode && calc_drainage(wf->flagRAIN, INFILT, VWC, VWCsat, VWCfc, dz0_cm, DC, conduct_cmday, &DRN, &EXCESS, &VWCnew))
+		if (!errorCode && calc_drainage(rain_flag, soilB, INFILT, VWC, VWCsat, VWCfc, dz0_cm, DC, conductSAT_cmday, &DRN, &EXCESS, &VWCnew))
 		{
 			printf("\n");
 			printf("ERROR calc_drainage.c for tipping.c\n");
@@ -93,7 +95,7 @@ int tipping(siteconst_struct* sitec, soilprop_struct* sprop, epvar_struct* epv, 
 		INFILT = DRN;
 
 		/* if there is excess water, redistribute it in layers above */
-		if (EXCESS > CRIT_PREC_lenient)
+		if (EXCESS > 0)
 		{
 			for (ll = layer - 1; ll >= 0; ll--)
 			{

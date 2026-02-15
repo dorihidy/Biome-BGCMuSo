@@ -4,7 +4,7 @@ read flooding depth information if it is available
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -98,7 +98,7 @@ int flooding_init(flooding_struct* FLS, control_struct* ctrl)
 			if (!enddays)
 			{
 				printf("ERROR allocating for enddays in bgc.c\n");
-				errorCode=1;
+				errorCode=220;
 			}
 		}
 
@@ -108,7 +108,7 @@ int flooding_init(flooding_struct* FLS, control_struct* ctrl)
 			if (!mondays)
 			{
 				printf("ERROR allocating for enddays in bgc.c\n");
-				errorCode=1;
+				errorCode=220;
 			}
 		}
 
@@ -169,25 +169,25 @@ int flooding_init(flooding_struct* FLS, control_struct* ctrl)
 				if (!errorCode && leapControl(FLstart_year_array[ndata], enddays, mondays, &leap))
 				{
 					printf("ERROR in call to leapControl.c from flooding_init.c\n");
-					errorCode=1;
+					errorCode=220;
 				}
 				if (leap == 1 && FLstart_month_array[ndata] == 12 && FLstart_day_array[ndata] == 31)
 				{
 					printf("ERROR in flooding date in flooding_init.c: data from 31 December in a leap year is found in flooding file\n");
 					printf("Please read the manual and modify the input data\n");
-					errorCode=1;
+					errorCode=220;
 				}
 
 				if (!errorCode && leapControl(FLend_year_array[ndata], enddays, mondays, &leap))
 				{
 					printf("ERROR in call to leapControl.c from flooding_init.c\n");
-					errorCode=1;
+					errorCode=220;
 				}
 				if (leap == 1 && FLend_month_array[ndata] == 12 && FLend_day_array[ndata] == 31)
 				{
 					printf("ERROR in flooding date in flooding_init.c: data from 31 December in a leap year is found in flooding file\n");
 					printf("Please read the manual and modify the input data\n");
-					errorCode=1;
+					errorCode=220;
 				}
 
                 nmgm += 1;
@@ -242,7 +242,7 @@ int flooding_init(flooding_struct* FLS, control_struct* ctrl)
 		if (nmgm > maxFLnum)
 		{
 			printf("ERROR in flooding data reading flooding_init.c\n");
-			errorCode=1;
+			errorCode=220;
 		}
 
 		/* read year and FLD for each simday in each simyear */

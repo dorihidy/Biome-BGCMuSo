@@ -7,7 +7,7 @@ variables in bgc
 Biome-BGCMuSo v7.0.
 Original code: Copyright 2000, Peter E. Thornton
 Numerical Terradynamic Simulation Group, The University of Montana, USA
-Modified code: Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Modified code: Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -275,7 +275,7 @@ int output_map_init(double** output_map, phenology_struct* phen, metvar_struct* 
         output_map[272] = &wf->soilwDiffus_aboveGWlayer_vs_CAPILgw; //%"Soil water diffusion flux between above-GWlayer and CAPIL zone of GWlayer" $\\left[\\kg_{H_{2}O}m^{-2}day^{-1}} \\right]$
         output_map[273] = &wf->soilwDiffusNORMcf; //%"Soil water diffusion flux of NORM zone in CFlayer" $\\left[\\kg_{H_{2}O}m^{-2}day^{-1}} \\right]$
         output_map[274] = &wf->soilwDiffusCAPILcf; //%"Soil water diffusion flux of CAPIL zone in CFlayer" $\\left[\\kg_{H_{2}O}m^{-2}day^{-1}} \\right]$
-        output_map[275] = &wf->soilwDiffus_aboveCFlayer_vs_NORMcf;  //%"Soil water diffusion flux between above-CFlayer and NORM zone of CFlayer" $\\left[\\kg_{H_{2}O}m^{-2}day^{-1}} \\right]$
+        output_map[275] = &wf->soilwDiffus_aboveCFlayer_vs_NORMcf;  //%"Soil water diffusion fluxF between above-CFlayer and NORM zone of CFlayer" $\\left[\\kg_{H_{2}O}m^{-2}day^{-1}} \\right]$
         output_map[276] = &wf->soilwDiffus_aboveCFlayer_vs_CAPILcf; //%"Soil water diffusion flux between above-CFlayer and CAPIL zone of CFlayer" $\\left[\\kg_{H_{2}O}m^{-2}day^{-1}} \\right]$
         output_map[277] = &wf->soilwPercolDiffus_fromNORM_total; //%"Soil percolation-diffusion mixed flux between NORM zone of CFlayer and non-saturated CF-layers" $\\left[\\kg_{H_{2}O}m^{-2}day^{-1}} \\right]$
         output_map[278] = &wf->GWmovchange; //%"Total soil water change due to the movement of groundwater table" $\\left[\\kg_{H_{2}O}m^{-2}day^{-1}} \\right]$ "Talajvíz mozgásából származó összesített talajnedvesség-változás" $\\left[\\kg_{H_{2}O}m^{-2}nap^{-1}} \\right]$ "Soil water change due to the movement of groundwater table in soil layer 1 (0-3 cm)" %
@@ -1699,7 +1699,7 @@ int output_map_init(double** output_map, phenology_struct* phen, metvar_struct* 
         output_map[2148] = &nf->nfix_to_NH4[7]; //%"N-fixation to NH4 pool in soil layer 8 (150-200 cm)" $\\left[\\kg_{N}m^{-2 }day^{-1} \\right]$ "Nitrogénfluxus a talaj ásványi NH4-bol az átmeneti növényi N tározóba a 8. talajrétegben (150-200 cm)" $\\left[\\kg_{N}m^{-2 }nap{^-1} \\right]$ "NitrogeN-fixation to NH4 pool in soil layer 8 (150-200 cm)" %
         output_map[2149] = &nf->nfix_to_NH4[8]; //%"N-fixation to NH4 pool in soil layer 9 (200-400 cm)" $\\left[\\kg_{N}m^{-2 }day^{-1} \\right]$ "Nitrogénfluxus a talaj ásványi NH4-bol az átmeneti növényi N tározóba a 9. talajrétegben (200-400 cm)" $\\left[\\kg_{N}m^{-2 }nap{^-1} \\right]$ "NitrogeN-fixation to NH4 pool in soil layer 9 (200-400 cm)" %
         output_map[2150] = &nf->nfix_to_NH4[9]; //%"N-fixation to NH4 pool in soil layer 10 (400-1000 cm)" $\\left[\\kg_{N}m^{-2 }day^{-1} \\right]$ "Nitrogénfluxus a talaj ásványi NH4-bol az átmeneti növényi N tározóba a 10. talajrétegben (400-1000 cm)" $\\left[\\kg_{N}m^{-2 }nap{^-1} \\right]$ "NitrogeN-fixation to NH4 pool in soil layer 10 (400-1000 cm)" %
-
+    
     	output_map[2213] = &nf->grossMINERflux[0]; //%"Gross mineralization flux in soil layer 1 (0-3 cm)" $\\left[\\kg_{N}m^{-2} \\right]$ "Bruttó mineralizációs fluxus az 1. talajrétegben (0-3 cm)" $\\left[\\kg_{N}m^{-2} \\right]$ "Gross mineralization flux  in soil layer 1 (0-3 cm)" %
 		output_map[2214] = &nf->grossMINERflux[1]; //%"Gross mineralization flux  in soil layer 2 (3-10 cm)" $\\left[\\kg_{N}m^{-2} \\right]$ "Bruttó mineralizációs fluxus az 2. talajrétegben (3-10 cm)" $\\left[\\kg_{N}m^{-2} \\right]$ "Gross mineralization flux   in soil layer 2 (3-10 cm)" %
 		output_map[2215] = &nf->grossMINERflux[2]; //%"Gross mineralization in soil layer 3 (10-30 cm)" $\\left[\\kg_{N}m^{-2} \\right]$ "Bruttó mineralizációs fluxus a 3. talajrétegben (10-30 cm)" $\\left[\\kg_{N}m^{-2} \\right]$ "Gross mineralization flux  in soil layer 3 (10-360 cm)" %
@@ -2578,7 +2578,9 @@ int output_map_init(double** output_map, phenology_struct* phen, metvar_struct* 
         output_map[3122] = &summary->rootIndex; //%" Ratio of fine root C content and vegetation C content on harvest day" $\\left[\\dimless\\right]$ "A finomgyökérzet és a vegetáció széntartalmának aránya az aratás napján" $\\left[\\dimless\\right]$ "Ratio of fine root C content and vegetation C content on harvest day" %
         output_map[3123] = &summary->litrCwdC_total; //%"Total Litter and cwdc C content" $\\left[\\kg_{N}m^{-2} \\right]$ "Az elhalt szerves anyag széntartalma a teljes talajban" $\\left[\\kg_{N}m^{-2} \\right]$ "Total Litter and cwdc C content" %
         output_map[3124] = &summary->litrCwdN_total; //%"Total litter and cwdc N content" $\\left[\\kg_{C}m^{-2} \\right]$ "Az elhalt szerves anyag nitrogéntartalma a teljes talajban" $\\left[\\kg_{C}m^{-2} \\right]$ "Total litter and cwdc N content" %
-
+        output_map[3125] = &summary->cumIMMOBflux_RZ; //%"cumulative immobilization flux (sminN_to_soil) in rootzone" $\\left[\\kg_{N}m^{-2} \\right]$ 
+        output_map[3126] = &summary->cumNdemand; //%"cumulative plant N demand" $\\left[\\kg_{N}m^{-2} \\right]$ 
+        output_map[3127] = &summary->cumNflux; //%"Cumulative annual SUM N2 flux" $\\left[\\kg_{N}m^{-2} \\right]$ "N2 fluxus kumulatív éves összege" $\\left[\\kg_{N}m^{-2} \\right]$ "Cumulative annual SUM N2 flux" %
         output_map[3128] = &summary->belowground_ratio; //%"Ratio of root to vegetation C content" $\\left[\\dimless\\right]$ "A gyökérzet és a vegetáció széntartalmának aránya" $\\left[\\dimless\\right]$ "Ratio of root C content and vegetation C content" %
 		output_map[3129] = &summary->cumCH4flux; //%"Cumulative annual SUM of total CH4 flux" $\\left[\\kg_{C}m^{-2} \\right]$ "CH4 fluxus kumulatív éves összege" $\\left[\\kg_{C}m^{-2} \\right]$ "Cumulative annual SUM of CH4 flux" %
    		output_map[3130] = &summary->cumNBP; //%"Cumulative annual SUM of NBP" $\\left[\\kg_{C}m^{-2}\\right]$ "Nettó biomassza produkció kumulatív éves összege" $\\left[\\kg_{C}m^{-2} \\right]$ "Cumulative annual SUM of NBP" %
@@ -2680,13 +2682,27 @@ int output_map_init(double** output_map, phenology_struct* phen, metvar_struct* 
         output_map[3226] = &summary->orgN_ppm[7]; //%"Soil orgN-N content in ppm of soil layer 8 (150-200 cm)" $\\left[\\ppm \\right]$ "Talaj orgN tartalom ppm-ben a 8. talajrétegben (150-200 cm)" $\\left[\\ppm \\right]$ "Soil orgN-N content in ppm of soil layer 8 (150-200 cm)" %
         output_map[3227] = &summary->orgN_ppm[8]; //%"Soil orgN-N content in ppm of soil layer 9 (200-400 cm)" $\\left[\\ppm \\right]$ "Talaj orgN tartalom ppm-ben az 9. talajrétegben (200-400 cm)" $\\left[\\ppm \\right]$ "Soil orgN-N content in ppm of soil layer 9 (200-400 cm)" %
         output_map[3228] = &summary->orgN_ppm[9]; //%"Soil orgN-N content in ppm of soil layer 10 (400-1000 cm)" $\\left[\\ppm \\right]$ "Talaj orgN tartalom ppm-ben a 10. talajrétegben (400-1000 cm)" $\\left[\\ppm \\right]$ "Soil orgN-N content in ppm of soil layer 10 (400-1000 cm)" %
-        output_map[3229] = &summary->GWdischarge_NH4;  //%"NH4-discharge" $\\left[\\kg_{N}m^{-2}day^{-1}\\right]$ 
-        output_map[3230] = &summary->GWdischarge_NO3;  //%"NO3-discharge" $\\left[\\kg_{N}m^{-2}day^{-1}\\right]$ 
-        output_map[3231] = &summary->GWdischarge_orgN;  //%"orgN-discharge" $\\left[\\kg_{N}m^{-2}day^{-1}\\right]$ 
-        output_map[3232] = &summary->GWrecharge_NH4;  //%"NH4-recharge" $\\left[\\kg_{N}m^{-2}day^{-1}\\right]$ 
-        output_map[3233] = &summary->GWrecharge_NO3;  //%"NO3-recharge" $\\left[\\kg_{N}m^{-2}day^{-1}\\right]$ 
-        output_map[3234] = &summary->GWrecharge_orgN;  //%"orgN-recharge" $\\left[\\kg_{N}m^{-2}day^{-1}\\right]$ 
-     
+        output_map[3229] = &summary->GWdischarge_NH4;      //%"NH4-discharge" $\\left[\\kg_{N}m^{-2}day^{-1}\\right]$ 
+        output_map[3230] = &summary->GWdischarge_NO3;      //%"NO3-discharge" $\\left[\\kg_{N}m^{-2}day^{-1}\\right]$ 
+        output_map[3231] = &summary->GWdischarge_orgN;     //%"orgN-discharge" $\\left[\\kg_{N}m^{-2}day^{-1}\\right]$ 
+        output_map[3232] = &summary->GWrecharge_NH4;       //%"NH4-recharge" $\\left[\\kg_{N}m^{-2}day^{-1}\\right]$ 
+        output_map[3233] = &summary->GWrecharge_NO3;       //%"NO3-recharge" $\\left[\\kg_{N}m^{-2}day^{-1}\\right]$ 
+        output_map[3234] = &summary->GWrecharge_orgN;      //%"orgN-recharge" $\\left[\\kg_{N}m^{-2}day^{-1}\\right]$ 
+        output_map[3235] = &summary->cumGWdischarge_NH4;   //%"Cumulative sum of NH4-discharge" $\\left[\\kg_{N}m^{-2}\\right]$ 
+        output_map[3236] = &summary->cumGWdischarge_NO3;   //%"Cumulative sum of NO3-discharge" $\\left[\\kg_{N}m^{-2}\\right]$ 
+        output_map[3237] = &summary->cumGWdischarge_orgN;  //%"Cumulative sum of orgN-discharge" $\\left[\\kg_{N}m^{-2}\\right]$ 
+        output_map[3238] = &summary->cumGWrecharge_NH4;    //%"Cumulative sum of NH4-recharge" $\\left[\\kg_{N}m^{-2}\\right]$ 
+        output_map[3239] = &summary->cumGWrecharge_NO3;    //%"Cumulative sum of NO3-recharge" $\\left[\\kg_{N}m^{-2}\\right]$ 
+        output_map[3240] = &summary->cumGWrecharge_orgN;   //%"Cumulative sum of orgN-recharge" $\\left[\\kg_{N}m^{-2}\\right]$ 
+        output_map[3241] = &summary->cumGWbalance;         //%"Cumulative sum of groundwater balance (recharge-discharge)" $\\left[\\kg_{H2O}m^{-2}\\right]$ 
+        output_map[3242] = &summary->cumGWbalance_NH4;     //%"Cumulative sum of NH4-balance (recharge-discharge)" $\\left[\\kg_{N}m^{-2}\\right]$ 
+        output_map[3243] = &summary->cumGWbalance_NO3;     //%"Cumulative sum of orgN-discharge (recharge-discharge)" $\\left[\\kg_{N}m^{-2}\\right]$ 
+        output_map[3244] = &summary->cumGWbalance_orgN;    //%"Cumulative sum of orgN-discharge (recharge-discharge)" $\\left[\\kg_{N}m^{-2}\right]$ 
+        output_map[3245] = &summary->GWbalance;            //%"Groundwater balance (recharge-discharge)" $\\left[\\kg_{H2O}m^{-2}day^{-1}\\right]$ 
+        output_map[3246] = &summary->GWbalance_NH4;        //%"NH4-balance" $\\left[\\kg_{N}m^{-2}day^{-1}\\right]$ 
+        output_map[3247] = &summary->GWbalance_NO3;        //%"NO3-balance" $\\left[\\kg_{N}m^{-2}day^{-1}\\right]$ 
+        output_map[3248] = &summary->GWbalance_orgN;       //%"orgN-dbalance" $\\left[\\kg_{N}m^{-2}day^{-1}\\right]$ 
+         
         output_map[3300] = &summary->BD_top5;  //%"Avareged bulk density in the top 5 cm of soil" $\\left[\\kg_{C}m^{-3}\\right]$ 
         output_map[3301] = &summary->BD_top10; //%"Avareged bulk density in the top 10 cm of soil" $\\left[\\kg_{C}m^{-3}\\right]$ 
         output_map[3302] = &summary->BD_top15; //%"Avareged bulk density in the top 15 cm of soil" $\\left[\\kg_{C}m^{-3}\\right]$ 
@@ -2742,9 +2758,9 @@ int output_map_init(double** output_map, phenology_struct* phen, metvar_struct* 
         output_map[3506] = &summary->cumWinput; //%"Cumulative sum of water inputs" $\\left[\\kg_{H2O}m^{-2}\\right]$ 
         output_map[3507] = &summary->cumGWsnk; //%"Cumulative sum of GW-infiltration" $\\left[\\kg_{H2O}m^{-2}\\right]$ "Cumulative sum GW-infiltration" $\\left[\\kg_{H2O}m^{-2 } \\right]$ "Cumulative sum potential evapotranspiration" %
         output_map[3508] = &summary->cumWoutput; //%"Cumulative sum of GW-infiltration" $\\left[\\kg_{H2O}m^{-2}\\right]$ "Cumulative sum GW-infiltration" $\\left[\\kg_{H2O}m^{-2 } \\right]$ "Cumulative sum potential evapotranspiration" %
-        output_map[3509] = &summary->cumUNSATchangeGW_NH4; //%"Cumulative sum of all NH4 fluxes (ecological processes, denitrification, fertilization)" $\\left[\\kg_{N}m^{-2 }\\right]$ 
-        output_map[3510] = &summary->cumUNSATchangeGW_NO3; //%"Cumulative sum of all NO3 fluxes (ecological processes, denitrification, fertilization)" $\\left[\\kg_{N}m^{-2 }\\right]$ 
-        output_map[3511] = &summary->cumUNSATchangeGW_orgN; //%"Cumulative sum of all orgN fluxes (ecological processes, denitrification, fertilization)" $\\left[\\kg_{N}m^{-2 }\\right]$ 
+        output_map[3509] = &summary->cumTOTALchangeGW_NH4; //%"Cumulative sum of all NH4 fluxes (ecological processes, denitrification, fertilization) covered by GW in GWlayer" $\\left[\\kg_{N}m^{-2 }\\right]$ 
+        output_map[3510] = &summary->cumTOTALchangeGW_NO3; //%"Cumulative sum of all NO3 fluxes (ecological processes, denitrification, fertilization) covered by GW in GWlayer" $\\left[\\kg_{N}m^{-2 }\\right]$ 
+        output_map[3511] = &summary->cumTOTALchangeGW_orgN; //%"Cumulative sum of all orgN fluxes (ecological processes, denitrification, fertilization) covered by GW in GWlayer" $\\left[\\kg_{N}m^{-2 }\\right]$ 
         output_map[3512] = &summary->cumUNSATecofunc_NH4; //%"Cumulative sum of NH4 ecological fluxes (fixaton, deposition,mineralization-immobilization,  plant uptake, nitrification, denitrification) affected by GW-effect in unsaturated zone (above GWD)" $\\left[\\kg_{N}m^{-2 }\\right]$ 
         output_map[3513] = &summary->cumUNSATfertil_NH4; //%"Cumulative sum of NH4 fertilization fluxes affected by GW-effect in unsaturated zone" $\\left[\\kg_{N}m^{-2 }\\right]$ 
         output_map[3514] = &summary->cumUNSATdischarge_NH4; //%"Cumulative sum of NH4 discharge fluxes in unsaturated zone (above GWD)" $\\left[\\kg_{N}m^{-2 }\\right]$ 
@@ -2784,30 +2800,16 @@ int output_map_init(double** output_map, phenology_struct* phen, metvar_struct* 
         output_map[3550] = &sprop->DBARarray[10]; //%"Unlimited value of DBAR in diffusion calculation between CAPIL and NORM layers" $\\left[dimless\\right]$ 
         output_map[3551] = &sprop->DBARarray[11]; //%"Unlimited value of DBAR in diffusion calculation between last GW-layer and first noGW-layer" $\\left[dimless\\right]$ 
 
-        output_map[3554] = &soilInfo->content_NORMgw[0];
-        output_map[3555] = &soilInfo->content_NORMgw[1];
-        output_map[3556] = &soilInfo->content_NORMgw[2];
-        output_map[3557] = &soilInfo->content_NORMgw[3];
-        output_map[3558] = &soilInfo->content_NORMgw[4];
-        output_map[3559] = &soilInfo->content_NORMgw[5];
-        output_map[3560] = &soilInfo->content_CAPILgw[0];
-        output_map[3561] = &soilInfo->content_CAPILgw[1];
-        output_map[3562] = &soilInfo->content_CAPILgw[2];
-        output_map[3563] = &soilInfo->content_CAPILgw[3];
-        output_map[3564] = &soilInfo->content_CAPILgw[4];
-        output_map[3565] = &soilInfo->content_CAPILgw[5];
-        output_map[3566] = &soilInfo->content_SATgw[0];
-        output_map[3567] = &soilInfo->content_SATgw[1];
-        output_map[3568] = &soilInfo->content_SATgw[2];
-        output_map[3569] = &soilInfo->content_SATgw[3];
-        output_map[3570] = &soilInfo->content_SATgw[4];
-        output_map[3571] = &soilInfo->content_SATgw[5];
-        output_map[3572] = &soilInfo->ratio_CAPILgw[0];
-        output_map[3573] = &soilInfo->ratio_CAPILgw[1];
-        output_map[3574] = &soilInfo->ratio_CAPILgw[2];
-        output_map[3575] = &soilInfo->ratio_CAPILgw[3];
-     
-
+        output_map[3560] = &soilInfo->balance_UNSAT[0]; //%"Balance of NH4 in unsaturated part of groundwater layer" $\\left[dimless\\right]$ 
+        output_map[3561] = &soilInfo->balance_UNSAT[1]; //%"Balance of NO3 in unsaturated part of groundwater layer" $\\left[dimless\\right]$ 
+        output_map[3562] = &soilInfo->balance_UNSAT[2]; //%"Balance of soil1N in unsaturated part of groundwater layer" $\\left[dimless\\right]$ 
+        output_map[3563] = &soilInfo->balance_UNSAT[3]; //%"Balance of soil2N in unsaturated part of groundwater layer" $\\left[dimless\\right]$ 
+        output_map[3564] = &soilInfo->balance_UNSAT[4]; //%"Balance of soil3N in unsaturated part of groundwater layer" $\\left[dimless\\right]$ 
+        output_map[3565] = &soilInfo->balance_UNSAT[5]; //%"Balance of soil4N in unsaturated part of groundwater layer" $\\left[dimless\\right]$ 
+        output_map[3566] = &soilInfo->balance_UNSAT[6]; //%"Balance of soil1C in unsaturated part of groundwater layer" $\\left[dimless\\right]$ 
+        output_map[3567] = &soilInfo->balance_UNSAT[7]; //%"Balance of soil2C in unsaturated part of groundwater layer" $\\left[dimless\\right]$ 
+        output_map[3568] = &soilInfo->balance_UNSAT[8]; //%"Balance of soil3C in unsaturated part of groundwater layer" $\\left[dimless\\right]$ 
+        output_map[3569] = &soilInfo->balance_UNSAT[9]; //%"Balance of soil4C in unsaturated part of groundwater layer" $\\left[dimless\\right]$ 
 
     }
 

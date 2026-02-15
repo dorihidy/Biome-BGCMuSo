@@ -1,13 +1,12 @@
 /* 
 make_zero_flux_struct.c
-create structures initialized with zero for forcing fluxes to zero
-between simulation days
+create structures initialized with zero for forcing fluxes to zero between simulation days
 
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
 Original code: Copyright 2000, Peter E. Thornton
 Numerical Terradynamic Simulation Group, The University of Montana, USA
-Modified code: Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Modified code: Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -37,7 +36,7 @@ int make_zero_flux_struct(const control_struct* ctrl, wflux_struct* wf, cflux_st
 		wf->FRZ_to_NORM[layer] = 0;
 		wf->FRZ_to_CAPIL[layer] = 0;
 	}
-	wf->flagRAIN = 0;
+
 	wf->prcp_to_canopyw = 0;
 	wf->prcp_to_soilSurface = 0;
 	wf->prcp_to_snoww = 0;
@@ -50,8 +49,6 @@ int make_zero_flux_struct(const control_struct* ctrl, wflux_struct* wf, cflux_st
 	wf->SUBLsnoww = 0;
 	wf->snoww_to_soilw = 0;
 	wf->EVPsoilw = 0;
-	wf->EVPsoilw0 = 0;
-	wf->EVPsoilw1 = 0;
 	wf->EVPsoilwNORMcf = 0;
 	wf->EVPsoilwCAPILcf = 0;
 	wf->TRPsoilwNORMcf = 0;
@@ -120,6 +117,7 @@ int make_zero_flux_struct(const control_struct* ctrl, wflux_struct* wf, cflux_st
 	wf->GWrecharge_CAPILcf = 0;
 	wf->GWrecharge_lastCAPIL = 0;
 	wf->GWrecharge_total = 0;
+
 
 	wf->inflow_NORMcf = 0;
 	wf->inflow_CAPILcf = 0;
@@ -983,6 +981,7 @@ int make_zero_flux_struct(const control_struct* ctrl, wflux_struct* wf, cflux_st
 
 			soilInfo->dismatGWrecharge[dm][layer] = 0;
 			soilInfo->dismatGWdischarge[dm][layer] = 0;
+			soilInfo->dismatGWmovchange[dm][layer] = 0;
 			soilInfo->dismatGWdecomp[dm][layer] = 0;
 			soilInfo->dismatGWfertil[dm][layer] = 0;
 			soilInfo->dismatGWecofunc[dm][layer] = 0;
@@ -992,30 +991,23 @@ int make_zero_flux_struct(const control_struct* ctrl, wflux_struct* wf, cflux_st
 			soilInfo->dismatTOTALdecomp[dm][layer] = 0;
 			soilInfo->dismatTOTALfertil[dm][layer] = 0;
 			soilInfo->dismatTOTALecofunc[dm][layer] = 0;
-
-			if (dm < N_DISSOLVorgN)
-			{
-				soilInfo->FRZ_to_litrN[dm][layer] = 0;
-				soilInfo->FRZ_to_litrC[dm][layer] = 0;
-			}
-
 		}
 		
 	}
 
 	soilInfo->dismatGWmovchangeN_total = 0;
+	soilInfo->dismatGWecofuncN_total = 0;
+	soilInfo->dismatGWdecompN_total = 0;
+	soilInfo->dismatGWfertilN_total = 0;
 	soilInfo->dismatGWmovchangeC_total = 0;
+	soilInfo->dismatGWecofuncC_total = 0;
+	soilInfo->dismatGWdecompC_total = 0;
+	soilInfo->dismatGWfertilC_total = 0;
 
 	for (dm = 0; dm < N_DISSOLVMATER; dm++)
 	{
-
 		soilInfo->dismatLeach_NORMgw[dm] = 0;	
 		soilInfo->dismatLeach_NORMcf[dm] = 0;
-		soilInfo->dismatGWdecomp_NORM[dm] = 0;
-		soilInfo->dismatGWdecomp_CAPIL[dm] = 0;
-		soilInfo->dismatGWecofunc_NORM[dm] = 0;
-		soilInfo->dismatGWecofunc_CAPIL[dm] = 0;
-		soilInfo->dismatGWmovchange[dm] = 0;
 
 	}
 
@@ -1063,6 +1055,10 @@ int make_zero_flux_struct(const control_struct* ctrl, wflux_struct* wf, cflux_st
 	summary->GWrecharge_NH4 = 0;
 	summary->GWrecharge_NO3 = 0;
 	summary->GWrecharge_orgN = 0;
+	summary->GWbalance = 0;
+	summary->GWbalance_NH4 = 0;
+	summary->GWbalance_NO3 = 0;
+	summary->GWbalance_orgN = 0;
 
 
 	return (errorCode);

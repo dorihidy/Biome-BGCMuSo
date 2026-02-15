@@ -6,7 +6,7 @@ read sprop file for pointbgc simulation
 Biome-BGCMuSo v7.0.
 Original code: Copyright 2000, Peter E. Thornton
 Numerical Terradynamic Simulation Group, The University of Montana, USA
-Modified code: Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Modified code: Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -36,7 +36,7 @@ int sprop_init(file init, soilprop_struct* sprop, control_struct* ctrl)
 	char key[] = "SOIL_FILE";
 	char keyword[STRINGSIZE];
 	char header[STRINGSIZE];
-
+	double PROPlayerDC_CTRL = 0;
 	
 	/********************************************************************
 	**                                                                 **
@@ -868,6 +868,13 @@ int sprop_init(file init, soilprop_struct* sprop, control_struct* ctrl)
 
 
 		}
+		if (sprop->PROPlayerDC_mes[layer] != DATA_GAP) PROPlayerDC_CTRL += sprop->PROPlayerDC_mes[layer];
+	}
+	/* control */
+	if (sprop->PROPlayerDC_mes[0] != DATA_GAP && PROPlayerDC_CTRL != 1)
+	{
+		printf("ERROR in PROPlayerDC (sum must equal to 1), sprop_init.c\n");
+		errorCode = 208103;
 	}
 
 
@@ -923,7 +930,7 @@ int soilb_estimation(double sand, double silt, double* soilB, double* VWCsat,dou
 	double VWCsat_array[12]			= {0.4,   0.42,  0.44,  0.46,  0.48,  0.49,		0.5,   0.505,	0.51,	0.515,	0.52,	0.525};
 	double VWCfc_array[12]			= {0.155, 0.190, 0.250, 0.310, 0.360, 0.380,	0.390, 0.405,	0.420,	0.435,	0.445,	0.460};
 	double VWCwp_array[12]			= {0.030, 0.050, 0.090, 0.130, 0.170, 0.190,	0.205, 0.220,	0.240,	0.260,	0.275,	0.290};
-	double BDgcm3_array[12]				= {1.6,   1.58,  1.56,  1.54,  1.52,  1.5,		1.48,  1.46,	1.44,	1.42,	1.4,	1.38};
+	double BDgcm3_array[12]			= {1.6,   1.58,  1.56,  1.54,  1.52,  1.5,		1.48,  1.46,	1.44,	1.42,	1.4,	1.38};
 	double RCN_array[12]			= {50,    52,    54,    56,    58,    60,		62,    64,		66,		68,		70,		72};
 	double p1diffus_array[12]       = {0.88,  0.88,  0.88,  0.88,  0.88,  0.88,		0.88,  0.88,	0.88,	0.88,	0.88,	0.88 };
 	double p2diffus_array[12]       = {35.4,  35.4,  35.4,  35.4,  35.4,  35.4,		35.4,  35.4,	35.4,	35.4,	35.4,	35.4 };
@@ -1092,7 +1099,7 @@ int multilayer_soilcalc(control_struct* ctrl,  soilprop_struct* sprop)
 		/*  PSIhw = pow(10, pF_hygroscopw) / (-10000); estimated soil water potential at hygroscopic water in MPa (1MPa = 10000cm)  (fc: pF = 2.5; wp: pF = 4.2) */
 	
 		/* 2.4 CONTROL - measured VWC values: SAT>FC>WP>HW */
-		if ((VWCsat - VWCfc) < 0.001 || (VWCfc - VWCwp) < 0.001  || (VWCwp - VWChw) < 0.001 || VWChw < 0.001 || VWCsat > 1.0) 
+		if ((VWCsat - VWCfc) < 0.00001 || (VWCfc - VWCwp) < 0.00001  || (VWCwp - VWChw) < 0.00001 || VWChw < 0.00001 || VWCsat > 1.0) 
 		{
 			if (!errorCode) printf("ERROR in measured VWC data in SOI file\n");
 			if (!errorCode) printf("rules: VWCsat > VWCfc; VWCfc > VWCwp; VWCwp > VWChw; VWChw > 0.001, VWCsat <1.0, VWChw>0.01\n");

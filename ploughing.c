@@ -4,7 +4,7 @@ do ploughing  - decrease the plant material (leafc, leafn, canopy water)
 
  *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 Biome-BGCMuSo v7.0.
-Copyright 2022, D. Hidy [dori.hidy@gmail.com]
+Copyright 2025, D. Hidy [dori.hidy@gmail.com]
 Hungarian Academy of Sciences, Hungary
 See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentation, model executable and example input files.
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -20,17 +20,19 @@ See the website of Biome-BGCMuSo at http://nimbus.elte.hu/bbgc/ for documentatio
 #include "pointbgc_struct.h"
 #include "bgc_struct.h"
 #include "pointbgc_func.h"
+#include "bgc_func.h"
 #include "bgc_constants.h"
 
-int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_struct* sitec, soilprop_struct* sprop, metvar_struct* metv,  epvar_struct* epv,
+int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_struct* sitec, soilprop_struct* sprop, soilInfo_struct* soilInfo, metvar_struct* metv,  epvar_struct* epv,
 			  ploughing_struct* PLG, cstate_struct* cs, nstate_struct* ns, wstate_struct* ws, cflux_struct* cf, nflux_struct* nf, wflux_struct* wf)
 {
 
 	/* ploughing parameters */
-	int PLGlayer, layer;
-	double PLGdepth, PLGcoeff, NH4_SUM, NO3_SUM, soilw_SUM, TsoilSUM, sand_SUM, silt_SUM;	 
+	int PLGlayer, layer, dm;
+	double PLGdepth, PLGcoeff, soilw_SUM, TsoilSUM, sand_SUM, silt_SUM;	 
 	double litr1c_SUM, litr2c_SUM, litr3c_SUM, litr4c_SUM, litr1n_SUM, litr2n_SUM, litr3n_SUM, litr4n_SUM;
-	double soil1c_SUM, soil2c_SUM, soil3c_SUM, soil4c_SUM, soil1n_SUM, soil2n_SUM, soil3n_SUM, soil4n_SUM;
+	double content_soilSUM[N_DISSOLVMATER], content_soilPRE[N_DISSOLVMATER][N_SOILLAYERS];
+	double ratioNORM, ratioCAPIL, diffNORM, diffCAPIL;
 	int md, year, flag;
 	
 	int errorCode = 0;
@@ -41,11 +43,16 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 
 	errorCode=0;
 	PLGdepth=0;
-	PLGcoeff=NH4_SUM=NO3_SUM=soilw_SUM=TsoilSUM=sand_SUM=silt_SUM=0;	 
+	PLGcoeff=soilw_SUM=TsoilSUM=sand_SUM=silt_SUM=0;	 
 	litr1c_SUM=litr2c_SUM=litr3c_SUM=litr4c_SUM=litr1n_SUM=litr2n_SUM=litr3n_SUM=litr4n_SUM=0;
-	soil1c_SUM=soil2c_SUM=soil3c_SUM=soil4c_SUM=soil1n_SUM=soil2n_SUM=soil3n_SUM=soil4n_SUM=0;
 
 	PLGcoeff = 0;
+
+	for (dm = 0; dm < N_DISSOLVMATER; dm++)
+	{
+		content_soilSUM[dm] = 0;
+		for (layer = 0; layer < N_SOILLAYERS; layer++) content_soilPRE[dm][layer] = soilInfo->content_soil[dm][layer];
+	}
 
 	/**********************************************************************************************/
 	/* I. CALCULATING PLGcoeff AND PLGdepth */
@@ -72,75 +79,141 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 				
 			}
 
+			/* ploughing is not possible in layers which contain GW */
+			if (sprop->GWlayer != DATA_GAP)
+			{
+				if (PLGlayer >= sprop->GWlayer) PLGlayer = (int) sprop->GWlayer - 1;
+			}
+
 		}
 	}
+
+
 	/**********************************************************************************************/
 	/* II. UNIFORM DISTRIBUTION OF SMINN, VWC litterC, litterN and soilC and soilN AFTER PLOUGHING */
 
 
 	if (PLGcoeff > 0)
 	{
-		for (layer = 0; layer<=PLGlayer; layer++)
+
+		/* *****************************************************************************************************/
+		/* II./1. firsttime_flag=0 (before calculation note initial values, partlyORtotal_flag=1 (TOTAL (BOUND+DISSOLV) is affected  */
+
+		if (!errorCode && calc_DISSOLVandBOUND(0, 1, sprop, soilInfo))
 		{
-			
+			printf("ERROR in calc_DISSOLVandBOUND.c for ploughing.c\n");
+			errorCode = 1;
+		}
+
+		/* *****************************************************************************************************/
+		/* II./2. summarizing content data of affected layers */
+		for (layer = 0; layer <= PLGlayer; layer++)
+		{
+
 			TsoilSUM += metv->Tsoil[layer] * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
 
-			soilw_SUM     += ws->soilw[layer];
-			NH4_SUM   += ns->NH4[layer];
-			NO3_SUM   += ns->NO3[layer];
-			sand_SUM      += sprop->sand[layer];
-			silt_SUM      += sprop->silt[layer];
+			soilw_SUM += ws->soilw[layer];
+			sand_SUM += sprop->sand[layer];
+			silt_SUM += sprop->silt[layer];
 			litr1c_SUM += cs->litr1c[layer];
 			litr2c_SUM += cs->litr2c[layer];
 			litr3c_SUM += cs->litr3c[layer];
 			litr4c_SUM += cs->litr4c[layer];
-			litr1n_SUM += ns->litr1n[layer];  
-			litr2n_SUM += ns->litr2n[layer]; 
-			litr3n_SUM += ns->litr3n[layer]; 
-			litr4n_SUM += ns->litr4n[layer]; 
-			soil1c_SUM += cs->soil1c[layer];
-			soil2c_SUM += cs->soil2c[layer];
-			soil3c_SUM += cs->soil3c[layer];
-			soil4c_SUM += cs->soil4c[layer];
-			soil1n_SUM += ns->soil1n[layer];
-			soil2n_SUM += ns->soil2n[layer];
-			soil3n_SUM += ns->soil3n[layer];
-			soil4n_SUM += ns->soil4n[layer];
+			litr1n_SUM += ns->litr1n[layer];
+			litr2n_SUM += ns->litr2n[layer];
+			litr3n_SUM += ns->litr3n[layer];
+			litr4n_SUM += ns->litr4n[layer];
+
+			for (dm = 0; dm < N_DISSOLVMATER; dm++) content_soilSUM[dm] += soilInfo->content_soil[dm][layer];
+
 
 		}
 
-		
+		/* *****************************************************************************************************/
+		/* II./3. uniforming content data of affected layers */
+
 		for (layer = 0; layer<=PLGlayer; layer++)
 		{
 			metv->Tsoil[layer] = TsoilSUM;
 
-			ws->soilw[layer]   = soilw_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+    		ws->soilw[layer]   = soilw_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
 			epv->VWC[layer]    = ws->soilw[layer] / (water_density * sitec->soillayer_thickness[layer]);
 
 			sprop->sand[layer] = sand_SUM/PLGdepth;
 			sprop->silt[layer] = silt_SUM/PLGdepth;
 			sprop->clay[layer] = 100-sprop->sand[layer]-sprop->silt[layer];
 
+			cs->litr1c[layer] = litr1c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			cs->litr2c[layer] = litr2c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			cs->litr3c[layer] = litr3c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			cs->litr4c[layer] = litr4c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
 
-			ns->NH4[layer]   = NH4_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
-			ns->NO3[layer]   = NO3_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
-			cs->litr1c[layer]  = litr1c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
-			cs->litr2c[layer]  = litr2c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
-			cs->litr3c[layer]  = litr3c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
-			cs->litr4c[layer]  = litr4c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
-			ns->litr1n[layer]  = litr1n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
-			ns->litr2n[layer]  = litr2n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
-			ns->litr3n[layer]  = litr3n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
-			ns->litr4n[layer]  = litr4n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
-			cs->soil1c[layer]  = soil1c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
-			cs->soil2c[layer]  = soil2c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
-			cs->soil3c[layer]  = soil3c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
-			cs->soil4c[layer]  = soil4c_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
-			ns->soil1n[layer]  = soil1n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
-			ns->soil2n[layer]  = soil2n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
-			ns->soil3n[layer]  = soil3n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
-			ns->soil4n[layer]  = soil4n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer]; 
-			ns->soil4n[layer]  = soil4n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer]; 
+			ns->litr1n[layer] = litr1n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			ns->litr2n[layer] = litr2n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			ns->litr3n[layer] = litr3n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+			ns->litr4n[layer] = litr4n_SUM * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer];
+
+
+			for (dm = 0; dm < N_DISSOLVMATER; dm++) soilInfo->content_soil[dm][layer] = content_soilSUM[dm] * sitec->soillayer_thickness[layer] / sitec->soillayer_depth[PLGlayer] ;
+
+	
+			/* if capillary zone exists in unsaturated zone (not in GWlayer) */
+			if (layer == sprop->CFlayer && sprop->dz_CAPILcf + sprop->dz_NORMcf)
+			{
+
+				for (dm = 0; dm < N_DISSOLVMATER; dm++)
+				{
+					/* calculation of NORM and CAPIL ratio */
+					if (soilInfo->content_NORMcf[dm] + soilInfo->content_CAPILcf[dm])
+					{
+						ratioNORM = soilInfo->content_NORMcf[dm] / (soilInfo->content_NORMcf[dm] + soilInfo->content_CAPILcf[dm]);
+						ratioCAPIL = soilInfo->content_CAPILcf[dm] / (soilInfo->content_NORMcf[dm] + soilInfo->content_CAPILcf[dm]);
+					}
+					else
+					{
+						ratioNORM = sprop->dz_NORMcf / (sprop->dz_NORMcf + sprop->dz_CAPILcf);
+						ratioCAPIL = sprop->dz_CAPILcf / (sprop->dz_NORMcf + sprop->dz_CAPILcf);
+					}
+					if (fabs(1 - ratioNORM - ratioCAPIL) > CRIT_PREC)
+					{
+						printf("\n");
+						printf("ERROR in ratio calculation in multilayer_sminn.c\n");
+						errorCode = 1;
+					}
+
+					diffNORM = (soilInfo->content_soil[dm][layer] - content_soilPRE[dm][layer]) * ratioNORM;
+					diffCAPIL = (soilInfo->content_soil[dm][layer] - content_soilPRE[dm][layer]) * ratioCAPIL;
+
+					/* NORM zone: negative storage value is not possible - covered by GW */
+					if (diffNORM + soilInfo->content_NORMcf[dm] < 0) diffNORM = -1 * soilInfo->content_NORMcf[dm];
+
+					soilInfo->content_NORMcf[dm] += diffNORM;
+
+					/* CAPIL zone: negative storage value is not possible - covered by GW */
+					diffCAPIL = (soilInfo->content_soil[dm][layer] - content_soilPRE[dm][layer]) - diffNORM;
+
+
+					if (soilInfo->content_CAPILcf[dm] + diffCAPIL < 0)
+					{
+						if (fabs(soilInfo->content_CAPILcf[dm] + diffCAPIL) > CRIT_PREC)
+						{
+							printf("ERROR in content_CAPILgw calculation in multilayer_sminn.c\n");
+							errorCode = 1;
+						}
+						else
+							diffCAPIL = soilInfo->content_CAPILcf[dm];
+					}
+					soilInfo->content_CAPILcf[dm] += diffCAPIL;
+
+					if (fabs(soilInfo->content_soil[dm][layer] - (soilInfo->content_NORMcf[dm] + soilInfo->content_CAPILcf[dm])) > CRIT_PREC_lenient * 10)
+					{
+						printf("ERROR in content_CAPILcf calculation in multilayer_sminn.c\n");
+						errorCode = 1;
+					}
+
+				}
+			}
+
 
 	
 
@@ -164,7 +237,7 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 		/* III. CALCULATING FLUXES */
 	
 	
-		/* 1. leaf, froot, yield, sofstem, gresp*/
+		/* III.1. leaf, froot, yield, sofstem, gresp*/
 
 		if (epc->leaf_cn)
 		{
@@ -215,7 +288,7 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 
 		nf->retransn_to_PLG              = ns->retransn * PLGcoeff;
 
-		/* 2. standing dead biome to cut-down belowground materail: PLGcoeff part of aboveground and whole belowground */
+		/* III.2. standing dead biome to cut-down belowground materail: PLGcoeff part of aboveground and whole belowground */
 
 		cf->STDBc_leaf_to_PLG	         = cs->STDBc_leaf     * PLGcoeff;
 		cf->STDBc_froot_to_PLG	         = cs->STDBc_froot    * PLGcoeff;
@@ -242,10 +315,10 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 
 
 		/**********************************************************************************************/
-		/* III. STATE UPDATE */
+		/* IV. STATE UPDATE */
 
-		/* 1. OUT */
-		/* 1.1. leaf, froot, yield, sofstem, gresp*/
+		/* IV. 1. OUT */
+		/* IV. 1.1. leaf, froot, yield, sofstem, gresp*/
 		cs->leafc				-= cf->leafc_to_PLG;
 		cs->leafc_transfer		-= cf->leafc_transfer_to_PLG;
 		cs->leafc_storage		-= cf->leafc_storage_to_PLG;
@@ -276,7 +349,7 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 		ns->retransn			-= nf->retransn_to_PLG;
    
 
-		/* 1.2. standing dead biome */
+		/* IV.1.2. standing dead biome */
 		cs->STDBc_leaf     -= cf->STDBc_leaf_to_PLG;
 		cs->STDBc_froot    -= cf->STDBc_froot_to_PLG;
 		cs->STDBc_yield    -= cf->STDBc_yield_to_PLG;
@@ -287,7 +360,7 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 		ns->STDBn_yield    -= nf->STDBn_yield_to_PLG;
 		ns->STDBn_softstem -= nf->STDBn_softstem_to_PLG;
 
-		/* 1.3. cut-down dead biome: aboveground to belowground */
+		/* IV.1.3. cut-down dead biome: aboveground to belowground */
 		cs->CTDBc_leaf     -= cf->CTDBc_leaf_to_PLG;
 		cs->CTDBc_yield    -= cf->CTDBc_yield_to_PLG;
 		cs->CTDBc_softstem -= cf->CTDBc_softstem_to_PLG;
@@ -297,11 +370,11 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 		ns->CTDBn_softstem -= nf->CTDBn_softstem_to_PLG;
 	
 	
-		/* 1.4 water*/
+		/* IV.1.4 water*/
 		ws->canopyw        -= wf->canopyw_to_PLG;
 
 		/*--------------------------------------------------------------------*/
-		/* 2. IN: fluxes to belowground cut-down biomass */
+		/* IV.2. IN: fluxes to belowground cut-down biomass */
 	 
 		cs->CTDBc_froot += cf->leafc_to_PLG     + cf->leafc_storage_to_PLG     + cf->leafc_transfer_to_PLG  + 
 						   cf->yieldc_to_PLG     + cf->yieldc_storage_to_PLG     + cf->yieldc_transfer_to_PLG + 
@@ -322,6 +395,26 @@ int ploughing(const control_struct* ctrl, const epconst_struct* epc, siteconst_s
 							nf->STDBn_yield_to_PLG    + nf->CTDBn_yield_to_PLG + 
 							nf->STDBn_softstem_to_PLG + nf->CTDBn_softstem_to_PLG +
 							nf->STDBn_froot_to_PLG;
+
+		/* *****************************************************************************************************/
+		/* V. udpate pools */
+
+
+		/* transfer value: NH4, NO3, DOC, DON  to content_array etc.*/
+		if (!errorCode && check_soilcontent(-1, 1, sprop, cs, ns, soilInfo))
+		{
+			printf("ERROR in check_soilcontent.c for multilayer_sminn.c\n");
+			errorCode = 1;
+		}
+
+		/* firsttime_flag=1 (after calculation note initial values, int partlyORtotal_flag=1 (TOTAL (BOUND+DISSOLV) is affected  */
+		if (!errorCode && calc_DISSOLVandBOUND(1, 1, sprop, soilInfo))
+		{
+			printf("ERROR in calc_DISSOLVandBOUND.c for multilayer_sminn.c\n");
+			errorCode = 1;
+		}
+
+
 	}
 
    return (errorCode);
